@@ -1,0 +1,11 @@
+dem_resampling.py:
+  working_dir: C:\Users\gwena\Documents\STDL\2_En_cours\dolines\02_data
+  output_dir: outputs/resampled_DEM
+  dem_dir: inputs/random_dem_tiles
+
+doline_detection.py:
+  working_dir: .
+  output_dir: outputs
+  dem_dir: inputs/DEM
+  aoi: inputs/AOI/AOI.shp
+
