@@ -1,7 +1,13 @@
+download_tiles.py:
+  working_dir: C:\Users\gwena\Documents\STDL\2_En_cours\dolines\02_data
+  output_dir: inputs/tiles
+  aoi: inputs/vectors/pilots.geojson
+  overwrite: False
+
 dem_resampling.py:
   working_dir: C:\Users\gwena\Documents\STDL\2_En_cours\dolines\02_data
   output_dir: outputs/resampled_DEM
-  dem_dir: inputs/random_dem_tiles
+  dem_dir: inputs/tiles
 
 doline_detection.py:
   working_dir: .
