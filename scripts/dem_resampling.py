@@ -10,6 +10,9 @@ import numpy as np
 import pandas as pd
 import rasterio as rio
 from rasterio.enums import Resampling
+from rasterio.windows import Window
+
+from math import ceil, floor
 
 from functions.fct_misc import format_logger, get_config
 
@@ -30,6 +33,7 @@ DEM_DIR = cfg['dem_dir']
 DESIRED_RESOLUTION = 5      # in meters
 INPUT_RESOLUTION = 0.5      # in meters
 FACTOR = INPUT_RESOLUTION/DESIRED_RESOLUTION
+MESH_SIZE = 6              # in pixels
 
 os.chdir(WORKING_DIR)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -40,6 +44,8 @@ dem_list = glob(os.path.join(DEM_DIR, '*.tif'))
 if len(dem_list) == 0:
     logger.critical(f'No DEM found in {DEM_DIR}')
     sys.exit(1)
+
+    
 # ----- Data processing -----
 
 for dem_path in tqdm(dem_list, desc="Smooth DEM"):
@@ -59,6 +65,27 @@ for dem_path in tqdm(dem_list, desc="Smooth DEM"):
 
         dem_meta = src.meta
 
+    if new_width != new_height:
+        logger.error(f'{dem_path} is not square! Tile is ignored.')
+        continue
+
     dem_meta.update({'height': new_height, 'width': new_width, 'transform': transform}) 
-    with rio.open(os.path.join(OUTPUT_DIR, os.path.basename(dem_path)), 'w', **dem_meta) as dst:
+    resized_image_path = os.path.join(OUTPUT_DIR, os.path.basename(dem_path))
+    with rio.open(resized_image_path, 'w', **dem_meta) as dst:
         dst.write(resampled_dem)
+
+    shift = new_width%MESH_SIZE
+    if shift != 0:
+        crop_before = floor(shift/2)
+        crop_after = ceil(shift/2)
+        window = Window(crop_before, crop_before, new_width-shift, new_height-shift)
+        with rio.open(resized_image_path, 'r') as src:
+            cropped_dem = src.read(window=window)
+            
+        dem_meta.update({'height': cropped_dem.shape[2], 'width': cropped_dem.shape[1]})
+        with rio.open(os.path.join(OUTPUT_DIR, 'cropped_' + os.path.basename(dem_path)), 'w', **dem_meta) as dst:
+            dst.write(cropped_dem)
+
+
+toc = time()
+logger.info(f"Done in {toc - tic:0.4f} seconds")
