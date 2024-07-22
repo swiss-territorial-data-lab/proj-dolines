@@ -1,17 +1,22 @@
 download_tiles.py:
-  working_dir: C:\Users\gwena\Documents\STDL\2_En_cours\dolines\02_data
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: inputs/tiles
   aoi: inputs/vectors/pilots.geojson
   overwrite: False
 
 dem_resampling.py:
-  working_dir: C:\Users\gwena\Documents\STDL\2_En_cours\dolines\02_data
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/resampled_DEM
   dem_dir: inputs/tiles
 
+treatment_mask.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: outputs/treatment_mask
+  dem_dir: outputs/resampled_DEM
+
 doline_detection.py:
-  working_dir: .
-  output_dir: outputs
-  dem_dir: inputs/DEM
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: outputs/dolines
+  dem_dir: outputs/resampled_DEM
   aoi: inputs/AOI/AOI.shp
 
