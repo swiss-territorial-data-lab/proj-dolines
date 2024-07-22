@@ -1,5 +1,6 @@
 # Files
 **/*/test*.ipynb
+**/*/treatment_mask.py
 
 # Development & test folders
 output*/

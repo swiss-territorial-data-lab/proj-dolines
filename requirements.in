@@ -4,5 +4,4 @@ loguru
 scikit-image
 PyYAML
 rasterstats
-richdem
 tqdm
