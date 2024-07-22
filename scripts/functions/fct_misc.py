@@ -4,6 +4,10 @@ from argparse import ArgumentParser
 from loguru import logger
 from yaml import FullLoader, load
 
+import geopandas as gpd
+import rasterio as rio
+from rasterio.features import shapes
+from shapely.geometry import shape
 
 def format_logger(logger):
     """
@@ -75,3 +79,21 @@ def get_maximum_coordinates(bbox_geom):
     max_y = max(coords[1])
 
     return (max_x, max_y)
+
+
+def polygonize_binary_raster(binary_raster, crs=None, transform=None):
+
+    if isinstance(binary_raster, str):
+        with rio.open(binary_raster) as src:
+            image=src.read(1)
+            crs = src.crs
+            transform = src.transform
+    else:
+        image = binary_raster
+
+    mask= image==1
+    geoms = ((shape(s), v) for s, v in shapes(image, mask, transform=transform))
+    gdf=gpd.GeoDataFrame(geoms, columns=['geometry', 'class'])
+    gdf.set_crs(crs=crs, inplace=True)
+
+    return gdf

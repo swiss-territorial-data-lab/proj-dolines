@@ -3,5 +3,6 @@ geopandas
 loguru
 scikit-image
 PyYAML
-rasterio
+rasterstats
+richdem
 tqdm
