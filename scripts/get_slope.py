@@ -30,11 +30,6 @@ WORKING_DIR = cfg['working_dir']
 OUTPUT_DIR = cfg['output_dir']
 DEM_DIR = cfg['dem_dir']
 
-DESIRED_RESOLUTION = 5      # in meters
-INPUT_RESOLUTION = 0.5      # in meters
-FACTOR = INPUT_RESOLUTION/DESIRED_RESOLUTION
-MESH_SIZE = 6              # in pixels
-
 os.chdir(WORKING_DIR)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -51,39 +46,18 @@ if len(dem_list) == 0:
 for dem_path in tqdm(dem_list, desc="Smooth DEM"):
 
     with rio.open(dem_path) as src:
-        resampled_dem = src.read(
-            out_shape=(src.count, int(src.height*FACTOR), int(src.width*FACTOR)),
-            resampling=Resampling.bilinear
-        )
-
-        new_width = resampled_dem.shape[-1]
-        new_height = resampled_dem.shape[-2]
-        transform = src.transform * src.transform.scale(
-            (src.width / new_width),
-            (src.height / new_height),
-        )
-
+        dem_data = src.read()
         dem_meta = src.meta
 
-    if new_width != new_height:
-        logger.error(f'{dem_path} is not square! Tile is ignored.')
-        continue
-
-    dem_meta.update({'height': new_height, 'width': new_width, 'transform': transform}) 
-    resized_image_path = os.path.join(OUTPUT_DIR, os.path.basename(dem_path))
-    # with rio.open(resized_image_path, 'w', **dem_meta) as dst:
-    #     dst.write(resampled_dem)
-
     # Calculate slope
-    cell_size = transform[0]
-    px, py = np.gradient(resampled_dem[0, :, :], cell_size)
+    cell_size = dem_meta['transform'][0]
+    px, py = np.gradient(dem_data[0, :, :], cell_size)
     slope = np.sqrt(px**2 + py**2)
     
     slope_dem_meta = dem_meta.copy()
     slope_dem_meta.update({'dtype': 'float32'})
-    slope_dir = os.path.join(OUTPUT_DIR, 'slope')
-    os.makedirs(slope_dir, exist_ok=True)
-    with rio.open(os.path.join(slope_dir, 'slope' + os.path.basename(dem_path).lstrip('swissalti3d')), 'w', **slope_dem_meta) as dst:
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    with rio.open(os.path.join(OUTPUT_DIR, 'slope_' + os.path.basename(dem_path)), 'w', **slope_dem_meta) as dst:
         dst.write(slope[np.newaxis, ...])
 
 
