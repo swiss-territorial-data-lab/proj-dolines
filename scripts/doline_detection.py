@@ -32,12 +32,13 @@ AOI = cfg['aoi']
 
 os.chdir(WORKING_DIR)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+diff_dir = os.path.join(DEM_DIR, 'diff_smoothed_dem')
+os.makedirs(diff_dir, exist_ok=True)
 written_files = []
 
 logger.info('Read data...')
 
-dem_list = glob(os.path.join(DEM_DIR, 'swissalti3d_*.tif'))
-# aoi_gdf = gpd.read_file(AOI)
+dem_list = glob(os.path.join(DEM_DIR, '*.tif'))
 
 if len(dem_list) == 0:
     logger.critical('No DEM files found.')
@@ -61,8 +62,17 @@ for dem_path in tqdm(dem_list, desc="Detect dolines"):
     potential_sinkholes_arr = np.where((dem_diff>1.5) & (dem_data!=dem_meta['nodata']), 1, 0)
     potential_sinkholes_arr = potential_sinkholes_arr.astype('int16')
 
-    # Here, the mask from the 1st step should be applied. Not done.
-    # Maybe we should create a mask based on slope...
+    potential_areas_path = os.path.join(DEM_DIR, 'possible_areas', 'possible_area_' + dem_name)
+    with rio.open(potential_areas_path) as src:
+        potential_area = src.read(1)
+
+    # Apply mask of flat non-sedimentary areas
+    potential_sinkholes_arr = np.where(potential_area==1, potential_sinkholes_arr, 0)
+
+    # # Output difference between original and smoothed dem on AOI for visualization
+    # filtered_dem_diff = np.where(potential_area==1, dem_diff, 0)
+    # with rio.open(os.path.join(diff_dir, 'diff_' + dem_name), 'w', **dem_meta) as dst:
+    #     dst.write(filtered_dem_diff[np.newaxis, ...])
     
     potential_sinkholes_gdf = polygonize_binary_raster(potential_sinkholes_arr, crs=dem_meta['crs'], transform=dem_meta['transform'])
     potential_sinkholes_gdf['corresponding_dem'] = dem_name
@@ -70,18 +80,20 @@ for dem_path in tqdm(dem_list, desc="Detect dolines"):
     all_potential_sinkhols_gdf = pd.concat([all_potential_sinkhols_gdf, potential_sinkholes_gdf]) \
                                         if not potential_sinkholes_gdf.empty else all_potential_sinkhols_gdf
 
-# TODO: uncomment and deal with dolines on several tiles
-# all_potential_sinkhols_gdf = all_potential_sinkhols_gdf.dissolve(as_index=False)
 
 logger.info('Filter depressions based on area, compactness and density...')
 
 # Filter the depressions based on area
-# Inital code only keep depressions over 300 m2. Based on the GT, we keep those over 40 m2.
-filtered_sinkholes_gdf = all_potential_sinkhols_gdf[all_potential_sinkhols_gdf.area > 40].copy()
+# Inital code only keep depressions over 300 m2. Based on the GT, we keep those between 40 and 8000 m2.
+filtered_sinkholes_gdf = all_potential_sinkhols_gdf[(all_potential_sinkhols_gdf.area > 40) & (all_potential_sinkhols_gdf.area < 8000)].copy()
 
 # Determine compactness
 filtered_sinkholes_gdf['compactness'] = 4 * np.pi * filtered_sinkholes_gdf.area / filtered_sinkholes_gdf.length**2
 filtered_sinkholes_gdf['type'] = ['round' if compactness > 0.33 else 'long' for compactness in filtered_sinkholes_gdf.compactness]
+
+filepath = os.path.join(OUTPUT_DIR, 'all_potential_sinkholes.gpkg')
+all_potential_sinkhols_gdf.to_file(filepath)
+written_files.append(filepath)
 
 filepath = os.path.join(OUTPUT_DIR, 'potential_sinkholes.gpkg')
 filtered_sinkholes_gdf.to_file(filepath)
@@ -109,8 +121,8 @@ written_files.append(filepath)
 long_sinkholes_gdf = filtered_sinkholes_gdf[
     (filtered_sinkholes_gdf['type']=='long')
     & (filtered_sinkholes_gdf.area < 9500)
-    # here we supressed a filter for area under 700 m2
-    & (filtered_sinkholes_gdf.compactness > 0.11)
+    # here we supressed a filter for area under 700 m2 and changed the compactness from 0.11 to 0.25
+    & (filtered_sinkholes_gdf.compactness > 0.25)
     & filtered_sinkholes_gdf.geometry.within(large_dense_areas_union)
 ].copy()
 
@@ -136,25 +148,26 @@ round_sinkholes_gdf.loc[:, 'type'] = [
 sinkholes_gdf = pd.concat([round_sinkholes_gdf, long_sinkholes_gdf], ignore_index=True)
 sinkholes_gdf['doline_id'] = sinkholes_gdf.index
 
-logger.info('Deal with thalwegs producing false positives...')
+logger.info('Deal with thalwegs producing false positives and too deep dolines...')
 
 # Get an outline on the surrounding terrain
 sinkholes_gdf['buffered_outline'] = sinkholes_gdf.geometry.buffer(15).boundary
 
-sinkholes_gdf['alti_diff'] = None
+sinkholes_gdf['alti_diff'] = np.nan
 for dem_tile in tqdm(sinkholes_gdf.corresponding_dem.unique(), desc="Get lowest point of sinkhole and its buffer outline"):
     dem_path = os.path.join(DEM_DIR, dem_tile)
     sinkholes_on_tiles_gdf = sinkholes_gdf[sinkholes_gdf.corresponding_dem == dem_tile].copy()
 
     # Get lowest point of sinkhole and its buffer outline
     with rio.open(dem_path) as src:
-        sinkholes_lowest_alti = zonal_stats(sinkholes_on_tiles_gdf.geometry, src.read(1), affine=src.transform, stats='min')
+        sinkholes_lowest_alti = zonal_stats(sinkholes_on_tiles_gdf.geometry, src.read(1), affine=src.transform, stats=['min', 'max'])
         buffer_lowest_alti = zonal_stats(sinkholes_on_tiles_gdf.buffered_outline, src.read(1), affine=src.transform, stats='min')
 
     # Keep results in a dataframe
     alti_dict={
         'doline_id': sinkholes_on_tiles_gdf.doline_id,
         'min_sinkhole': [x['min'] for x in sinkholes_lowest_alti],
+        'max_sinkhole': [x['max'] for x in sinkholes_lowest_alti],
         'min_buffer_line': [x['min'] for x in buffer_lowest_alti],
         'geometry': sinkholes_on_tiles_gdf.geometry
     }
@@ -162,11 +175,15 @@ for dem_tile in tqdm(sinkholes_gdf.corresponding_dem.unique(), desc="Get lowest 
 
     # Detect and mark thalwegs
     alti_gdf['alti_diff'] = alti_gdf['min_buffer_line'] - alti_gdf['min_sinkhole']
-    assert (alti_gdf.alti_diff<0).any(), 'Negative altitude difference between the sinkhole bottom and the buffer outline'
     thalweg_ids = alti_gdf.loc[alti_gdf['alti_diff'] < 0.8, 'doline_id']
 
     sinkholes_gdf.loc[sinkholes_gdf.doline_id.isin(thalweg_ids), 'type'] = 'thalweg'
     sinkholes_gdf.loc[sinkholes_gdf.doline_id.isin(alti_gdf.doline_id), 'alti_diff'] = alti_gdf.alti_diff
+
+    # Remove sinkholes that are too deep or in steep areas
+    alti_gdf['depth'] = alti_gdf['max_sinkhole'] - alti_gdf['min_sinkhole']
+    too_deep_steep_ids = alti_gdf.loc[(alti_gdf['depth'] > 45) | (alti_gdf['alti_diff'] < -5), 'doline_id']
+    sinkholes_gdf = sinkholes_gdf[~sinkholes_gdf.doline_id.isin(too_deep_steep_ids)].copy()
 
 filepath = os.path.join(OUTPUT_DIR, 'sinkholes.gpkg')
 sinkholes_gdf[['doline_id', 'type', 'compactness', 'alti_diff', 'geometry']].to_file(filepath)
