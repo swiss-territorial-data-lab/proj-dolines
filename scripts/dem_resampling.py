@@ -74,20 +74,6 @@ for dem_path in tqdm(dem_list, desc="Smooth DEM"):
     # with rio.open(resized_image_path, 'w', **dem_meta) as dst:
     #     dst.write(resampled_dem)
 
-    # Crop DEM to mesh extent
-    shift = new_width%MESH_SIZE
-    if shift != 0:
-        crop_before = floor(shift/2)
-        crop_after = ceil(shift/2)
-        window = Window(crop_before, crop_before, new_width-shift, new_height-shift)
-        with rio.open(resized_image_path, 'r') as src:
-            cropped_dem = src.read(window=window)
-        
-        cropped_dem_meta = dem_meta.copy()
-        cropped_dem_meta.update({'height': cropped_dem.shape[2], 'width': cropped_dem.shape[1]})
-        # with rio.open(os.path.join(OUTPUT_DIR, 'cropped_' + os.path.basename(dem_path)), 'w', **cropped_dem_meta) as dst:
-        #     dst.write(cropped_dem)
-
     # Calculate slope
     cell_size = transform[0]
     px, py = np.gradient(resampled_dem[0, :, :], cell_size)
@@ -97,7 +83,7 @@ for dem_path in tqdm(dem_list, desc="Smooth DEM"):
     slope_dem_meta.update({'dtype': 'float32'})
     slope_dir = os.path.join(OUTPUT_DIR, 'slope')
     os.makedirs(slope_dir, exist_ok=True)
-    with rio.open(os.path.join(slope_dir, 'slope_' + os.path.basename(dem_path).lstrip('swissalti3d')), 'w', **slope_dem_meta) as dst:
+    with rio.open(os.path.join(slope_dir, 'slope' + os.path.basename(dem_path).lstrip('swissalti3d')), 'w', **slope_dem_meta) as dst:
         dst.write(slope[np.newaxis, ...])
 
 

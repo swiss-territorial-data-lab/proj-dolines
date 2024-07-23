@@ -5,6 +5,7 @@ from time import time
 from tqdm import tqdm
 
 import geopandas as gpd
+import pandas as pd
 
 from urllib.error import HTTPError
 from urllib.request import urlretrieve
@@ -45,7 +46,9 @@ aoi_gdf = aoi_gdf.to_crs(2056)
 aoi_gdf['origin'] = [misc.get_bbox_origin(bbox_geom) for bbox_geom in aoi_gdf.geometry]
 aoi_gdf['max'] = [misc.get_maximum_coordinates(bbox_geom) for bbox_geom in aoi_gdf.geometry]
 
+dem_per_aoi_dict = {}
 for aoi in tqdm(aoi_gdf.itertuples(), desc="Download tiles", total=aoi_gdf.shape[0]):
+    dem_per_aoi_dict[aoi.name] = []
 
     year = aoi.year
     min_x, min_y = aoi.origin
@@ -59,7 +62,10 @@ for aoi in tqdm(aoi_gdf.itertuples(), desc="Download tiles", total=aoi_gdf.shape
     for x in range(min_x, max_x):
         for y in range(min_y, max_y):
             tile_location = str(x)[:4] + '-' + str(y)[:4]
-            outpath = os.path.join(OUTPUT_DIR, f'swissalti3d_{year}_' + tile_location + '.tif')
+            tile_name = f'swissalti3d_{year}_' + tile_location + '.tif'
+            outpath = os.path.join(OUTPUT_DIR, tile_name)
+            dem_per_aoi_dict[aoi.name].append(tile_name)
+
             if os.path.isfile(outpath) and not OVERWRITE:
                 continue
             
@@ -73,6 +79,10 @@ for aoi in tqdm(aoi_gdf.itertuples(), desc="Download tiles", total=aoi_gdf.shape
             except HTTPError as e:
                 logger.error(f'Tile {tile_location} in area {aoi.name} not found for year {year}.')
 
+dem_per_aoi_df = pd.DataFrame.from_dict(dem_per_aoi_dict, orient='index')
+filepath = os.path.join(OUTPUT_DIR, 'dem_per_aoi.csv')
+dem_per_aoi_df.transpose().to_csv(filepath, index=False)
+written_files.append(filepath)
 
 logger.success(f'Done!{"The following files were written:" if len(written_files) < 25 else ""}')
 if len(written_files) < 25:

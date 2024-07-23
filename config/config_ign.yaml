@@ -5,10 +5,18 @@ download_tiles.py:
   overwrite: False
 
 
+merge_dem_over_aoi.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: outputs/merged_DEM
+  dem_dir: inputs/tiles
+  dem_correspondence: inputs/tiles/dem_per_aoi.csv
+  aoi: inputs/vectors/pilots.geojson
+
+
 dem_resampling.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/resampled_DEM
-  dem_dir: inputs/tiles
+  dem_dir: outputs/merged_DEM
 
 
 define_possible_areas.py:
