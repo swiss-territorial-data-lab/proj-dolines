@@ -4,15 +4,35 @@ download_tiles.py:
   aoi: inputs/vectors/pilots.geojson
   overwrite: False
 
+
 dem_resampling.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/resampled_DEM
   dem_dir: inputs/tiles
 
+
+define_possible_areas.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: outputs/resampled_DEM/possible_areas
+  slope_dir: outputs/resampled_DEM/slope
+  non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
+  aoi: inputs/vectors/pilots.geojson
+
+
+gt_analysis.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: outputs/dolines
+  dem_dir: outputs/resampled_DEM
+  slope_dir: outputs/resampled_DEM/slope
+  aoi: inputs/vectors/pilots.geojson
+  dolines: inputs/vectors/dolines.gpkg
+
+
 treatment_mask.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/treatment_mask
   dem_dir: outputs/resampled_DEM
+
 
 doline_detection.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
