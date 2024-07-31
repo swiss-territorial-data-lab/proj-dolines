@@ -12,6 +12,7 @@ import rasterio as rio
 from cv2 import GaussianBlur
 from rasterstats import zonal_stats
 
+sys.path.insert(1, 'scripts')
 from functions.fct_misc import format_logger, get_config, polygonize_binary_raster
 
 logger = format_logger(logger)
@@ -27,8 +28,6 @@ cfg = get_config(config_key=os.path.basename(__file__), desc="This script perfor
 WORKING_DIR = cfg['working_dir']
 OUTPUT_DIR = cfg['output_dir']
 DEM_DIR = cfg['dem_dir']
-
-AOI = cfg['aoi']
 
 os.chdir(WORKING_DIR)
 os.makedirs(OUTPUT_DIR, exist_ok=True)

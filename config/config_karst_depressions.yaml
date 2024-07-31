@@ -1,0 +1,20 @@
+download_tiles.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: inputs/tiles
+  aoi: inputs/vectors/pilots.geojson
+  overwrite: False
+
+
+merge_dem_over_aoi.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: outputs/merged_DEM_1_m
+  dem_dir: inputs/tiles
+  dem_correspondence: inputs/tiles/dem_per_aoi.csv
+  aoi: inputs/vectors/pilots.geojson
+  res: 1
+
+
+depression_detection.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: outputs/dolines
+  dem_dir: outputs/merged_DEM_1_m

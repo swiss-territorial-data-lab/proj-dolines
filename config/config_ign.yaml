@@ -7,22 +7,23 @@ download_tiles.py:
 
 merge_dem_over_aoi.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/merged_DEM
+  output_dir: outputs/merged_DEM_5_m
   dem_dir: inputs/tiles
   dem_correspondence: inputs/tiles/dem_per_aoi.csv
   aoi: inputs/vectors/pilots.geojson
+  res: 5
 
 
 get_slope.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/merged_DEM/slope
-  dem_dir: outputs/merged_DEM
+  output_dir: outputs/merged_DEM_5_m/slope
+  dem_dir: outputs/merged_DEM_5_m
 
 
 define_possible_areas.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/merged_DEM/possible_areas
-  slope_dir: outputs/merged_DEM/slope
+  output_dir: outputs/merged_DEM_5_m/possible_areas
+  slope_dir: outputs/merged_DEM_5_m/slope
   non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
   aoi: inputs/vectors/pilots.geojson
 
@@ -30,8 +31,8 @@ define_possible_areas.py:
 gt_analysis.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/dolines
-  dem_dir: outputs/merged_DEM
-  slope_dir: outputs/merged_DEM/slope
+  dem_dir: outputs/merged_DEM_5_m
+  slope_dir: outputs/merged_DEM_5_m/slope
   aoi: inputs/vectors/pilots.geojson
   dolines: inputs/vectors/dolines.gpkg
 
@@ -39,12 +40,11 @@ gt_analysis.py:
 treatment_mask.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/treatment_mask
-  dem_dir: outputs/merged_DEM
+  dem_dir: outputs/merged_DEM_5_m
 
 
 doline_detection.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/dolines
-  dem_dir: outputs/merged_DEM
-  aoi: inputs/AOI/AOI.shp
+  dem_dir: outputs/merged_DEM_5_m
 
