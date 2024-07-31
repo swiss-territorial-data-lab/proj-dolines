@@ -67,8 +67,8 @@ for tile_path in tqdm(slope_tiles_list, desc='Produce binary raster of possible 
     # Remove areas with a high slope
     doline_areas = np.where((sedimentary_slopes!=meta['nodata']) & (sedimentary_slopes<0.85), 1, 0)
 
-    # Perform opening like in the original paper
-    opened_doline_areas = opening(doline_areas[0, :, :], disk(12))
+    # Perform opening, opposit to the original paper with half disk size
+    opened_doline_areas = opening(doline_areas[0, :, :], disk(6))
 
     meta.update({'dtype': 'int16'})
     with rio.open(os.path.join(OUTPUT_DIR, new_tile_name), 'w', **meta) as dst:

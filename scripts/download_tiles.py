@@ -42,6 +42,7 @@ written_files = []
 logger.info('Read AOI data')
 aoi_gdf = gpd.read_file(AOI)
 aoi_gdf = aoi_gdf.to_crs(2056)
+aoi_gdf.loc[:, 'geometry'] = aoi_gdf.geometry.buffer(2000)
 
 aoi_gdf['origin'] = [misc.get_bbox_origin(bbox_geom) for bbox_geom in aoi_gdf.geometry]
 aoi_gdf['max'] = [misc.get_maximum_coordinates(bbox_geom) for bbox_geom in aoi_gdf.geometry]
@@ -77,7 +78,19 @@ for aoi in tqdm(aoi_gdf.itertuples(), desc="Download tiles", total=aoi_gdf.shape
                 written_files.append(outpath)
 
             except HTTPError as e:
-                logger.error(f'Tile {tile_location} in area {aoi.name} not found for year {year}.')
+                logger.error(f'Tile {tile_location} in area {aoi.name} not found for year {year}. Trying some other years...')
+                for test_year in range(2019, 2024):
+                    url = 'https://data.geo.admin.ch/ch.swisstopo.swissalti3d/swissalti3d_' + str(test_year) + '_' + tile_location \
+                        + '/swissalti3d_' + str(test_year) + '_' + tile_location + '_0.5_2056_5728.tif'
+                    try:
+                        path, header = urlretrieve(url, outpath)
+                        assert os.path.isfile(outpath), f'File {outpath} not found after its download.'
+                        written_files.append(outpath)
+                        break
+                    except HTTPError:
+                        if test_year==2023:
+                            logger.error(f'Tile {tile_location} in area {aoi.name} not found for all years.')
+                        continue
 
 dem_per_aoi_df = pd.DataFrame.from_dict(dem_per_aoi_dict, orient='index')
 filepath = os.path.join(OUTPUT_DIR, 'dem_per_aoi.csv')
@@ -86,7 +99,8 @@ written_files.append(filepath)
 
 logger.success(f'Done!{"The following files were written:" if len(written_files) < 25 else ""}')
 if len(written_files) < 25:
-    logger.success(written_files)
+    for file in written_files:
+        logger.success(file)
 else:
     logger.success(f"Files were written in the folder {OUTPUT_DIR}")
 
