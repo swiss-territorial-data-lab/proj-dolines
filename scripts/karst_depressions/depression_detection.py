@@ -16,7 +16,8 @@ import whitebox
 wbt = whitebox.WhiteboxTools()
 
 sys.path.insert(1, 'scripts')
-from functions.fct_misc import format_logger, get_config, polygonize_binary_raster
+from functions.fct_misc import format_logger, get_config
+from functions.fct_rasters import polygonize_binary_raster, polygonize_raster
 
 logger = format_logger(logger)
 
@@ -32,14 +33,14 @@ WORKING_DIR = cfg['working_dir']
 OUTPUT_DIR = cfg['output_dir']
 DEM_DIR = cfg['dem_dir']
 
-OVERWRITE = False
-NODATA_VALUE = -32768
-NODATA_VALUE_DEM = -9999
+OVERWRITE = True
 
 os.chdir(WORKING_DIR)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 dem_processing_dir = os.path.join(WORKING_DIR, OUTPUT_DIR, 'dem_processing') # WBT works with absolute paths
 os.makedirs(dem_processing_dir, exist_ok=True)
+pour_points_dir = os.path.join(WORKING_DIR, OUTPUT_DIR, 'pour_points')
+os.makedirs(pour_points_dir, exist_ok=True)
 written_files = []
 
 # ----- Data processing -----
@@ -47,7 +48,7 @@ written_files = []
 logger.info('Read data...')
 
 dem_list = glob(os.path.join(DEM_DIR, '*.tif'))
-dolines_gdf = gpd.GeoDataFrame()
+potential_dolines_gdf = gpd.GeoDataFrame()
 if len(dem_list) == 0:
     logger.critical('No DEM files found.')
     sys.exit(1)
@@ -91,21 +92,23 @@ for dem_path in dem_list:
             output=flow_path,
         )
 
-        wbt.sink(
-            i=simplified_dem_path,
+        wbt.find_no_flow_cells(
+            dem=simplified_dem_path,
             output=sink_path,
         )
+        # Transform pour points to polygons
+        pour_points_gdf = polygonize_raster(sink_path, dtype=np.int16)
+        pour_points_gdf.loc[:, 'geometry'] = pour_points_gdf.geometry.centroid
+        pour_points_gdf.loc[:, 'number'] = np.arange(1, len(pour_points_gdf) + 1)
+
+        filepath = os.path.join(pour_points_dir, f'pour_points_{dem_name.rstrip('.tif')}.shp')
+        pour_points_gdf.to_file(filepath)
+        written_files.append(filepath)
 
         wbt.watershed(
             d8_pntr=flow_path,
-            pour_pts=sink_path,
+            pour_pts=filepath,
             output=watershed_path,
-        )
-
-        # Test the function "basins" from WhiteboxTools
-        wbt.basins(
-            d8_pntr=flow_path,
-            output=basin_path
         )
 
     logger.info(f'Perform zonal fill for area {dem_name.rstrip('.tif')}...')
@@ -114,13 +117,7 @@ for dem_path in dem_list:
     with rio.open(watershed_path) as src:
         wtshd_band = src.read(1)
         wtshd_meta = src.meta
-
-    unique_values = np.unique(wtshd_band)
-    wtshd_shapes = list(shapes(wtshd_band, transform=wtshd_meta['transform']))
-    polygons = [(shape(geom), value) for geom, value in wtshd_shapes if value != NODATA_VALUE]
-
-    watersheds_gdf=gpd.GeoDataFrame(polygons, columns=['geometry', 'number'])
-    watersheds_gdf.set_crs(crs=wtshd_meta['crs'], inplace=True)
+    watersheds_gdf = polygonize_raster(wtshd_band, meta=wtshd_meta)
     
     # Step 2: get the minimal altitude on each polygon
     min_alti_list = zonal_stats(watersheds_gdf.geometry.boundary, simplified_dem_path, affine=wtshd_meta['transform'], stats='min')
@@ -131,7 +128,7 @@ for dem_path in dem_list:
     # Step 3: transform the geodataframe back to raster
     out_arr = wtshd_band.astype(np.float64)
     shapes_w_new_value = ((geom, value) for geom, value in zip(zonal_fill_gdf.geometry, zonal_fill_gdf.min_alti))
-    zonal_fill_arr = rasterize(shapes=shapes_w_new_value, fill=NODATA_VALUE, out=out_arr, transform=wtshd_meta['transform'], dtype=np.float64)
+    zonal_fill_arr = rasterize(shapes=shapes_w_new_value, fill=wtshd_meta['nodata'], out=out_arr, transform=wtshd_meta['transform'], dtype=np.float64)
     wtshd_meta.update(dtype=np.float64)
     with rio.open(zonal_fill_path, 'w+', **wtshd_meta) as out:
         out.write_band(1, zonal_fill_arr)
@@ -141,21 +138,34 @@ for dem_path in dem_list:
         simplified_dem_arr = src.read(1)
         simplified_dem_meta = src.meta
 
+    nodata_value_dem = simplified_dem_meta['nodata']
     difference_arr = np.where(
-        (simplified_dem_arr==NODATA_VALUE_DEM) | (zonal_fill_arr==NODATA_VALUE),
-        NODATA_VALUE_DEM,
+        (simplified_dem_arr==nodata_value_dem) | (zonal_fill_arr==wtshd_meta['nodata']),
+        nodata_value_dem,
         zonal_fill_arr - simplified_dem_arr
     )
     with rio.open(os.path.join(dem_processing_dir, f'difference_{dem_name}'), 'w+', **simplified_dem_meta) as out:
         out.write_band(1, difference_arr)
     potential_dolines_arr = np.where(difference_arr > 0, 1, 0)
 
-    local_dolines_gdf = polygonize_binary_raster(potential_dolines_arr.astype(np.int16), crs=simplified_dem_meta['crs'], transform=simplified_dem_meta['transform'])
-    local_dolines_gdf['corresponding_dem'] = dem_name
-    dolines_gdf = pd.concat([dolines_gdf, local_dolines_gdf[['geometry', 'corresponding_dem']]], ignore_index=True)
+    local_depression_gdf = polygonize_binary_raster(potential_dolines_arr.astype(np.int16), crs=simplified_dem_meta['crs'], transform=simplified_dem_meta['transform'])
+    local_depression_gdf['corresponding_dem'] = dem_name
 
-filepath = os.path.join(OUTPUT_DIR, 'dolines.gpkg')
-dolines_gdf.to_file(filepath)
+    if local_depression_gdf.empty:
+        continue
+
+    # Get depth
+    depression_stats = zonal_stats(local_depression_gdf.geometry, dem_path, affine=simplified_dem_meta['transform'], stats=['min', 'max'])
+    local_depression_gdf['depth'] = [x['max'] - x['min'] for x in depression_stats]
+
+    potential_dolines_gdf = pd.concat([potential_dolines_gdf, local_depression_gdf[['geometry', 'corresponding_dem', 'depth']]], ignore_index=True)
+
+potential_dolines_gdf['diameter'] = potential_dolines_gdf.minimum_bounding_radius()*2
+# compute Schwartzberg compactness, the ratio of the perimeter to the circumference of the circle whose area is equal to the polygon area
+potential_dolines_gdf['compactness'] = 2*np.pi*np.sqrt(potential_dolines_gdf.area/np.pi)/potential_dolines_gdf.length
+
+filepath = os.path.join(OUTPUT_DIR, 'potential_dolines.gpkg')
+potential_dolines_gdf.to_file(filepath)
 written_files.append(filepath)
 
 logger.success('Done! The following files were written:')

@@ -83,8 +83,8 @@ for dem_path in tqdm(dem_list, desc="Detect dolines"):
 logger.info('Filter depressions based on area, compactness and density...')
 
 # Filter the depressions based on area
-# Inital code only keep depressions over 300 m2. Based on the GT, we keep those between 40 and 8000 m2.
-filtered_sinkholes_gdf = all_potential_sinkhols_gdf[(all_potential_sinkhols_gdf.area > 40) & (all_potential_sinkhols_gdf.area < 8000)].copy()
+# Inital code only keep depressions over 300 m2. Based on the GT, we keep those between 40.
+filtered_sinkholes_gdf = all_potential_sinkhols_gdf[all_potential_sinkhols_gdf.area > 40].copy()
 
 # Determine compactness
 filtered_sinkholes_gdf['compactness'] = 4 * np.pi * filtered_sinkholes_gdf.area / filtered_sinkholes_gdf.length**2
@@ -98,7 +98,7 @@ filepath = os.path.join(OUTPUT_DIR, 'potential_sinkholes.gpkg')
 filtered_sinkholes_gdf.to_file(filepath)
 written_files.append(filepath)
 
-# Make the Vornoi diagram of the round depressions
+# Make the Voronoi diagram of the round depressions
 center_geoms = filtered_sinkholes_gdf[filtered_sinkholes_gdf['type']=='round'].geometry.centroid
 voronoi_result_polys = center_geoms.voronoi_polygons()
 
