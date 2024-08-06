@@ -8,8 +8,7 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import rasterio as rio
-from shapely.geometry import shape
-from rasterio.features import shapes, rasterize
+from rasterio.features import rasterize
 from rasterstats import zonal_stats
 
 import whitebox 
@@ -33,7 +32,7 @@ WORKING_DIR = cfg['working_dir']
 OUTPUT_DIR = cfg['output_dir']
 DEM_DIR = cfg['dem_dir']
 
-OVERWRITE = True
+OVERWRITE = False
 
 os.chdir(WORKING_DIR)
 os.makedirs(OUTPUT_DIR, exist_ok=True)

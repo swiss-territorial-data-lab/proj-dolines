@@ -37,7 +37,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # ----- Data processing -----
 
-logger.info('Read data')
+logger.info('Read data...')
 
 slope_tiles_list = glob(os.path.join(SLOPE_DIR, '*.tif'))
 non_sedi_areas_gdf = gpd.read_parquet(NON_SEDIMENTARY_AREAS)

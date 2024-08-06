@@ -13,7 +13,8 @@ from cv2 import GaussianBlur
 from rasterstats import zonal_stats
 
 sys.path.insert(1, 'scripts')
-from functions.fct_misc import format_logger, get_config, polygonize_binary_raster
+from functions.fct_misc import format_logger, get_config
+from functions.fct_rasters import polygonize_binary_raster
 
 logger = format_logger(logger)
 

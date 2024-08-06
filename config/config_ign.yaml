@@ -1,7 +1,7 @@
 download_tiles.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: inputs/tiles
-  aoi: inputs/vectors/pilots.geojson
+  aoi: inputs/vectors/pilot_v2.geojson
   overwrite: False
 
 
@@ -10,7 +10,7 @@ merge_dem_over_aoi.py:
   output_dir: outputs/merged_DEM_5_m
   dem_dir: inputs/tiles
   dem_correspondence: inputs/tiles/dem_per_aoi.csv
-  aoi: inputs/vectors/pilots.geojson
+  aoi: inputs/vectors/pilot_v2.geojson
   res: 5
 
 
@@ -25,7 +25,7 @@ define_possible_areas.py:
   output_dir: outputs/merged_DEM_5_m/possible_areas
   slope_dir: outputs/merged_DEM_5_m/slope
   non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
-  aoi: inputs/vectors/pilots.geojson
+  aoi: inputs/vectors/pilot_v2.geojson
 
 
 gt_analysis.py:
@@ -33,7 +33,7 @@ gt_analysis.py:
   output_dir: outputs/dolines
   dem_dir: outputs/merged_DEM_5_m
   slope_dir: outputs/merged_DEM_5_m/slope
-  aoi: inputs/vectors/pilots.geojson
+  aoi: inputs/vectors/pilot_v2.geojson
   dolines: inputs/vectors/dolines.gpkg
 
 
