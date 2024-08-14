@@ -48,3 +48,9 @@ doline_detection.py:
   output_dir: outputs/dolines
   dem_dir: outputs/merged_DEM_5_m
 
+doline_detection_original.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: outputs/dolines/full_IGN_params
+  dem_dir: outputs/merged_DEM_5_m
+  mask_dir: outputs/treatment_mask
+  
