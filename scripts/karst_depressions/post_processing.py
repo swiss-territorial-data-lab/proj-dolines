@@ -72,7 +72,7 @@ depressions_near_rivers_gdf['part_in_river'] =  round(
 )
 
 potential_dolines_gdf = depressions_near_rivers_gdf.loc[
-    (depressions_near_rivers_gdf.part_in_river < 0.3) | (depressions_near_rivers_gdf.part_in_river.isna()), 
+    (depressions_near_rivers_gdf.part_in_river < 0.1) | (depressions_near_rivers_gdf.part_in_river.isna()), 
     potential_dolines_gdf.columns.tolist() + ['part_in_river']
 ]
 

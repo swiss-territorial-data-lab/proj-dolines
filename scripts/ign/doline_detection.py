@@ -186,7 +186,7 @@ for dem_tile in tqdm(sinkholes_gdf.corresponding_dem.unique(), desc="Get lowest 
     sinkholes_gdf = sinkholes_gdf[~sinkholes_gdf.doline_id.isin(too_deep_steep_ids)].copy()
 
 filepath = os.path.join(OUTPUT_DIR, 'sinkholes.gpkg')
-sinkholes_gdf[['doline_id', 'type', 'compactness', 'alti_diff', 'geometry']].to_file(filepath)
+sinkholes_gdf[['doline_id', 'type', 'compactness', 'alti_diff', 'corresponding_dem', 'geometry']].to_file(filepath)
 written_files.append(filepath)
 
 logger.success('Done! The following files were written:')
