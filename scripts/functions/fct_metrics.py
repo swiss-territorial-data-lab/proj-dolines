@@ -47,9 +47,9 @@ def get_fractional_sets(dets_gdf, labels_gdf, iou_threshold=0.25):
     _labels_gdf['label_geom'] = _labels_gdf.geometry
     
     # TRUE POSITIVES
-    left_join = gpd.sjoin(_dets_gdf, _labels_gdf, how='left', predicate='intersects', lsuffix='left', rsuffix='right')
+    left_join = gpd.sjoin(_dets_gdf, _labels_gdf, how='left', predicate='intersects', lsuffix='det', rsuffix='label')
     
-    # Test that something is detected
+    # Test that something is detect
     candidates_tp_gdf = left_join[left_join.label_id.notnull()].copy()
 
     # IoU computation between labels and detections
@@ -62,6 +62,9 @@ def get_fractional_sets(dets_gdf, labels_gdf, iou_threshold=0.25):
     best_matches_gdf.drop_duplicates(subset=['det_id'], inplace=True) # <- could change the results depending on which line is dropped (but rarely effective)
 
     # Detection, resp labels, with IOU lower than threshold value are considered as FP, resp FN, and saved as such
+    if 'tile_id_det' in best_matches_gdf.columns:
+        best_matches_gdf.rename(columns={'tile_id_label': 'tile_id'}, inplace=True)
+        best_matches_gdf.drop(columns=['tile_id_det'], inplace=True)
     actual_matches_gdf = best_matches_gdf[best_matches_gdf['IOU'] >= iou_threshold].copy()
     actual_matches_gdf = actual_matches_gdf.sort_values(by=['IOU'], ascending=False).drop_duplicates(subset=['label_id', 'tile_id'])
     actual_matches_gdf['IOU'] = actual_matches_gdf.IOU.round(3)
@@ -76,8 +79,8 @@ def get_fractional_sets(dets_gdf, labels_gdf, iou_threshold=0.25):
     condition = actual_matches_gdf.label_class == actual_matches_gdf.det_class
     tp_gdf = actual_matches_gdf[condition].reset_index(drop=True)
     mismatched_classes_gdf = actual_matches_gdf[~condition].reset_index(drop=True)
-    mismatched_classes_gdf.drop(columns=['x', 'y', 'z', 'dataset_right', 'label_geom'], errors='ignore', inplace=True)
-    mismatched_classes_gdf.rename(columns={'dataset_left': 'dataset'}, inplace=True)
+    mismatched_classes_gdf.drop(columns=['x', 'y', 'z', 'dataset_label', 'label_geom'], errors='ignore', inplace=True)
+    mismatched_classes_gdf.rename(columns={'dataset_det': 'dataset'}, inplace=True)
 
 
     # FALSE POSITIVES
@@ -85,23 +88,26 @@ def get_fractional_sets(dets_gdf, labels_gdf, iou_threshold=0.25):
     assert(len(fp_gdf[fp_gdf.duplicated()]) == 0)
     fp_gdf = pd.concat([fp_gdf_temp, fp_gdf], ignore_index=True)
     fp_gdf.drop(
-        columns=_labels_gdf.drop(columns='geometry').columns.to_list() + ['index_right', 'dataset_right', 'label_geom', 'IOU'], 
+        columns=_labels_gdf.drop(columns='geometry').columns.to_list() + ['index_label', 'dataset_label', 'label_geom', 'IOU', 'tile_id_label'], 
         errors='ignore', 
         inplace=True
     )
-    fp_gdf.rename(columns={'dataset_left': 'dataset'}, inplace=True)
+    fp_gdf.rename(columns={'dataset_det': 'dataset', 'tile_id_det': 'tile_id'}, inplace=True)
     
     # FALSE NEGATIVES
-    right_join = gpd.sjoin(_dets_gdf, _labels_gdf, how='right', predicate='intersects', lsuffix='left', rsuffix='right')
+    right_join = gpd.sjoin(_dets_gdf, _labels_gdf, how='right', predicate='intersects', lsuffix='det', rsuffix='label')
     fn_gdf = right_join[right_join.det_id.isna()].copy()
-    fn_gdf.drop_duplicates(subset=['label_id', 'tile_id'], inplace=True)
+    try:
+        fn_gdf.drop_duplicates(subset=['label_id', 'tile_id'], inplace=True)
+    except KeyError:
+        fn_gdf.drop_duplicates(subset=['label_id', 'tile_id_label'], inplace=True)
     fn_gdf = pd.concat([fn_gdf_temp, fn_gdf], ignore_index=True)
     fn_gdf.drop(
-        columns=_dets_gdf.drop(columns='geometry').columns.to_list() + ['dataset_left', 'index_right', 'x', 'y', 'z', 'label_geom', 'IOU', 'index_left'], 
+        columns=_dets_gdf.drop(columns='geometry').columns.to_list() + ['dataset_det', 'index_label', 'x', 'y', 'z', 'label_geom', 'IOU', 'index_det', 'tile_id_det'], 
         errors='ignore', 
         inplace=True
     )
-    fn_gdf.rename(columns={'dataset_right': 'dataset'}, inplace=True)
+    fn_gdf.rename(columns={'dataset_label': 'dataset', 'tile_id_label': 'tile_id'}, inplace=True)
     
     return tp_gdf, fp_gdf, fn_gdf, mismatched_classes_gdf
 

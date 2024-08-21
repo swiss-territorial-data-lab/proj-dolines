@@ -14,10 +14,18 @@ merge_dem_over_aoi.py:
   res: 1
 
 
+get_slope.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: outputs/merged_DEM_1_m/slope
+  dem_dir: outputs/merged_DEM_1_m
+
+
 depression_detection.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/dolines
   dem_dir: outputs/merged_DEM_1_m
+  vw_threshold: 0.5
+  rdp_eps: 3
 
 
 post_processing.py:
@@ -27,3 +35,19 @@ post_processing.py:
   tlm_data: inputs/vectors/side_data/tlm_subset.gpkg
   ground_cover_layer: tlm_bb_bodenbedeckung
   rivers: inputs/vectors/side_data/typisierung-fliessgewaesser_2056.gpkg
+
+
+assess_results.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: outputs/assessment
+  dem_dir: outputs/merged_DEM_1_m
+  ref_data:
+    geocover: inputs/vectors/dolines.gpkg
+    tlm: inputs/vectors/TLM-Dolinen-20240814/TLM-Dolinen-20240814.gpkg
+  detections:
+    watersheds: outputs/dolines/dolines.gpkg
+    ign: outputs/dolines/sinkholes.gpkg
+  pilot_areas: inputs/vectors/pilot_v2.geojson
+  type:
+    ref_data: tlm
+    dets: ign
