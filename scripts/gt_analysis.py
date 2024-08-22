@@ -9,6 +9,7 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import rasterio as rio
+import matplotlib.pyplot as plt
 from rasterstats import zonal_stats
 
 from functions.fct_misc import format_logger, get_config
@@ -26,6 +27,7 @@ WORKING_DIR = cfg['working_dir']
 OUTPUT_DIR = cfg['output_dir']
 SLOPE_DIR = cfg['slope_dir']
 DEM_DIR = cfg['dem_dir']
+TYPE = cfg['type']
 
 AOI = cfg['aoi']
 DOLINES = cfg['dolines']
@@ -43,11 +45,18 @@ aoi_gdf.to_crs(2056, inplace=True)
 dolines_gdf = gpd.read_file(DOLINES)
 dolines_gdf.to_crs(2056, inplace=True)
 
-dem_tile_list = glob(os.path.join(DEM_DIR, 'swissalti3d_*.tif'))
+dem_tile_list = glob(os.path.join(DEM_DIR, '*.tif'))
+if len(dem_tile_list) == 0:
+    logger.error('No DEM tiles found in {}'.format(DEM_DIR))
+    sys.exit(1)
 
 logger.info('Limit dolines to AOI...')
 
-gt_gdf = gpd.sjoin(dolines_gdf[['objectid', 'uuid', 'geometry']], aoi_gdf[['name', 'geometry']], how='inner')
+try:
+    gt_gdf = gpd.sjoin(dolines_gdf[['objectid', 'uuid', 'geometry']], aoi_gdf[['name', 'geometry']], how='inner')
+except KeyError:
+    gt_gdf = gpd.sjoin(dolines_gdf[['OBJECTID', 'geometry']], aoi_gdf[['name', 'geometry']], how='inner')
+    gt_gdf.rename(columns={'OBJECTID': 'objectid'}, inplace=True)
 gt_gdf['area'] = gt_gdf.area
 gt_gdf['perimeter'] = gt_gdf.length
 new_attributes = ['min', 'max', 'median', 'slope']
@@ -56,7 +65,7 @@ for attr in new_attributes:
 
 for tile in tqdm(dem_tile_list, desc="Get zonal stats"):
     dem_name = os.path.basename(tile)
-    slope_name = dem_name.replace('swissalti3d', 'slope')
+    slope_name = 'slope_' +dem_name
 
     with rio.open(tile) as src:
         altitude = zonal_stats(gt_gdf, src.read(1), affine=src.transform, stats=['min', 'max', 'median'])
@@ -75,8 +84,30 @@ for tile in tqdm(dem_tile_list, desc="Get zonal stats"):
         gt_gdf.loc[gt_gdf.objectid.isin(intersected_ids), new_attributes] = altitude_df.loc[altitude_df.slope.notna(), new_attributes].to_numpy()
 
 gt_gdf.astype({'min': 'float32', 'max': 'float32', 'median': 'float32', 'slope': 'float32'}, copy=False)
-gt_gdf['alti_diff'] = gt_gdf['max'] - gt_gdf['min']
-gt_gdf.to_file(os.path.join(OUTPUT_DIR, 'gt_analysis.gpkg'))
+gt_gdf['depth'] = gt_gdf['max'] - gt_gdf['min']
 
-logger.success(f'Done! The following file was written: {os.path.join(OUTPUT_DIR, "gt_analysis.gpkg")}.')
+filepath = os.path.join(OUTPUT_DIR, f'gt_analysis_{TYPE}.gpkg')
+gt_gdf.to_file(filepath)
+written_files.append(filepath)
+
+logger.info('Make histograms of the produced attributes...')
+
+ax = gt_gdf.plot.hist(column='depth', bins=50, title='Depth of the dolines', xlabel='Depth [m]', logy=True, legend=False).grid(axis='y')
+filepath = os.path.join(OUTPUT_DIR, f'hist_depth_{TYPE}.png')
+plt.savefig(filepath)
+written_files.append(filepath)
+
+ax = gt_gdf.plot.hist(column='slope', bins=50, title='Slope in the dolines', xlabel='Median slope', legend=False).grid(axis='y')
+filepath = os.path.join(OUTPUT_DIR, f'hist_slope_{TYPE}.png')
+plt.savefig(filepath)
+written_files.append(filepath)
+
+ax = gt_gdf.area.plot.hist(bins=50, title='Area of the dolines', xlabel='Area [m2]', logy=True, legend=False).grid(axis='y')
+filepath = os.path.join(OUTPUT_DIR, f'hist_area_{TYPE}.png')
+plt.savefig(filepath)
+written_files.append(filepath)
+
+logger.success(f'Done! The following files were written:')
+for file in written_files:
+    logger.success(file)
 logger.info(f'Elapsed time: {time() - tic:0.2f} seconds')
