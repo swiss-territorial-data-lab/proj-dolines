@@ -15,52 +15,72 @@ from functions.fct_misc import format_logger, get_config
 
 logger = format_logger(logger)
 
-# ----- Get config -----
+def main(dem_correspondence_pd, aoi_gdf, dem_dir, resolution, save_extra=False, output_dir='outputs'):
+    os.makedirs(output_dir, exist_ok=True)
 
-tic = time()
-logger.info('Starting...')
+    dem_dict = {}
+    for aoi in tqdm(aoi_gdf.itertuples(), desc="Merge DEMs", total=aoi_gdf.shape[0]):
+        dem_list = [
+            os.path.join(dem_dir, dem) for dem in dem_correspondence_pd[aoi.name].tolist()
+            if isinstance(dem, str) and os.path.exists(os.path.join(dem_dir, dem))
+        ]
 
-cfg = get_config(os.path.basename(__file__), desc="This script merges the DEM files over the AOI.")
+        if len(dem_list) == 0:
+            logger.warning(f'No DEMs found for AOI {aoi.name}')
+            continue
+        else:
+            with rio.open(dem_list[0]) as src:
+                meta = src.meta
 
-WORKING_DIR = cfg['working_dir']
-OUTPUT_DIR = cfg['output_dir']
-DEM_DIR = cfg['dem_dir']
-DEM_CORRESPONDENCE = cfg['dem_correspondence']
-AOI = cfg['aoi']
+        merged_dem, out_transform = merge(dem_list, res=resolution, resampling=Resampling.bilinear)
 
-RES = cfg['res'] # in meters
+        meta.update({'height': merged_dem.shape[1], 'width': merged_dem.shape[2], 'transform': out_transform})
+        tile_name = str(aoi.year) + '_' + str(round(out_transform[2]))[:4] + '_' + str(round(out_transform[5]))[:4] + '.tif'
 
-os.chdir(WORKING_DIR)
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+        if save_extra:
+            with rio.open(os.path.join(output_dir, tile_name), 'w', **meta) as dst:
+                dst.write(merged_dem)
 
-# ----- Data processing -----
+        dem_dict[tile_name] = (merged_dem, meta)
 
-logger.info('Read AOI data')
-dem_correspondence_pd = pd.read_csv(DEM_CORRESPONDENCE)
-aoi_gdf = gpd.read_file(AOI)
-aoi_gdf = aoi_gdf.to_crs(2056)
-aoi_gdf.loc[:, 'geometry'] = aoi_gdf.geometry.buffer(2000)
+    return dem_dict
 
-for aoi in tqdm(aoi_gdf.itertuples(), desc="Merge DEMs", total=aoi_gdf.shape[0]):
-    dem_list = [
-        os.path.join(DEM_DIR, dem) for dem in dem_correspondence_pd[aoi.name].tolist()
-        if isinstance(dem, str) and os.path.exists(os.path.join(DEM_DIR, dem))
-    ]
 
-    if len(dem_list) == 0:
-        logger.warning(f'No DEMs found for AOI {aoi.name}')
-        continue
-    else:
-        with rio.open(dem_list[0]) as src:
-            meta = src.meta
+def read_initial_data(aoi_path, dem_correspondence_csv):
+    dem_correspondence_pd = pd.read_csv(dem_correspondence_csv)
 
-    merged_dem, out_transform = merge(dem_list, res=RES, resampling=Resampling.bilinear)
+    aoi_gdf = gpd.read_file(aoi_path)
+    aoi_gdf = aoi_gdf.to_crs(2056)
+    aoi_gdf.loc[:, 'geometry'] = aoi_gdf.geometry.buffer(2000)
 
-    meta.update({'height': merged_dem.shape[1], 'width': merged_dem.shape[2], 'transform': out_transform})
-    tile_name = str(aoi.year) + '_' + str(round(out_transform[2]))[:4] + '_' + str(round(out_transform[5]))[:4] + '.tif'
+    return dem_correspondence_pd, aoi_gdf
 
-    with rio.open(os.path.join(OUTPUT_DIR, tile_name), 'w', **meta) as dst:
-        dst.write(merged_dem)
 
-logger.success(f'Done! The files were written in {OUTPUT_DIR}.')
-logger.info(f'Elapsed time: {time() - tic:0.2f} seconds')
+if __name__ == '__main__':
+    tic = time()
+    logger.info('Starting...')
+
+    # ----- Get parameters -----
+
+    cfg = get_config(os.path.basename(__file__), desc="This script merges the DEM files over the AOI.")
+
+    WORKING_DIR = cfg['working_dir']
+    OUTPUT_DIR = cfg['output_dir']
+    DEM_DIR = cfg['dem_dir']
+    DEM_CORRESPONDENCE = cfg['dem_correspondence']
+    AOI = cfg['aoi']
+
+    RES = cfg['res'] # in meters
+
+    os.chdir(WORKING_DIR)
+
+     # ----- Data processing -----
+
+    logger.info('Read AOI data')
+    dem_correspondence_pd, aoi_gdf = read_initial_data(AOI, DEM_CORRESPONDENCE)
+
+    _ = main(dem_correspondence_pd, aoi_gdf, DEM_DIR, RES, save_extra=True, output_dir=OUTPUT_DIR)
+    
+
+    logger.success(f'Done! The files were written in {OUTPUT_DIR}.')
+    logger.info(f'Elapsed time: {time() - tic:0.2f} seconds')

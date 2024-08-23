@@ -27,7 +27,7 @@ WORKING_DIR = cfg['working_dir']
 OUTPUT_DIR = cfg['output_dir']
 SLOPE_DIR = cfg['slope_dir']
 DEM_DIR = cfg['dem_dir']
-TYPE = cfg['type']
+TYPE = cfg['ref_type']
 
 AOI = cfg['aoi']
 DOLINES = cfg['dolines']
