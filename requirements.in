@@ -1,8 +1,12 @@
 opencv-python
 geopandas
 loguru
-scikit-image
+optuna
+plotly
 pyarrow
 PyYAML
 rasterstats
+rdp
+scikit-image
+scikit-learn
 tqdm

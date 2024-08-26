@@ -8,6 +8,8 @@ affine==2.4.0
     # via
     #   rasterio
     #   rasterstats
+alembic==1.13.2
+    # via optuna
 attrs==23.2.0
     # via
     #   fiona
@@ -37,18 +39,29 @@ cligj==0.7.2
 colorama==0.4.6
     # via
     #   click
+    #   colorlog
     #   loguru
     #   tqdm
+colorlog==6.8.2
+    # via optuna
 fiona==1.9.6
     # via rasterstats
 geopandas==1.0.1
     # via -r .\requirements.in
+greenlet==3.0.3
+    # via sqlalchemy
 imageio==2.34.2
     # via scikit-image
+joblib==1.4.2
+    # via scikit-learn
 lazy-loader==0.4
     # via scikit-image
 loguru==0.7.2
     # via -r .\requirements.in
+mako==1.3.5
+    # via alembic
+markupsafe==2.1.5
+    # via mako
 networkx==3.3
     # via scikit-image
 numpy==2.0.0
@@ -56,22 +69,29 @@ numpy==2.0.0
     #   geopandas
     #   imageio
     #   opencv-python
+    #   optuna
     #   pandas
     #   pyarrow
     #   pyogrio
     #   rasterio
     #   rasterstats
+    #   rdp
     #   scikit-image
+    #   scikit-learn
     #   scipy
     #   shapely
     #   snuggs
     #   tifffile
 opencv-python==4.10.0.84
     # via -r .\requirements.in
+optuna==3.6.1
+    # via -r .\requirements.in
 packaging==24.1
     # via
     #   geopandas
     #   lazy-loader
+    #   optuna
+    #   plotly
     #   pyogrio
     #   scikit-image
 pandas==2.2.2
@@ -80,6 +100,8 @@ pillow==10.4.0
     # via
     #   imageio
     #   scikit-image
+plotly==5.23.0
+    # via -r .\requirements.in
 pyarrow==17.0.0
     # via -r .\requirements.in
 pyogrio==0.9.0
@@ -93,15 +115,23 @@ python-dateutil==2.9.0.post0
 pytz==2024.1
     # via pandas
 pyyaml==6.0.1
-    # via -r .\requirements.in
+    # via
+    #   -r .\requirements.in
+    #   optuna
 rasterio==1.3.10
     # via rasterstats
 rasterstats==0.19.0
     # via -r .\requirements.in
+rdp==0.8
+    # via -r .\requirements.in
 scikit-image==0.24.0
     # via -r .\requirements.in
+scikit-learn==1.5.1
+    # via -r .\requirements.in
 scipy==1.14.0
-    # via scikit-image
+    # via
+    #   scikit-image
+    #   scikit-learn
 shapely==2.0.4
     # via
     #   geopandas
@@ -114,10 +144,24 @@ six==1.16.0
     #   python-dateutil
 snuggs==1.4.7
     # via rasterio
+sqlalchemy==2.0.32
+    # via
+    #   alembic
+    #   optuna
+tenacity==9.0.0
+    # via plotly
+threadpoolctl==3.5.0
+    # via scikit-learn
 tifffile==2024.7.2
     # via scikit-image
 tqdm==4.66.4
-    # via -r .\requirements.in
+    # via
+    #   -r .\requirements.in
+    #   optuna
+typing-extensions==4.12.2
+    # via
+    #   alembic
+    #   sqlalchemy
 tzdata==2024.1
     # via pandas
 win32-setctime==1.1.0
