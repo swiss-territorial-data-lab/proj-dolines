@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import rasterio as rio
 from shapely.geometry import mapping
+from shapely.validation import make_valid
 from rasterio.features import rasterize
 from rasterstats import zonal_stats
 
@@ -47,7 +48,6 @@ def main(dem_list, simplification_param, mean_filter_size=5, fill_depth=0.5, wor
         flow_path = os.path.join(dem_processing_dir, 'flow_direction_' + dem_name)
         sink_path = os.path.join(dem_processing_dir, 'sink_' + dem_name)
         watershed_path = os.path.join(dem_processing_dir, 'watersheds_' + dem_name)
-        basin_path = os.path.join(dem_processing_dir, 'basins_' + dem_name)
         zonal_fill_path = os.path.join(dem_processing_dir, 'zonal_fill_' + dem_name)
 
         if os.path.exists(watershed_path) and not overwrite:
@@ -143,15 +143,29 @@ def main(dem_list, simplification_param, mean_filter_size=5, fill_depth=0.5, wor
 
         potential_dolines_gdf = pd.concat([potential_dolines_gdf, local_depression_gdf[['geometry', 'corresponding_dem', 'depth']]], ignore_index=True)
 
+    failed_transform = 0
     mapped_objects = mapping(potential_dolines_gdf)
     for feature in tqdm(mapped_objects['features'], "Simplifying features"):
         coords = feature['geometry']['coordinates'][0]
-        coords_after_rdp = [rdp(x, epsilon=simplification_param) for x in coords]
-        # coords_post_vw = vw.Simplifier(coords).simplify(threshold=simplification_param)
-        feature['geometry']['coordinates'] = (tuple([tuple(arr) for arr in coords_after_rdp]),)
+        simplified_coords = vw.Simplifier(coords).simplify(threshold=simplification_param)
+        if len(simplified_coords) >= 3:
+            feature['geometry']['coordinates'] = (tuple([tuple(arr) for arr in simplified_coords]),)
+            continue
+        else:
+            simplified_coords = vw.Simplifier(coords).simplify(threshold=simplification_param/2)
+            if len(simplified_coords) >= 3:
+                feature['geometry']['coordinates'] = (tuple([tuple(arr) for arr in simplified_coords]),)
+                continue
+            
+        failed_transform += 1
+
+    logger.warning(f'Simplification failed for {failed_transform} out of {len(mapped_objects["features"])} features')
 
     simplified_pot_dolines_gdf = gpd.GeoDataFrame.from_features(mapped_objects, crs='EPSG:2056')
-    # assert (potential_dolines_gdf.geometry == simplified_pot_dolines_gdf.geometry).all(), 'no simplification happened'
+    simplified_pot_dolines_gdf.loc[simplified_pot_dolines_gdf.is_valid==False, 'geometry'] = \
+        simplified_pot_dolines_gdf.loc[simplified_pot_dolines_gdf.is_valid==False, 'geometry'].apply(make_valid)
+    assert (potential_dolines_gdf.geometry != simplified_pot_dolines_gdf.geometry).any(), 'no simplification happened'
+    assert (potential_dolines_gdf.shape[0] == simplified_pot_dolines_gdf.shape[0]), 'some elements disappeared during simplification'
 
     simplified_pot_dolines_gdf['diameter'] = simplified_pot_dolines_gdf.minimum_bounding_radius()*2
     # compute Schwartzberg compactness, the ratio of the perimeter to the circumference of the circle whose area is equal to the polygon area
@@ -170,6 +184,7 @@ def main(dem_list, simplification_param, mean_filter_size=5, fill_depth=0.5, wor
 
     return simplified_pot_dolines_gdf, written_files
 
+
 if __name__ == '__main__':
     # Start chronometer
     tic = time()
@@ -184,6 +199,7 @@ if __name__ == '__main__':
     DEM_DIR = cfg['dem_dir']
 
     RDP_EPS = cfg['rdp_eps']
+    VW_THRESHOLD = cfg['vw_threshold']
     overwrite = False
 
     os.chdir(WORKING_DIR)
@@ -193,7 +209,7 @@ if __name__ == '__main__':
     logger.info('Read data...')
 
     dem_list = glob(os.path.join(DEM_DIR, '*.tif'))
-    potential_dolines_gdf, written_files = main(dem_list, RDP_EPS, working_dir=WORKING_DIR, output_dir=OUTPUT_DIR, save_extra=True)
+    potential_dolines_gdf, written_files = main(dem_list, VW_THRESHOLD, working_dir=WORKING_DIR, output_dir=OUTPUT_DIR, save_extra=True)
 
     logger.success('Done! The following files were written:')
     for file in written_files:

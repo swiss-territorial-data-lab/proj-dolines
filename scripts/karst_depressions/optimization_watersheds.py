@@ -35,6 +35,7 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, water_bodies_gdf, 
     max_part_in_lake = trial.suggest_float('max_part_in_lake', 0.1, 0.3, step=0.05)
     max_part_in_river = trial.suggest_float('max_part_in_river', 0.1, 0.3, step=0.05)
     min_compactness = trial.suggest_float('min_compactness', 0.25, 0.75, step=0.05)
+    min_area = trial.suggest_int('min_area', 5, 40, step=5)
     max_area = trial.suggest_int('max_area', 2500, 8000, step=500)
     min_diameter = trial.suggest_float('min_diameter', 2, 10, step=0.5)
     min_depth = trial.suggest_float('min_depth', 0.1, 1, step=0.1)
@@ -44,6 +45,7 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, water_bodies_gdf, 
         'max_part_in_lake': max_part_in_lake,
         'max_part_in_river': max_part_in_river,
         'min_compactness': min_compactness,
+        'min_area': min_area,
         'max_area': max_area,
         'min_diameter': min_diameter,
         'min_depth': min_depth,

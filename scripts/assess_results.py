@@ -23,6 +23,9 @@ logger = format_logger(logger)
 
 def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type, save_extra=False, output_dir='outputs'):
 
+    logger.info(f'Source for the reference data: {ref_data_type}')
+    logger.info(f'Detection method: {det_type}')
+
     if 'type' in detections_gdf:
         detections_gdf = detections_gdf[detections_gdf['type']!='thalweg'].copy()
 
@@ -31,7 +34,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     ref_data_in_aoi_gdf.loc[:, 'tile_id'] = [tile_id + '.tif' for tile_id in ref_data_in_aoi_gdf.tile_id]
     dets_in_aoi_gdf = detections_gdf[detections_gdf.geometry.within(pilot_areas_gdf.geometry.union_all())].copy()
 
-    tp_gdf, fp_gdf, fn_gdf, _ = get_fractional_sets(dets_in_aoi_gdf, ref_data_in_aoi_gdf[['objectid', 'label_class', 'tile_id', 'geometry']])
+    tp_gdf, fp_gdf, fn_gdf, _ = get_fractional_sets(dets_in_aoi_gdf, ref_data_in_aoi_gdf[['objectid', 'label_class', 'tile_id', 'geometry']], iou_threshold=0.1)
     tp_gdf['tag'] = 'TP'
     fp_gdf['tag'] = 'FP'
     fp_gdf['label_class'] = 'non-doline'
@@ -44,6 +47,8 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     metric_fct = f1_score if ref_data_type == 'geocover' else recall_score
     metric = metric_fct(tagged_detections_gdf['label_class'], tagged_detections_gdf['det_class'], pos_label='doline')
     metrics_dict = {
+        'nbr labels': tagged_detections_gdf[tagged_detections_gdf.label_class == 'doline'].shape[0],
+        'nbr detections': tagged_detections_gdf[tagged_detections_gdf.det_class == 'doline'].shape[0],
         'precision': precision_score(tagged_detections_gdf.label_class, tagged_detections_gdf.det_class, pos_label='doline'),
         'recall': recall_score(tagged_detections_gdf['label_class'], tagged_detections_gdf['det_class'], pos_label='doline'),
         'f1': f1_score(tagged_detections_gdf['label_class'], tagged_detections_gdf['det_class'], pos_label='doline'),
@@ -76,12 +81,16 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         logger.info('Calculate the metrics for each pilot area...')
         pilot_areas = tagged_detections_gdf.tile_id.unique().tolist()
         metrics_per_area_dict = {
+            'nbr labels': [], 'nbr detections': [],
             'precision': [], 'recall': [], 'f1': [], 'median IoU for TP': []
         }
         for area_name in pilot_areas:
             results_in_area_gdf = tagged_detections_gdf[tagged_detections_gdf.tile_id == area_name].copy()
             if results_in_area_gdf[results_in_area_gdf.det_class == 'non-doline'].empty:
                 logger.warning(f'Area {area_name} does not contain any label corresponding to a false negative!')
+
+            metrics_per_area_dict['nbr labels'].append(results_in_area_gdf[results_in_area_gdf.label_class == 'doline'].shape[0])
+            metrics_per_area_dict['nbr detections'].append(results_in_area_gdf[results_in_area_gdf.det_class == 'doline'].shape[0])
 
             metrics_per_area_dict['precision'].append(precision_score(results_in_area_gdf.label_class, results_in_area_gdf.det_class, pos_label='doline'))
             metrics_per_area_dict['recall'].append(recall_score(results_in_area_gdf.label_class, results_in_area_gdf.det_class, pos_label='doline', zero_division=0))
@@ -95,7 +104,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
 
         # TODO: Make a graph P vs R on each area
 
-        similarity_dict = {'structural similarity': []}
+        similarity_dict = {'structural similarity': [], 'hausdorff distance': []}
         similarity_dir = os.path.join(output_dir, 'similarity_rasters')
         os.makedirs(similarity_dir, exist_ok=True)
         for area in tqdm(pilot_areas_gdf.itertuples(), desc='Compare image shapes', total=pilot_areas_gdf.shape[0]):
@@ -110,12 +119,13 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
             with rio.open(os.path.join(DEM_DIR, area.tile_id + '.tif')) as src:
                 meta = src.meta
 
+                # Determine structural similarity
                 # Mask DEM with the dolines
                 ref_image, _ = mask(src, area_ref_data_gdf.geometry)
                 det_image, _ = mask(src, area_dolines_gdf.geometry)
                 ref_cond = ref_image != meta['nodata']
                 det_cond = det_image != meta['nodata']
-                # Get the max and min coordinates of the dolines in the pilot area
+                # Get the max and min coordinates of the dolines in the pilot area -> Clip raster to AOI to limit the empty area increasing similarity
                 min_x = min(np.where(ref_cond)[1].min(), np.where(det_cond)[1].min())
                 min_y = min(np.where(ref_cond)[2].min(), np.where(det_cond)[2].min())
                 max_x = max(np.where(ref_cond)[1].max(), np.where(det_cond)[1].max())
@@ -126,11 +136,30 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
                 binary_det_image = np.where(det_cond, 1, 0)[:, min_x:max_x, min_y:max_y]
                 
                 similarity_dict['structural similarity'].append(structural_similarity(binary_ref_image, binary_det_image, data_range=1, channel_axis=0))
-                # TODO: do the hausdorff distance with the centroid of the points and not the binary image of the polygons
-                # similarity_dict['hausdorff distance'].append(hausdorff_distance(binary_ref_image, binary_det_image, method='modified'))
+
+                # Determine hausdorff distance
+                area_pixel_doline_gdf = area_dolines_gdf.copy()
+                area_pixel_doline_gdf.loc[:, 'geometry'] = area_pixel_doline_gdf.geometry.centroid.buffer(meta['transform'][0], cap_style=3)
+                area_pixel_ref_gdf = ref_data_gdf.copy()
+                area_pixel_ref_gdf.loc[:, 'geometry'] = area_pixel_ref_gdf.geometry.centroid.buffer(meta['transform'][0], cap_style=3)
+
+                ref_image, _ = mask(src, area_pixel_ref_gdf.geometry, nodata=0)  # Set nodata to 0, because the hausdorff distance works with non-zero pixels
+                ref_image[ref_image>0] = 1
+                det_image, _ = mask(src, area_pixel_doline_gdf.geometry, nodata=0)
+                det_image[det_image>0] = 1
+
+                similarity_dict['hausdorff distance'].append(hausdorff_distance(ref_image, det_image, method='modified'))
+
+            # with rio.open(os.path.join(similarity_dir, 'pt_ref_' + area.tile_id + '.tif'), 'w', **meta) as dst:
+            #     dst.write(ref_image)
+
+            # with rio.open(os.path.join(similarity_dir, 'pt_det_' + area.tile_id + '.tif'), 'w', **meta) as dst:
+            #     dst.write(det_image)
 
         similarity_df = pd.DataFrame.from_dict(similarity_dict, orient='index', columns=pilot_areas).transpose().round(3)
-        metrics_df = pd.concat([metrics_df, similarity_df], axis=1)
+        metrics_df = pd.concat([metrics_df, similarity_df], axis=1).reset_index().rename(columns={'index': 'tile_id'})
+        metrics_df.loc[:, 'tile_id'] = metrics_df.tile_id.str.rstrip('.tif')
+        metrics_df = pd.merge(pilot_areas_gdf[['name', 'tile_id']], metrics_df, on='tile_id', how='outer')
 
         filepath = os.path.join(output_dir, f'{ref_data_type}_metrics.csv')
         metrics_df.to_csv(filepath)
@@ -177,7 +206,7 @@ if __name__ == '__main__':
     pilot_areas_gdf = gpd.read_file(PILOT_AREAS)
     pilot_areas_gdf.to_crs(2056, inplace=True)
 
-    _, written_files = main(REF_DATA_TYPE, ref_data_gdf, detections_gdf, pilot_areas_gdf, save_extra=True, output_dir=OUTPUT_DIR)
+    _, written_files = main(REF_DATA_TYPE, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type='tlm', save_extra=True, output_dir=OUTPUT_DIR)
 
     logger.success('Done! The following files were written:')
     for file in written_files:

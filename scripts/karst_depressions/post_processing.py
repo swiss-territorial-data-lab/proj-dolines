@@ -12,7 +12,7 @@ logger = format_logger(logger)
 
 
 def main(potential_dolines_gdf, water_bodies_gdf, dissolved_rivers_gdf, 
-        max_part_in_lake=0.15, max_part_in_river=0.1, min_compactness=0.5, max_area=4000, min_diameter=2.5, min_depth=0.6, max_depth=100,
+        max_part_in_lake=0.15, max_part_in_river=0.1, min_compactness=0.6, min_area=30, max_area=4000, min_diameter=2.5, min_depth=0.6, max_depth=100,
         output_dir='outputs'):
     os.makedirs(output_dir, exist_ok=True)
 
@@ -43,9 +43,9 @@ def main(potential_dolines_gdf, water_bodies_gdf, dissolved_rivers_gdf,
     ]
 
     logger.info('Filter based on attributes...')
-
     dolines_gdf = potential_dolines_gdf[
         (potential_dolines_gdf.compactness > min_compactness)
+        & (potential_dolines_gdf.area > min_area)
         & (potential_dolines_gdf.area < max_area)
         & (potential_dolines_gdf.diameter > min_diameter)
         & (potential_dolines_gdf.depth > min_depth)
