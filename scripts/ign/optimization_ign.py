@@ -24,14 +24,14 @@ logger = misc.format_logger(logger)
 
 # ----- Define functions -----
 
-def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf, ref_data_gdf, slope_dir='slope'):
+def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf, ref_data_type, ref_data_gdf, slope_dir='slope'):
 
-    resolution = trial.suggest_float('resolution', 0.5, 5, step=0.5)
+    resolution = trial.suggest_float('resolution', 3, 5, step=0.5)
     max_slope = trial.suggest_float('max_slope', 0.7, 1.5, step=0.2)
 
-    gaussian_kernel = trial.suggest_int('gaussian_kernel', 3, 33, step=2)
-    gaussian_sigma = trial.suggest_float('gaussian_sigma', 0.5, 5, step=0.5)
-    dem_diff_thrsld = trial.suggest_float('dem_diff_thrsld', 0.5, 5, step=0.5)
+    gaussian_kernel = trial.suggest_int('gaussian_kernel', 25, 33, step=2)
+    gaussian_sigma = trial.suggest_float('gaussian_sigma', 3, 5, step=0.5)
+    dem_diff_thrsld = trial.suggest_float('dem_diff_thrsld', 0.5, 2.5, step=0.5)
     min_area = trial.suggest_int('min_area', 30, 100, step=10)
     limit_compactness = trial.suggest_float('limit_compactness', 0.1, 0.5, step=0.1)
     min_voronoi_area = trial.suggest_int('min_voronoi_area', 20000, 300000, step=10000)
@@ -69,7 +69,7 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf
 
     del possible_areas, merged_tiles
 
-    metric, _ =assess_results.main(detected_dolines_gdf, ref_data_gdf)
+    metric, _ = assess_results.main(ref_data_type, ref_data_gdf, detected_dolines_gdf, aoi_gdf, det_type='ign')
 
     return metric
 
@@ -93,7 +93,7 @@ DEM_CORRESPONDENCE = cfg['dem_correspondence']
 NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
 
 logger.warning(f'The reference data of {REF_TYPE} will be used.')
-logger.warning(f'Then the metric {"f1 score" if REF_TYPE.lower() == "ign" else "recall"} will be used.')
+logger.warning(f'Then the {"f1 score" if REF_TYPE.lower() == "geocover" else "recall"} will be used as the metric.')
 
 os.chdir(WORKING_DIR)
 output_dir = os.path.join(OUTPUT_DIR) if REF_TYPE.lower() in OUTPUT_DIR.lower() else os.path.join(OUTPUT_DIR, REF_TYPE)
@@ -121,7 +121,7 @@ study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESam
 # study = load(study_path, 'r')
 objective = partial(
     objective, 
-    dem_dir=TILE_DIR, dem_correspondence_df=dem_correspondence_df, aoi_gdf=aoi_gdf, non_sedi_areas_gdf=non_sedi_areas_gdf, ref_data_gdf=ref_data_gdf, slope_dir=slope_dir
+    dem_dir=TILE_DIR, dem_correspondence_df=dem_correspondence_df, aoi_gdf=aoi_gdf, non_sedi_areas_gdf=non_sedi_areas_gdf, ref_data_type=REF_TYPE, ref_data_gdf=ref_data_gdf, slope_dir=slope_dir
 )
 study.optimize(objective, n_trials=500, callbacks=[opti.callback])
 

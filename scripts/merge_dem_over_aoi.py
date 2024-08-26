@@ -16,7 +16,8 @@ from functions.fct_misc import format_logger, get_config
 logger = format_logger(logger)
 
 def main(dem_correspondence_pd, aoi_gdf, dem_dir, resolution, save_extra=False, output_dir='outputs'):
-    os.makedirs(output_dir, exist_ok=True)
+    if save_extra:
+        os.makedirs(output_dir, exist_ok=True)
 
     dem_dict = {}
     for aoi in tqdm(aoi_gdf.itertuples(), desc="Merge DEMs", total=aoi_gdf.shape[0]):

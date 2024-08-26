@@ -35,7 +35,7 @@ def main(dem_dict, fitted_area_dict,
 
     # ----- Generation of the DEM -----
 
-    all_potential_sinkhols_gdf = gpd.GeoDataFrame()
+    all_potential_sinkholes_gdf = gpd.GeoDataFrame()
     for dem_name, data in tqdm(dem_dict.items(), desc="Detect dolines"):
 
         dem_data, dem_meta = data
@@ -49,7 +49,7 @@ def main(dem_dict, fitted_area_dict,
         potential_sinkholes_arr = np.where((dem_diff>dem_diff_thrsld) & (dem_data!=dem_meta['nodata']), 1, 0)
         potential_sinkholes_arr = potential_sinkholes_arr.astype('int16')
 
-        potential_area = fitted_area_dict[dem_name]
+        potential_area, _ = fitted_area_dict[dem_name]
 
         # Apply mask of flat non-sedimentary areas
         potential_sinkholes_arr = np.where(potential_area==1, potential_sinkholes_arr, 0)
@@ -62,17 +62,17 @@ def main(dem_dict, fitted_area_dict,
         potential_sinkholes_gdf = polygonize_binary_raster(potential_sinkholes_arr, crs=dem_meta['crs'], transform=dem_meta['transform'])
         potential_sinkholes_gdf['corresponding_dem'] = dem_name
 
-        all_potential_sinkhols_gdf = pd.concat([all_potential_sinkhols_gdf, potential_sinkholes_gdf]) if not potential_sinkholes_gdf.empty else all_potential_sinkhols_gdf
+        all_potential_sinkholes_gdf = pd.concat([all_potential_sinkholes_gdf, potential_sinkholes_gdf]) if not potential_sinkholes_gdf.empty else all_potential_sinkholes_gdf
 
-    if all_potential_sinkhols_gdf.empty:
-        logger.info('No sinkholes detected')
+    if all_potential_sinkholes_gdf.empty:
+        logger.info('No sinkhole detected')
         return pd.DataFrame(), []
 
     logger.info('Filter depressions based on area and compactness...')
 
     # Filter the depressions based on area
     # Inital code only keep depressions over 300 m2. Based on the GT, we keep those between 40.
-    filtered_sinkholes_gdf = all_potential_sinkhols_gdf[all_potential_sinkhols_gdf.area > min_area].copy()
+    filtered_sinkholes_gdf = all_potential_sinkholes_gdf[all_potential_sinkholes_gdf.area > min_area].copy()
 
     # Determine compactness
     filtered_sinkholes_gdf['compactness'] = 4 * np.pi * filtered_sinkholes_gdf.area / filtered_sinkholes_gdf.length**2
@@ -121,12 +121,16 @@ def main(dem_dict, fitted_area_dict,
         )
     ].copy()
     round_sinkholes_gdf.loc[:, 'type'] = [
-        'round in dense area' if identifier.isin(sinkholes_in_dense_area_gdf.index.tolist()) else 'very round outside dense area' 
+        'round in dense area' if identifier in sinkholes_in_dense_area_gdf.index.tolist() else 'very round outside dense area' 
         for identifier in round_sinkholes_gdf.index
     ]
 
     sinkholes_gdf = pd.concat([round_sinkholes_gdf, long_sinkholes_gdf], ignore_index=True)
     sinkholes_gdf['doline_id'] = sinkholes_gdf.index
+
+    if all_potential_sinkholes_gdf.empty:
+        logger.info('No sinkhole detected')
+        return pd.DataFrame(), []
 
     logger.info('Deal with thalwegs producing false positives and too deep dolines...')
 
@@ -166,13 +170,13 @@ def main(dem_dict, fitted_area_dict,
         # too_deep_steep_ids = alti_gdf.loc[(alti_gdf['depth'] > max_depth) | (alti_gdf['alti_diff'] < min_alti_diff), 'doline_id']
         sinkholes_gdf = sinkholes_gdf[~sinkholes_gdf.doline_id.isin(too_deep_steep_ids)].copy()
 
-    filepath = os.path.join(OUTPUT_DIR, 'sinkholes.gpkg')
+    filepath = os.path.join(output_dir, 'sinkholes.gpkg')
     sinkholes_gdf[['doline_id', 'type', 'compactness', 'alti_diff', 'corresponding_dem', 'geometry']].to_file(filepath)
     written_files.append(filepath)
 
     if save_extra:
         filepath = os.path.join(output_dir, 'all_potential_sinkholes.gpkg')
-        all_potential_sinkhols_gdf.to_file(filepath)
+        all_potential_sinkholes_gdf.to_file(filepath)
         written_files.append(filepath)
 
         filepath = os.path.join(output_dir, 'potential_sinkholes.gpkg')
@@ -212,8 +216,9 @@ if __name__ == '__main__':
         potential_areas_path = os.path.join(DEM_DIR, 'possible_areas', 'possible_area_' + os.path.basename(dem_path))
         with rio.open(potential_areas_path) as src:
             potential_area = src.read(1)
+            potential_area_meta = src.meta
 
-        potential_area_dict[os.path.basename(dem_path)] = potential_area
+        potential_area_dict[os.path.basename(dem_path)] = (potential_area, potential_area_meta)
 
     if len(dem_list) == 0:
         logger.critical('No DEM files found.')

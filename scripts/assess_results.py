@@ -21,10 +21,7 @@ from functions.fct_misc import format_logger, get_config
 logger = format_logger(logger)
 
 
-def main(ref_data_type, detections_gdf, pilot_areas_gdf, save_extra=False, output_dir='outputs'):
-    output_dir = output_dir if output_dir.endswith(DET_TYPE) else output_dir + '_' + DET_TYPE
-    os.makedirs(output_dir, exist_ok=True)
-    written_files = []
+def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type, save_extra=False, output_dir='outputs'):
 
     if 'type' in detections_gdf:
         detections_gdf = detections_gdf[detections_gdf['type']!='thalweg'].copy()
@@ -58,8 +55,12 @@ def main(ref_data_type, detections_gdf, pilot_areas_gdf, save_extra=False, outpu
     logger.info(f'Metrics:')
     logger.info(f'- f1 score: {metrics_df.loc['all', "f1"]}')
     logger.info(f'- median IoU for TP: {metrics_df.loc['all', "median IoU for TP"]}')
-
+    
+    written_files = []
     if save_extra:
+        output_dir = output_dir if output_dir.endswith(det_type) else output_dir + '_' + det_type
+        os.makedirs(output_dir, exist_ok=True)
+
         filepath = os.path.join(output_dir, f'{ref_data_type}_tagged_detections.gpkg')
         tagged_detections_gdf[detections_gdf.columns.tolist() + ['objectid', 'label_class', 'IOU', 'tag']].to_file(filepath)
         written_files.append(filepath)
@@ -176,7 +177,7 @@ if __name__ == '__main__':
     pilot_areas_gdf = gpd.read_file(PILOT_AREAS)
     pilot_areas_gdf.to_crs(2056, inplace=True)
 
-    _, written_files = main(ref_data_gdf, detections_gdf, pilot_areas_gdf, save_extra=True, output_dir=OUTPUT_DIR)
+    _, written_files = main(REF_DATA_TYPE, ref_data_gdf, detections_gdf, pilot_areas_gdf, save_extra=True, output_dir=OUTPUT_DIR)
 
     logger.success('Done! The following files were written:')
     for file in written_files:

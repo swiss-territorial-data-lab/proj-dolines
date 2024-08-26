@@ -30,11 +30,12 @@ define_possible_areas.py:
 
 gt_analysis.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/dolines
+  output_dir: outputs/GT_analysis
   dem_dir: outputs/merged_DEM_5_m
   slope_dir: outputs/merged_DEM_5_m/slope
   aoi: inputs/vectors/pilot_v2.geojson
   dolines: inputs/vectors/dolines.gpkg
+  ref_type: geocover
 
 
 treatment_mask.py:
@@ -53,4 +54,31 @@ doline_detection_original.py:
   output_dir: outputs/dolines/full_IGN_params
   dem_dir: outputs/merged_DEM_5_m
   mask_dir: outputs/treatment_mask
+
+
+assess_results.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: outputs/assessment
+  dem_dir: outputs/merged_DEM_1_m
+  ref_data:
+    geocover: inputs/vectors/dolines.gpkg
+    tlm: inputs/vectors/TLM-Dolinen-20240814/TLM-Dolinen-20240814.gpkg
+  detections:
+    watersheds: outputs/dolines/dolines.gpkg
+    ign: outputs/dolines/sinkholes.gpkg
+  pilot_areas: inputs/vectors/pilot_v2.geojson
+  type:
+    ref_data: geocover
+    dets: ign
+
   
+optimization_ign.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: outputs/optimization_ign
+  tile_dir: inputs/tiles
+  ref_type: tlm
+  ref_data_tlm: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
+  ref_data_geocover: inputs/vectors/dolines.gpkg
+  aoi: inputs/vectors/pilot_v2.geojson
+  dem_correspondence: inputs/tiles/dem_per_aoi.csv
+  non_sedimentary_areas: outputs/merged_DEM_5_m/possible_areas/non_sedi_areas.gpkg

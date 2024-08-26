@@ -18,7 +18,8 @@ from functions.fct_misc import format_logger, get_config
 logger = format_logger(logger)
 
 def main(slope_dir, non_sedi_areas_gdf, max_slope=0.85, save_extra=False, output_dir='outputs'):
-    os.makedirs(output_dir, exist_ok=True)
+    if save_extra:
+        os.makedirs(output_dir, exist_ok=True)
 
     slope_tiles_list = glob(os.path.join(slope_dir, '*.tif'))
     if len(slope_tiles_list) == 0:
