@@ -20,6 +20,16 @@ get_slope.py:
   dem_dir: outputs/merged_DEM_1_m
 
 
+gt_analysis.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: outputs/GT_analysis
+  dem_dir: outputs/merged_DEM_1_m
+  slope_dir: outputs/merged_DEM_1_m/slope
+  aoi: inputs/vectors/pilot_v2.geojson
+  dolines: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
+  ref_type: tlm
+
+
 depression_detection.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/dolines
@@ -32,9 +42,9 @@ post_processing.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/dolines
   potential_dolines: outputs/dolines/potential_dolines.gpkg
-  tlm_data: inputs/vectors/side_data/tlm_subset.gpkg
+  tlm_data: inputs/vectors/side_data/clipped_tlm_subset.gpkg
   ground_cover_layer: tlm_bb_bodenbedeckung
-  rivers: inputs/vectors/side_data/typisierung-fliessgewaesser_2056.gpkg
+  rivers: inputs/vectors/side_data/clipped_typisierung-fliessgewaesser_2056.gpkg
 
 
 assess_results.py:
@@ -50,4 +60,19 @@ assess_results.py:
   pilot_areas: inputs/vectors/pilot_v2.geojson
   type:
     ref_data: tlm
-    dets: ign
+    dets: watersheds
+
+
+optimization_watersheds.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: outputs/optimization_watersheds
+  tile_dir: inputs/tiles
+  ref_type: tlm
+  ref_data_tlm: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
+  ref_data_geocover: inputs/vectors/dolines.gpkg
+  aoi: inputs/vectors/pilot_v2.geojson
+  dem_correspondence: inputs/tiles/dem_per_aoi.csv
+  non_sedimentary_areas: outputs/merged_DEM_5_m/possible_areas/non_sedi_areas.gpkg
+  tlm_data: inputs/vectors/side_data/clipped_tlm_subset.gpkg
+  ground_cover_layer: tlm_bb_bodenbedeckung
+  rivers: inputs/vectors/side_data/clipped_typisierung-fliessgewaesser_2056.gpkg
