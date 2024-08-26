@@ -34,8 +34,7 @@ depression_detection.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/dolines
   dem_dir: outputs/merged_DEM_1_m
-  vw_threshold: 0.5
-  rdp_eps: 3
+  vw_threshold: 10
 
 
 post_processing.py:
@@ -53,7 +52,7 @@ assess_results.py:
   dem_dir: outputs/merged_DEM_1_m
   ref_data:
     geocover: inputs/vectors/dolines.gpkg
-    tlm: inputs/vectors/TLM-Dolinen-20240814/TLM-Dolinen-20240814.gpkg
+    tlm: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
   detections:
     watersheds: outputs/dolines/dolines.gpkg
     ign: outputs/dolines/sinkholes.gpkg
@@ -67,7 +66,7 @@ optimization_watersheds.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/optimization_watersheds
   tile_dir: inputs/tiles
-  ref_type: tlm
+  ref_type: geocover
   ref_data_tlm: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
   ref_data_geocover: inputs/vectors/dolines.gpkg
   aoi: inputs/vectors/pilot_v2.geojson
