@@ -6,17 +6,12 @@ import pandas as pd
 import optuna.visualization as optviz
 from joblib import dump
 
-def callback(study, trial, output_dir='.'):
-   # cf. https://stackoverflow.com/questions/62144904/python-how-to-retrive-the-best-model-from-optuna-lightgbm-study/62164601#62164601
-    if (trial.number%5) == 0:
-        study_path=os.path.join(output_dir, 'study.pkl')
-        dump(study, study_path)
 
 def plot_optimization_results(study, targets={0: 'f1 score'}, output_path='.'):
     """Plot the parameter importance, the contour, the EDF, the history and the slice for the optimization.
 
     Args:
-        study (optuna study): study of the hyperparameters.
+        study (optuna study): study of the parameters.
         targets (dict, optional): targets to optimize. Defaults to {0: 'f1 score'}.
         output_path (str, optional): path to save the plots to. Defaults to '.'.
 
@@ -60,10 +55,10 @@ def plot_optimization_results(study, targets={0: 'f1 score'}, output_path='.'):
 
 
 def save_best_parameters(study, targets={0: 'f1 score'}, output_dir='.'):
-    """Save the best hyperparameters into a txt file.
+    """Save the best parameters into a txt file.
 
     Args:
-        study (optuna study): study of the hyperparameters.
+        study (optuna study): study of the parameters.
         targets (dict, optional): targets to optimize. Defaults to {0: 'f1 score'}.
         output_dir (str, optional): path to save the txt file to. Defaults to '.'.
 
@@ -76,31 +71,31 @@ def save_best_parameters(study, targets={0: 'f1 score'}, output_dir='.'):
         best_params = study.best_params
         best_val = study.best_value
 
-        best_hyperparam_dict = {'best_trial': best_trial, 'best_value': best_val}
+        best_param_dict = {'best_trial': best_trial, 'best_value': best_val}
 
         for key in best_params.keys():
-            best_hyperparam_dict[key] = best_params[key]
+            best_param_dict[key] = best_params[key]
 
-        best_hyperparam_df = pd.DataFrame(best_hyperparam_dict, index=[0])
+        best_param_df = pd.DataFrame(best_param_dict, index=[0])
 
     except RuntimeError as e:
         if 'A single best trial cannot be retrieved from a multi-objective study.' in str(e):
 
             trials_df = study.trials_dataframe()
             numbers_best_trials = [trial.number for trial in study.best_trials]
-            best_hyperparam_df = trials_df[trials_df.number.isin(numbers_best_trials)].copy()
+            best_param_df = trials_df[trials_df.number.isin(numbers_best_trials)].copy()
 
             for target in targets.keys():
-                best_hyperparam_df.rename(columns={f'values_{target}':targets[target]}, inplace=True)
+                best_param_df.rename(columns={f'values_{target}':targets[target]}, inplace=True)
             
-            best_hyperparam_df.drop(columns=['datetime_start', 'datetime_complete', 'duration', 'state'], inplace=True)
+            best_param_df.drop(columns=['datetime_start', 'datetime_complete', 'duration', 'state'], inplace=True)
 
-            for col in best_hyperparam_df.columns:
+            for col in best_param_df.columns:
                 str_to_remove = 'params'
                 if col.startswith(str_to_remove):
-                    best_hyperparam_df.rename(columns={col: col.lstrip(str_to_remove + '_')}, inplace=True)
+                    best_param_df.rename(columns={col: col.lstrip(str_to_remove + '_')}, inplace=True)
 
-    feature_path = os.path.join(output_dir, 'best_hyperparams.csv')
-    best_hyperparam_df.to_csv(feature_path, index=False, header=True)
+    feature_path = os.path.join(output_dir, 'best_params.csv')
+    best_param_df.to_csv(feature_path, index=False, header=True)
     
     return feature_path

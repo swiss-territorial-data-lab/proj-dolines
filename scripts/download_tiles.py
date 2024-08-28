@@ -32,6 +32,7 @@ OUTPUT_DIR = cfg['output_dir']
 
 AOI = cfg['aoi']
 OVERWRITE = cfg['overwrite']
+BUFFER = cfg['buffer']
 
 os.chdir(WORKING_DIR)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -42,7 +43,7 @@ written_files = []
 logger.info('Read AOI data')
 aoi_gdf = gpd.read_file(AOI)
 aoi_gdf = aoi_gdf.to_crs(2056)
-aoi_gdf.loc[:, 'geometry'] = aoi_gdf.geometry.buffer(2000)
+aoi_gdf.loc[:, 'geometry'] = aoi_gdf.geometry.buffer(BUFFER)
 
 aoi_gdf['origin'] = [misc.get_bbox_origin(bbox_geom) for bbox_geom in aoi_gdf.geometry]
 aoi_gdf['max'] = [misc.get_maximum_coordinates(bbox_geom) for bbox_geom in aoi_gdf.geometry]

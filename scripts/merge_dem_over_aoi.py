@@ -33,7 +33,7 @@ def main(dem_correspondence_pd, aoi_gdf, dem_dir, resolution, save_extra=False, 
             with rio.open(dem_list[0]) as src:
                 meta = src.meta
 
-        merged_dem, out_transform = merge(dem_list, res=resolution, resampling=Resampling.bilinear)
+        merged_dem, out_transform = merge(dem_list, res=resolution, resampling=Resampling.bilinear, nodata=meta['nodata'])
 
         meta.update({'height': merged_dem.shape[1], 'width': merged_dem.shape[2], 'transform': out_transform})
         tile_name = str(aoi.year) + '_' + str(round(out_transform[2]))[:4] + '_' + str(round(out_transform[5]))[:4] + '.tif'

@@ -1,30 +1,31 @@
 download_tiles.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: inputs/tiles
+  output_dir: inputs/tiles_watersheds
   aoi: inputs/vectors/pilot_v2.geojson
+  buffer: 2000
   overwrite: False
 
 
 merge_dem_over_aoi.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/merged_DEM_1_m
-  dem_dir: inputs/tiles
-  dem_correspondence: inputs/tiles/dem_per_aoi.csv
+  output_dir: outputs/merged_DEM_wtsh_1_m
+  dem_dir: inputs/tiles_watersheds
+  dem_correspondence: inputs/tiles_watersheds/dem_per_aoi.csv
   aoi: inputs/vectors/pilot_v2.geojson
   res: 1
 
 
 get_slope.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/merged_DEM_1_m/slope
-  dem_dir: outputs/merged_DEM_1_m
+  output_dir: outputs/merged_DEM_wtsh_1_m/slope
+  dem_dir: outputs/merged_DEM_wtsh_1_m
 
 
 gt_analysis.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/GT_analysis
-  dem_dir: outputs/merged_DEM_1_m
-  slope_dir: outputs/merged_DEM_1_m/slope
+  dem_dir: outputs/merged_DEM_wtsh_1_m
+  slope_dir: outputs/merged_DEM_wtsh_1_m/slope
   aoi: inputs/vectors/pilot_v2.geojson
   dolines: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
   ref_type: tlm
@@ -33,7 +34,7 @@ gt_analysis.py:
 depression_detection.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/dolines
-  dem_dir: outputs/merged_DEM_1_m
+  dem_dir: outputs/merged_DEM_wtsh_1_m
   vw_threshold: 10
 
 
@@ -49,7 +50,7 @@ post_processing.py:
 assess_results.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/assessment
-  dem_dir: outputs/merged_DEM_1_m
+  dem_dir: outputs/merged_DEM_wtsh_1_m
   ref_data:
     geocover: inputs/vectors/dolines.gpkg
     tlm: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
@@ -66,7 +67,7 @@ optimization_watersheds.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/optimization_watersheds
   tile_dir: inputs/tiles
-  ref_type: geocover
+  ref_type: tlm
   ref_data_tlm: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
   ref_data_geocover: inputs/vectors/dolines.gpkg
   aoi: inputs/vectors/pilot_v2.geojson

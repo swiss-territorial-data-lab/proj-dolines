@@ -23,9 +23,9 @@ tic = time()
 logger.info('Starting...')
 
 def main(dem_dict, fitted_area_dict,
-         gaussian_kernel=33, gaussian_sigma=5, dem_diff_thrsld=1.5, min_area=40, limit_compactness=0.33,
-         min_voronoi_area=60000, min_merged_area=200000, max_long_area=9500, min_long_compactness=0.25, min_round_compactness=0.38,
-         thalweg_buffer=15, thalweg_threshold=0.8, max_depth=45, min_alti_diff=-5,
+         gaussian_kernel=25, gaussian_sigma=4, dem_diff_thrsld=1.5, min_area=110, limit_compactness=0.7,
+         min_voronoi_area=45000, min_merged_area=45000, max_long_area=4500, min_long_compactness=0.25, min_round_compactness=0.65,
+         thalweg_buffer=3, thalweg_threshold=0.3, max_depth=60, min_alti_diff=-5,
          save_extra=False, output_dir='outputs'):
 
     os.makedirs(output_dir, exist_ok=True)
@@ -143,9 +143,11 @@ def main(dem_dict, fitted_area_dict,
         if sinkholes_on_tiles_gdf.empty:
             continue
 
+        dem_data, dem_meta = dem_dict[dem_tile]
+
         # Get lowest point of sinkhole and its buffer outline
-        sinkholes_lowest_alti = zonal_stats(sinkholes_on_tiles_gdf.geometry, dem_data, affine=dem_meta['transform'], stats=['min', 'max'])
-        buffer_lowest_alti = zonal_stats(sinkholes_on_tiles_gdf.buffered_outline, dem_data, affine=dem_meta['transform'], stats='min')
+        sinkholes_lowest_alti = zonal_stats(sinkholes_on_tiles_gdf.geometry, dem_data, affine=dem_meta['transform'], nodata=dem_meta['nodata'], stats=['min', 'max'])
+        buffer_lowest_alti = zonal_stats(sinkholes_on_tiles_gdf.buffered_outline, dem_data, affine=dem_meta['transform'], nodata=dem_meta['nodata'], stats='min')
 
         # Keep results in a dataframe
         alti_dict={

@@ -26,12 +26,15 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     logger.info(f'Source for the reference data: {ref_data_type}')
     logger.info(f'Detection method: {det_type}')
 
+    assert (ref_data_type.lower() in ['geocover', 'tlm']), 'Reference data type must be geocover or tlm.'
+    assert (det_type.lower() in ['watersheds', 'ign']), 'Detection method must be watersheds or ign.'
+
     if 'type' in detections_gdf:
         detections_gdf = detections_gdf[detections_gdf['type']!='thalweg'].copy()
 
     logger.info('Match detections with ground truth...')        # TODO: Associate dem name to ref data
+    pilot_areas_gdf.loc[:, 'tile_id'] = [tile_id + '.tif' for tile_id in pilot_areas_gdf[f'tile_id_{det_type}']]
     ref_data_in_aoi_gdf = ref_data_gdf.sjoin(pilot_areas_gdf[['tile_id', 'geometry']], how='inner')
-    ref_data_in_aoi_gdf.loc[:, 'tile_id'] = [tile_id + '.tif' for tile_id in ref_data_in_aoi_gdf.tile_id]
     dets_in_aoi_gdf = detections_gdf[detections_gdf.geometry.within(pilot_areas_gdf.geometry.union_all())].copy()
 
     tp_gdf, fp_gdf, fn_gdf, _ = get_fractional_sets(dets_in_aoi_gdf, ref_data_in_aoi_gdf[['objectid', 'label_class', 'tile_id', 'geometry']], iou_threshold=0.1)
@@ -108,15 +111,16 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         similarity_dir = os.path.join(output_dir, 'similarity_rasters')
         os.makedirs(similarity_dir, exist_ok=True)
         for area in tqdm(pilot_areas_gdf.itertuples(), desc='Compare image shapes', total=pilot_areas_gdf.shape[0]):
-            area_dolines_gdf = dets_in_aoi_gdf[dets_in_aoi_gdf.tile_id == area.tile_id+'.tif'].copy()
-            area_ref_data_gdf = ref_data_in_aoi_gdf[ref_data_in_aoi_gdf.tile_id == area.tile_id+'.tif'].copy()
+            area_dolines_gdf = dets_in_aoi_gdf[dets_in_aoi_gdf.tile_id == area.tile_id].copy()
+            area_ref_data_gdf = ref_data_in_aoi_gdf[ref_data_in_aoi_gdf.tile_id == area.tile_id].copy()
 
             if area_ref_data_gdf.empty or area_dolines_gdf.empty:
                 logger.warning(f'No label or data for the area {area.name}.')
                 similarity_dict['structural similarity'].append(0)
+                similarity_dict['hausdorff distance'].append(0)
                 continue
             
-            with rio.open(os.path.join(DEM_DIR, area.tile_id + '.tif')) as src:
+            with rio.open(os.path.join(DEM_DIR, area.tile_id)) as src:
                 meta = src.meta
 
                 # Determine structural similarity
@@ -150,16 +154,26 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
 
                 similarity_dict['hausdorff distance'].append(hausdorff_distance(ref_image, det_image, method='modified'))
 
-            # with rio.open(os.path.join(similarity_dir, 'pt_ref_' + area.tile_id + '.tif'), 'w', **meta) as dst:
+            # with rio.open(os.path.join(similarity_dir, 'pt_ref_' + area_tile_id), 'w', **meta) as dst:
             #     dst.write(ref_image)
 
-            # with rio.open(os.path.join(similarity_dir, 'pt_det_' + area.tile_id + '.tif'), 'w', **meta) as dst:
+            # with rio.open(os.path.join(similarity_dir, 'pt_det_' + area_tile_id), 'w', **meta) as dst:
             #     dst.write(det_image)
+            
+            # meta.update({'height': binary_ref_image.shape[1], 'width': binary_ref_image.shape[2], 'transform': meta['transform']})
+            # with rio.open(os.path.join(similarity_dir, 'ref_' + area_tile_id), 'w', **meta) as dst:
+            #     dst.write(binary_ref_image)
+            
+            # with rio.open(os.path.join(similarity_dir, 'det_' + area_tile_id), 'w', **meta) as dst:
+            #     dst.write(binary_det_image)
 
         similarity_df = pd.DataFrame.from_dict(similarity_dict, orient='index', columns=pilot_areas).transpose().round(3)
         metrics_df = pd.concat([metrics_df, similarity_df], axis=1).reset_index().rename(columns={'index': 'tile_id'})
         metrics_df.loc[:, 'tile_id'] = metrics_df.tile_id.str.rstrip('.tif')
-        metrics_df = pd.merge(pilot_areas_gdf[['name', 'tile_id']], metrics_df, on='tile_id', how='outer')
+        metrics_df = pd.merge(
+            pilot_areas_gdf[['name', f'tile_id_{det_type}']], metrics_df, 
+            left_on=f'tile_id_{det_type}', right_on='tile_id', how='outer'
+        ).drop(columns=f'tile_id_{det_type}')
 
         filepath = os.path.join(output_dir, f'{ref_data_type}_metrics.csv')
         metrics_df.to_csv(filepath)
@@ -206,7 +220,7 @@ if __name__ == '__main__':
     pilot_areas_gdf = gpd.read_file(PILOT_AREAS)
     pilot_areas_gdf.to_crs(2056, inplace=True)
 
-    _, written_files = main(REF_DATA_TYPE, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type='tlm', save_extra=True, output_dir=OUTPUT_DIR)
+    _, written_files = main(REF_DATA_TYPE, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type=DET_TYPE, save_extra=True, output_dir=OUTPUT_DIR)
 
     logger.success('Done! The following files were written:')
     for file in written_files:

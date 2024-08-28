@@ -60,7 +60,7 @@ if __name__ == "__main__":
         logger.critical(f'No DEM found in {DEM_DIR}')
         sys.exit(1)
     dem_dict = {}
-    for dem_path in tqdm(dem_list, desc="Smooth DEM"):
+    for dem_path in tqdm(dem_list, desc="Read DEM"):
         with rio.open(dem_path) as src:
             dem_data = src.read()
             dem_meta = src.meta

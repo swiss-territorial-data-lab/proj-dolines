@@ -100,24 +100,28 @@ def main(dem_list, simplification_param, mean_filter_size=5, fill_depth=0.5, wor
 
         logger.info(f'Perform zonal fill for area {dem_name.rstrip('.tif')}...')
         # Implement zonal fill
+        logger.info('Step 1: polygonize the watershed boundaries...')
         # Step 1: polygonize the watershed boundaries
         with rio.open(watershed_path) as src:
             wtshd_band = src.read(1)
             wtshd_meta = src.meta
         watersheds_gdf = polygonize_raster(wtshd_band, meta=wtshd_meta)
         
+        logger.info('Step 2: get the minimal altitude on each polygon...')
         # Step 2: get the minimal altitude on each polygon
         min_alti_list = zonal_stats(watersheds_gdf.geometry.boundary, simplified_dem_path, affine=wtshd_meta['transform'], stats='min')
 
         zonal_fill_gdf =  watersheds_gdf.copy()
         zonal_fill_gdf['min_alti'] = [x['min'] for x in min_alti_list]
 
+        logger.info('Step 3: transform the geodataframe back to raster...')
         # Step 3: transform the geodataframe back to raster
         out_arr = wtshd_band.astype(np.float64)
         shapes_w_new_value = ((geom, value) for geom, value in zip(zonal_fill_gdf.geometry, zonal_fill_gdf.min_alti))
         zonal_fill_arr = rasterize(shapes=shapes_w_new_value, fill=wtshd_meta['nodata'], out=out_arr, transform=wtshd_meta['transform'], dtype=np.float64)
         wtshd_meta.update(dtype=np.float64)
 
+        logger.info('Compare zonal fill with simplified dem...')
         # Compare zonal fill will with simplified dem
         with rio.open(simplified_dem_path) as src:
             simplified_dem_arr = src.read(1)
@@ -131,6 +135,7 @@ def main(dem_list, simplification_param, mean_filter_size=5, fill_depth=0.5, wor
         )
         potential_dolines_arr = np.where(difference_arr > 0, 1, 0)
 
+        logger.info('Polygonize potential dolines...')
         local_depression_gdf = polygonize_binary_raster(potential_dolines_arr.astype(np.int16), crs=simplified_dem_meta['crs'], transform=simplified_dem_meta['transform'])
         local_depression_gdf['corresponding_dem'] = dem_name
 
@@ -164,7 +169,8 @@ def main(dem_list, simplification_param, mean_filter_size=5, fill_depth=0.5, wor
     simplified_pot_dolines_gdf = gpd.GeoDataFrame.from_features(mapped_objects, crs='EPSG:2056')
     simplified_pot_dolines_gdf.loc[simplified_pot_dolines_gdf.is_valid==False, 'geometry'] = \
         simplified_pot_dolines_gdf.loc[simplified_pot_dolines_gdf.is_valid==False, 'geometry'].apply(make_valid)
-    assert (potential_dolines_gdf.geometry != simplified_pot_dolines_gdf.geometry).any(), 'no simplification happened'
+    if (potential_dolines_gdf.geometry == simplified_pot_dolines_gdf.geometry).all():
+        logger.warning('no simplification happened')
     assert (potential_dolines_gdf.shape[0] == simplified_pot_dolines_gdf.shape[0]), 'some elements disappeared during simplification'
 
     simplified_pot_dolines_gdf['diameter'] = simplified_pot_dolines_gdf.minimum_bounding_radius()*2
@@ -198,7 +204,6 @@ if __name__ == '__main__':
     OUTPUT_DIR = cfg['output_dir']
     DEM_DIR = cfg['dem_dir']
 
-    RDP_EPS = cfg['rdp_eps']
     VW_THRESHOLD = cfg['vw_threshold']
     overwrite = False
 

@@ -17,7 +17,7 @@ from functions.fct_misc import format_logger, get_config
 
 logger = format_logger(logger)
 
-def main(slope_dir, non_sedi_areas_gdf, max_slope=0.85, save_extra=False, output_dir='outputs'):
+def main(slope_dir, non_sedi_areas_gdf, max_slope=1.1, save_extra=False, output_dir='outputs'):
     if save_extra:
         os.makedirs(output_dir, exist_ok=True)
 
@@ -68,6 +68,8 @@ if __name__ == '__main__':
     NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
     AOI = cfg['aoi']
 
+    MAX_SLOPE = cfg['max_slope']
+
     os.chdir(WORKING_DIR)
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -84,7 +86,7 @@ if __name__ == '__main__':
     non_sedi_areas_gdf = gpd.overlay(non_sedi_areas_gdf, aoi_gdf, keep_geom_type=True)
     non_sedi_areas_gdf.to_file(os.path.join(OUTPUT_DIR, 'non_sedi_areas.gpkg'))
 
-    _ = possible_area_dict = main(SLOPE_DIR, non_sedi_areas_gdf, save_extra=True, output_dir=OUTPUT_DIR)
+    _ = possible_area_dict = main(SLOPE_DIR, non_sedi_areas_gdf, max_slope=MAX_SLOPE, save_extra=True, output_dir=OUTPUT_DIR)
 
     logger.success(f'Done! The files were written in {OUTPUT_DIR}.')
 
