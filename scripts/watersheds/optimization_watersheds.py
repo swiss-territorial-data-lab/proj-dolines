@@ -26,20 +26,20 @@ logger = misc.format_logger(logger)
 
 def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, water_bodies_gdf, rivers_gdf, ref_data_type, ref_data_gdf, working_dir, slope_dir='slope', output_dir='.'):
 
-    resolution = trial.suggest_float('resolution', 0.5, 5, step=0.5)
-    max_slope = trial.suggest_float('max_slope', 0.7, 1.5, step=0.2)
+    resolution = trial.suggest_float('resolution', 0.5, 2, step=0.5)
+    # max_slope = trial.suggest_float('max_slope', 0.7, 1.5, step=0.2)
 
-    simplification_param = trial.suggest_float('simplification_param', 0.01, 0.1, step=0.01)
+    simplification_param = trial.suggest_float('simplification_param', 2, 20, step=2)
     mean_filter_size = trial.suggest_int('mean_filter_size', 3, 9, step=2)
     fill_depth = trial.suggest_float('fill_depth', 0, 1.5, step=0.5)
     max_part_in_lake = trial.suggest_float('max_part_in_lake', 0.1, 0.3, step=0.05)
-    max_part_in_river = trial.suggest_float('max_part_in_river', 0.1, 0.3, step=0.05)
+    max_part_in_river = trial.suggest_float('max_part_in_river', 0.1, 0.4, step=0.05)
     min_compactness = trial.suggest_float('min_compactness', 0.25, 0.75, step=0.05)
     min_area = trial.suggest_int('min_area', 5, 40, step=5)
     max_area = trial.suggest_int('max_area', 2500, 8000, step=500)
     min_diameter = trial.suggest_float('min_diameter', 2, 10, step=0.5)
     min_depth = trial.suggest_float('min_depth', 0.1, 1, step=0.1)
-    max_depth = trial.suggest_int('max_depth', 30, 100, step=5)
+    max_depth = trial.suggest_int('max_depth', 30, 125, step=5)
 
     post_process_params = {
         'max_part_in_lake': max_part_in_lake,
@@ -67,6 +67,13 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, water_bodies_gdf, 
     metric, _ = assess_results.main(ref_data_type, ref_data_gdf, detected_dolines_gdf, aoi_gdf, det_type='ign')
 
     return metric
+
+
+def callback(study, trial):
+   # cf. https://stackoverflow.com/questions/62144904/python-how-to-retrive-the-best-model-from-optuna-lightgbm-study/62164601#62164601
+    if (trial.number%5) == 0:
+        study_path=os.path.join(output_dir, 'study.pkl')
+        dump(study, study_path)
 
 
 # ----- Main -----
@@ -127,14 +134,14 @@ objective = partial(
     dem_dir=TILE_DIR, dem_correspondence_df=dem_correspondence_df, aoi_gdf=aoi_gdf, water_bodies_gdf=water_bodies_gdf, rivers_gdf=dissolved_rivers_gdf, ref_data_type=REF_TYPE, ref_data_gdf=ref_data_gdf,
     working_dir=WORKING_DIR, slope_dir=slope_dir, output_dir=output_dir
 )
-study.optimize(objective, n_trials=100, callbacks=[opti.callback])
+study.optimize(objective, n_trials=100, callbacks=[callback])
 
 dump(study, study_path)
 written_files.append(study_path)
 
 if study.best_value !=0:
     logger.info('Save the best parameters')
-    targets = {0: 'f1 score'}
+    targets = {0: "f1 score" if REF_TYPE.lower() == "geocover" else "recall"}
     written_files.append(opti.save_best_parameters(study, targets, output_dir=output_dir))
 
     logger.info('Plot results...')

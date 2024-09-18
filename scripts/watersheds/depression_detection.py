@@ -17,7 +17,6 @@ from rasterstats import zonal_stats
 import visvalingamwyatt as vw
 import whitebox 
 wbt = whitebox.WhiteboxTools()
-from rdp import rdp
 
 sys.path.insert(1, 'scripts')
 from functions.fct_misc import format_logger, get_config
@@ -25,7 +24,7 @@ from functions.fct_rasters import polygonize_binary_raster, polygonize_raster
 
 logger = format_logger(logger)
 
-def main(dem_list, simplification_param, mean_filter_size=5, fill_depth=0.5, working_dir='.', output_dir='outputs', overwrite=False, save_extra=False):
+def main(dem_list, simplification_param, mean_filter_size=7, fill_depth=0.5, working_dir='.', output_dir='outputs', overwrite=False, save_extra=False):
     os.makedirs(output_dir, exist_ok=True)
     dem_processing_dir = os.path.join(working_dir, output_dir, 'dem_processing') # WBT works with absolute paths
     os.makedirs(dem_processing_dir, exist_ok=True)

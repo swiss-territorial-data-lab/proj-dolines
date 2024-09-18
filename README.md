@@ -6,6 +6,13 @@ Several methods were tested, they are presented here with some evaluation metric
 
 **Table of content**
 
+- [Setup](#setup)
+- [Data](#data)
+- [Metrics](#metrics)
+- [IGN](#ign)
+- [Watersheds](#watersheds)
+- [References](#references)
+
 ## Setup
 
 Tested on Windows 10 with python 3.12.4. No specific requirement was identified.
@@ -38,7 +45,7 @@ The following metrics were used to assess the results:
 
 ## IGN
 
-This method was used by the IGN to generalize the contour lines generation in karstic plateaus for toporgraphic maps. It is described in [Touya et al. (2019)](https://ica-proc.copernicus.org/articles/2/133/2019/ica-proc-2-133-2019.pdf). Here we perform step 2 of the procedure, which consists of delimiting the plateau zones and detecting the dolines within them.
+This method was used by the IGN to generalize the contour lines generation in karstic plateaus for topographic maps. It is described in Touya et al. (2019). Here we perform step 2 of the procedure, which consists of delimiting the plateau zones and detecting the dolines within them.
 
 <!-- Ajouter la description des scripts -->
 
@@ -99,7 +106,7 @@ After the optimization, the following metrics were obtained:
 
 _Table 2: metrics for each type of reference data with the watershed method._
 
-## Sources
+## References
 
 Čonč, Špela, Teresa Oliveira, Ruben Portas, Rok Černe, Mateja Breg Valjavec, and Miha Krofel. ‘Dolines and Cats: Remote Detection of Karst Depressions and Their Application to Study Wild Felid Ecology’. Remote Sensing 14, no. 3 (29 January 2022): 656. https://doi.org/10.3390/rs14030656.
 

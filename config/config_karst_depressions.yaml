@@ -8,24 +8,24 @@ download_tiles.py:
 
 merge_dem_over_aoi.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/merged_DEM_wtsh_1_m
+  output_dir: outputs/merged_DEM_wtsh
   dem_dir: inputs/tiles_watersheds
   dem_correspondence: inputs/tiles_watersheds/dem_per_aoi.csv
   aoi: inputs/vectors/pilot_v2.geojson
-  res: 1
+  res: 0.5
 
 
 get_slope.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/merged_DEM_wtsh_1_m/slope
-  dem_dir: outputs/merged_DEM_wtsh_1_m
+  output_dir: outputs/merged_DEM_wtsh/slope
+  dem_dir: outputs/merged_DEM_wtsh
 
 
 gt_analysis.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/GT_analysis
-  dem_dir: outputs/merged_DEM_wtsh_1_m
-  slope_dir: outputs/merged_DEM_wtsh_1_m/slope
+  dem_dir: outputs/merged_DEM_wtsh
+  slope_dir: outputs/merged_DEM_wtsh/slope
   aoi: inputs/vectors/pilot_v2.geojson
   dolines: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
   ref_type: tlm
@@ -34,8 +34,8 @@ gt_analysis.py:
 depression_detection.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/dolines
-  dem_dir: outputs/merged_DEM_wtsh_1_m
-  vw_threshold: 10
+  dem_dir: outputs/merged_DEM_wtsh
+  vw_threshold: 0.06
 
 
 post_processing.py:
@@ -50,7 +50,7 @@ post_processing.py:
 assess_results.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/assessment
-  dem_dir: outputs/merged_DEM_wtsh_1_m
+  dem_dir: outputs/merged_DEM_wtsh
   ref_data:
     geocover: inputs/vectors/dolines.gpkg
     tlm: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
