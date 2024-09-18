@@ -51,13 +51,14 @@ This method was used by the IGN to generalize the contour lines generation in ka
 
 The workflow is run with the following commands:
 
-´´´
+
+```
 python scripts/merge_dem_over_aoi.py config/config_ign.yaml
 python scripts/get_slope.py config/config_ign.yaml
 python scripts/define_possible_areas.py config/config_ign.yaml
 python scripts/ign/doline_detection.py config/config_ign.yaml
 python scripts/assess_results.py config/config_ign.yaml
-´´´
+```
 
 To determine the best parameters for the Swiss topography, the algorithm is optimized with the following command:
 
