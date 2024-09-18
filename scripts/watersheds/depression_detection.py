@@ -21,6 +21,7 @@ wbt = whitebox.WhiteboxTools()
 sys.path.insert(1, 'scripts')
 from functions.fct_misc import format_logger, get_config
 from functions.fct_rasters import polygonize_binary_raster, polygonize_raster
+from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
 
@@ -99,15 +100,15 @@ def main(dem_list, simplification_param, mean_filter_size=7, fill_depth=0.5, wor
 
         logger.info(f'Perform zonal fill for area {dem_name.rstrip('.tif')}...')
         # Implement zonal fill
-        logger.info('Step 1: polygonize the watershed boundaries...')
-        # Step 1: polygonize the watershed boundaries
+        logger.info('Step 1: polygonize the watershed...')
+        # Step 1: polygonize the watershed
         with rio.open(watershed_path) as src:
             wtshd_band = src.read(1)
             wtshd_meta = src.meta
         watersheds_gdf = polygonize_raster(wtshd_band, meta=wtshd_meta)
         
-        logger.info('Step 2: get the minimal altitude on each polygon...')
-        # Step 2: get the minimal altitude on each polygon
+        logger.info('Step 2: get the minimal altitude on each polygon boundary...')
+        # Step 2: get the minimal altitude on each polygon boundary
         min_alti_list = zonal_stats(watersheds_gdf.geometry.boundary, simplified_dem_path, affine=wtshd_meta['transform'], stats='min')
 
         zonal_fill_gdf =  watersheds_gdf.copy()
@@ -208,17 +209,22 @@ if __name__ == '__main__':
 
     os.chdir(WORKING_DIR)
 
+    if AOI_TYPE:
+        logger.warning(f'Working only on the areas of type {AOI_TYPE}')
+    dem_dir = os.path.join(DEM_DIR, AOI_TYPE) if AOI_TYPE else DEM_DIR
+    output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE) if AOI_TYPE else OUTPUT_DIR
+
     # ----- Data processing -----
 
     logger.info('Read data...')
 
-    dem_list = glob(os.path.join(DEM_DIR, '*.tif'))
-    potential_dolines_gdf, written_files = main(dem_list, VW_THRESHOLD, working_dir=WORKING_DIR, output_dir=OUTPUT_DIR, save_extra=True)
+    dem_list = glob(os.path.join(dem_dir, '*.tif'))
+    potential_dolines_gdf, written_files = main(dem_list, VW_THRESHOLD, working_dir=WORKING_DIR, output_dir=output_dir, save_extra=True)
 
     logger.success('Done! The following files were written:')
     for file in written_files:
         logger.success(file)
 
-    logger.success(f'In addition, the rasters for the different steps were saved in the folder {os.path.join(OUTPUT_DIR, 'dem_processing')}')
+    logger.success(f'In addition, the rasters for the different steps were saved in the folder {os.path.join(output_dir, 'dem_processing')}')
 
     logger.info(f'Done in {time() - tic:0.2f} seconds')

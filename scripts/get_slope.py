@@ -15,6 +15,7 @@ from rasterio.windows import Window
 from math import ceil, floor
 
 from functions.fct_misc import format_logger, get_config
+from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
 
@@ -51,13 +52,18 @@ if __name__ == "__main__":
     DEM_DIR = cfg['dem_dir']
 
     os.chdir(WORKING_DIR)
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    if AOI_TYPE:
+        logger.warning(f'Working only on the areas of type {AOI_TYPE}')
+    dem_dir = os.path.join(DEM_DIR, AOI_TYPE) if AOI_TYPE else DEM_DIR
+    output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE) if AOI_TYPE else OUTPUT_DIR
+    os.makedirs(output_dir, exist_ok=True)
 
     logger.info('Read data...')
 
-    dem_list = glob(os.path.join(DEM_DIR, '*.tif'))
+    dem_list = glob(os.path.join(dem_dir, '*.tif'))
     if len(dem_list) == 0:
-        logger.critical(f'No DEM found in {DEM_DIR}')
+        logger.critical(f'No DEM found in {dem_dir}')
         sys.exit(1)
     dem_dict = {}
     for dem_path in tqdm(dem_list, desc="Read DEM"):
@@ -66,9 +72,9 @@ if __name__ == "__main__":
             dem_meta = src.meta
         dem_dict[os.path.basename(dem_path)] = dem_data, dem_meta
 
-    main(dem_dict, output_dir=OUTPUT_DIR)
+    main(dem_dict, output_dir=output_dir)
 
-    logger.success(f'Done! The files were written in the folder {OUTPUT_DIR}')
+    logger.success(f'Done! The files were written in the folder {output_dir}')
 
     toc = time()
     logger.info(f"Done in {toc - tic:0.4f} seconds")

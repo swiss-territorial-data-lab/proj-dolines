@@ -14,6 +14,7 @@ from shapely.geometry import box
 from skimage.morphology import disk, opening
 
 from functions.fct_misc import format_logger, get_config
+from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
 
@@ -71,7 +72,12 @@ if __name__ == '__main__':
     MAX_SLOPE = cfg['max_slope']
 
     os.chdir(WORKING_DIR)
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    if AOI_TYPE:
+        logger.warning(f'Working only on the areas of type {AOI_TYPE}')
+    slope_dir = os.path.join(SLOPE_DIR, AOI_TYPE) if AOI_TYPE else SLOPE_DIR
+    output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE) if AOI_TYPE else OUTPUT_DIR
+    os.makedirs(output_dir, exist_ok=True)
 
     # ----- Data processing -----
 
@@ -84,11 +90,11 @@ if __name__ == '__main__':
     logger.info('Limit non-sedimentary info to AOI...')
     aoi_gdf.loc[:, 'geometry'] = aoi_gdf.geometry.buffer(1000)
     non_sedi_areas_gdf = gpd.overlay(non_sedi_areas_gdf, aoi_gdf, keep_geom_type=True)
-    non_sedi_areas_gdf.to_file(os.path.join(OUTPUT_DIR, 'non_sedi_areas.gpkg'))
+    non_sedi_areas_gdf.to_file(os.path.join(output_dir, 'non_sedi_areas.gpkg'))
 
-    _ = possible_area_dict = main(SLOPE_DIR, non_sedi_areas_gdf, max_slope=MAX_SLOPE, save_extra=True, output_dir=OUTPUT_DIR)
+    _ = main(slope_dir, non_sedi_areas_gdf, max_slope=MAX_SLOPE, save_extra=True, output_dir=output_dir)
 
-    logger.success(f'Done! The files were written in {OUTPUT_DIR}.')
+    logger.success(f'Done! The files were written in {output_dir}.')
 
     logger.info(f'Done in {time() - tic:0.2f} seconds')
 

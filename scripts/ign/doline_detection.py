@@ -15,6 +15,7 @@ from rasterstats import zonal_stats
 sys.path.insert(1, 'scripts')
 from functions.fct_misc import format_logger, get_config
 from functions.fct_rasters import polygonize_binary_raster
+from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
 
@@ -203,9 +204,14 @@ if __name__ == '__main__':
 
     os.chdir(WORKING_DIR)
 
+    if AOI_TYPE:
+        logger.warning(f'Working only on the areas of type {AOI_TYPE}')
+    dem_dir = os.path.join(DEM_DIR, AOI_TYPE) if AOI_TYPE else DEM_DIR
+    output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE) if AOI_TYPE else OUTPUT_DIR
+
     logger.info('Read data...')
 
-    dem_list = glob(os.path.join(DEM_DIR, '*.tif'))
+    dem_list = glob(os.path.join(dem_dir, '*.tif'))
     dem_dict = {}
     potential_area_dict = {}
     for dem_path in dem_list:
@@ -215,7 +221,8 @@ if __name__ == '__main__':
 
         dem_dict[os.path.basename(dem_path)] = (dem_data, dem_meta)
 
-        potential_areas_path = os.path.join(DEM_DIR, 'possible_areas', 'possible_area_' + os.path.basename(dem_path))
+        potential_areas_path = os.path.join(DEM_DIR, 'possible_areas', AOI_TYPE, 'possible_area_' + os.path.basename(dem_path)) if AOI_TYPE \
+            else os.path.join(DEM_DIR, 'possible_areas', 'possible_area_' + os.path.basename(dem_path))
         with rio.open(potential_areas_path) as src:
             potential_area = src.read(1)
             potential_area_meta = src.meta
@@ -226,7 +233,7 @@ if __name__ == '__main__':
         logger.critical('No DEM files found.')
         sys.exit(1)
 
-    dolines_gdf, written_files = main(dem_dict, potential_area_dict, save_extra=True, output_dir=OUTPUT_DIR)
+    dolines_gdf, written_files = main(dem_dict, potential_area_dict, save_extra=True, output_dir=output_dir)
 
     logger.success('Done! The following files were written:')
     for file in written_files:

@@ -17,6 +17,7 @@ from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_
 
 from functions.fct_metrics import get_fractional_sets
 from functions.fct_misc import format_logger, get_config
+from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
 
@@ -31,7 +32,7 @@ def median_distance_between_datasets(reference_gdf, detections_gdf, rounding_dig
 
     return nearest_join_gdf['distance'].median().round(rounding_digits)
 
-def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type, save_extra=False, output_dir='outputs'):
+def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type, dem_dir='outputs', save_extra=False, output_dir='outputs'):
 
     logger.info(f'Source for the reference data: {ref_data_type}')
     logger.info(f'Detection method: {det_type}')
@@ -81,7 +82,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         output_dir = output_dir if output_dir.endswith(det_type) else output_dir + '_' + det_type
         os.makedirs(output_dir, exist_ok=True)
 
-        filepath = os.path.join(output_dir, f'{ref_data_type}_tagged_detections.gpkg')
+        filepath = os.path.join(output_dir, f'{AOI_TYPE + "_" if AOI_TYPE else ""}{ref_data_type}_tagged_detections.gpkg')
         tagged_detections_gdf[detections_gdf.columns.tolist() + ['objectid', 'label_class', 'IOU', 'tag']].to_file(filepath)
         written_files.append(filepath)
 
@@ -89,7 +90,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
             tagged_detections_gdf['label_class'], tagged_detections_gdf['det_class']
         )).rename(columns={0: 'doline', 1: 'non-doline'}, index={0: 'doline', 1: 'non-doline'})
 
-        filepath = os.path.join(output_dir, f'{ref_data_type}_confusion_matrix.csv')
+        filepath = os.path.join(output_dir, f'{AOI_TYPE + "_" if AOI_TYPE else ""}{ref_data_type}_confusion_matrix.csv')
         confusion_matrix_df.to_csv(filepath)
         written_files.append(filepath)
 
@@ -133,7 +134,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
                 similarity_dict['hausdorff distance'].append(0)
                 continue
             
-            with rio.open(os.path.join(DEM_DIR, area.tile_id)) as src:
+            with rio.open(os.path.join(dem_dir, area.tile_id)) as src:
                 meta = src.meta
 
                 # Determine structural similarity
@@ -188,7 +189,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
             left_on=f'tile_id_{det_type}', right_on='tile_id', how='outer'
         ).drop(columns=f'tile_id_{det_type}')
 
-        filepath = os.path.join(output_dir, f'{ref_data_type}_metrics.csv')
+        filepath = os.path.join(output_dir, f'{AOI_TYPE + "_" if AOI_TYPE else ""}{ref_data_type}_metrics.csv')
         metrics_df.to_csv(filepath)
         written_files.append(filepath)
 
@@ -212,9 +213,11 @@ if __name__ == '__main__':
 
     PILOT_AREAS = cfg['pilot_areas']
 
-    RES = DEM_DIR.split('_')[2]
-
     os.chdir(WORKING_DIR)
+
+    if AOI_TYPE:
+        logger.warning(f'Working only on the areas of type {AOI_TYPE}')
+    dem_dir = os.path.join(DEM_DIR, AOI_TYPE) if AOI_TYPE else DEM_DIR
 
      # ----- Processing -----
 
@@ -232,8 +235,10 @@ if __name__ == '__main__':
 
     pilot_areas_gdf = gpd.read_file(PILOT_AREAS)
     pilot_areas_gdf.to_crs(2056, inplace=True)
+    if AOI_TYPE:
+        pilot_areas_gdf = pilot_areas_gdf[pilot_areas_gdf['Type'] == AOI_TYPE]
 
-    _, written_files = main(REF_DATA_TYPE, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type=DET_TYPE, save_extra=True, output_dir=OUTPUT_DIR)
+    _, written_files = main(REF_DATA_TYPE, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type=DET_TYPE, dem_dir=dem_dir, save_extra=True, output_dir=OUTPUT_DIR)
 
     logger.success('Done! The following files were written:')
     for file in written_files:

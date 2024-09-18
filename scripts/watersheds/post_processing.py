@@ -7,6 +7,7 @@ import geopandas as gpd
 
 sys.path.insert(1, 'scripts')
 from functions.fct_misc import format_logger, get_config
+from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
 
@@ -93,6 +94,10 @@ if '__main__' == __name__:
     RIVERS = cfg['rivers']
 
     os.chdir(WORKING_DIR)
+
+    if AOI_TYPE:
+        logger.warning(f'Working only on the areas of type {AOI_TYPE}')
+        potential_dolines_path = os.path.join(os.path.dirname(POTENTIAL_DOLINES), AOI_TYPE, os.path.basename(POTENTIAL_DOLINES))
 
     # ----- Processing -----
 

@@ -49,7 +49,7 @@ treatment_mask.py:
 doline_detection.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/dolines
-  dem_dir: outputs/merged_DEM_ign_1m
+  dem_dir: outputs/merged_DEM_ign
 
 
 doline_detection_original.py:

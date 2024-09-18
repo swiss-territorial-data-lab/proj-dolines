@@ -1,6 +1,4 @@
 import os
-import sys
-from glob import glob
 from loguru import logger
 from time import time
 from tqdm import tqdm
@@ -12,10 +10,16 @@ from rasterio.enums import Resampling
 from rasterio.merge import merge
 
 from functions.fct_misc import format_logger, get_config
+from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
 
 def main(dem_correspondence_pd, aoi_gdf, dem_dir, resolution, save_extra=False, output_dir='outputs'):
+    if AOI_TYPE:
+        logger.warning(f'Working only on the areas of type {AOI_TYPE}')
+        aoi_gdf = aoi_gdf[aoi_gdf['Type'] == AOI_TYPE].copy()
+        output_dir = os.path.join(output_dir, AOI_TYPE)
+
     if save_extra:
         os.makedirs(output_dir, exist_ok=True)
 
