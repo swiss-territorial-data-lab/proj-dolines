@@ -86,7 +86,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     
     written_files = []
     if save_extra:
-        output_dir = output_dir if output_dir.endswith(det_type) else output_dir + '_' + det_type
+        output_dir = output_dir if (det_type.lower() in output_dir) | (det_type.lower() in os.getcwd()) else output_dir + '_' + det_type
         os.makedirs(output_dir, exist_ok=True)
 
         filepath = os.path.join(output_dir, f'{AOI_TYPE + "_" if AOI_TYPE else ""}{ref_data_type}_tagged_detections.gpkg')
@@ -102,7 +102,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         written_files.append(filepath)
 
         logger.info('Calculate the metrics for each pilot area...')
-        pilot_areas = tagged_detections_gdf.tile_id.unique().tolist()
+        pilot_areas = detections_gdf.tile_id.unique().tolist()
         metrics_per_area_dict = {
             'nbr labels': [], 'nbr detections': [],
             'precision': [], 'recall': [], 'f1': [], 'median IoU for TP': [], 'median distance': []

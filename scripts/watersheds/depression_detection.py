@@ -40,6 +40,8 @@ def main(dem_list, simplification_param, mean_filter_size=7, fill_depth=0.5, wor
     if not save_extra:
         wbt.set_verbose_mode(False)
 
+    logger.info('Perform hydrological processing...')
+
     potential_dolines_gdf = gpd.GeoDataFrame()
     for dem_path in dem_list:
         dem_name = os.path.basename(dem_path)
@@ -60,12 +62,15 @@ def main(dem_list, simplification_param, mean_filter_size=7, fill_depth=0.5, wor
 
         else:
             # Noise removal
-            wbt.mean_filter(
-                i=os.path.join(working_dir, dem_path),
-                output=smoothed_dem_path,
-                filterx=mean_filter_size,
-                filtery=mean_filter_size,
-            )
+            if mean_filter_size > 1:
+                wbt.mean_filter(
+                    i=os.path.join(working_dir, dem_path),
+                    output=smoothed_dem_path,
+                    filterx=mean_filter_size,
+                    filtery=mean_filter_size,
+                )
+            else:
+                smoothed_dem_path = os.path.join(working_dir, dem_path)
 
             wbt.fill_depressions(
                 dem=smoothed_dem_path,

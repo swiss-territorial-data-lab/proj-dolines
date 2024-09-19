@@ -27,20 +27,20 @@ logger = misc.format_logger(logger)
 
 def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, water_bodies_gdf, rivers_gdf, ref_data_type, ref_data_gdf, working_dir, slope_dir='slope', output_dir='.'):
 
-    resolution = trial.suggest_float('resolution', 0.5, 2, step=0.5)
+    resolution = trial.suggest_float('resolution', 1, 5.5, step=0.75)
     # max_slope = trial.suggest_float('max_slope', 0.7, 1.5, step=0.2)
 
-    simplification_param = trial.suggest_float('simplification_param', 2, 20, step=2)
-    mean_filter_size = trial.suggest_int('mean_filter_size', 3, 9, step=2)
-    fill_depth = trial.suggest_float('fill_depth', 0, 1.5, step=0.5)
-    max_part_in_lake = trial.suggest_float('max_part_in_lake', 0.1, 0.3, step=0.05)
+    simplification_param = trial.suggest_float('simplification_param', 0.3, 3, step=0.3)
+    mean_filter_size = trial.suggest_int('mean_filter_size', 1, 5, step=2)
+    fill_depth = trial.suggest_float('fill_depth', 3, 7, step=0.25)
+    max_part_in_lake = trial.suggest_float('max_part_in_lake', 0.05, 0.55, step=0.1)
     max_part_in_river = trial.suggest_float('max_part_in_river', 0.1, 0.4, step=0.05)
-    min_compactness = trial.suggest_float('min_compactness', 0.25, 0.75, step=0.05)
+    min_compactness = trial.suggest_float('min_compactness', 0.6, 1, step=0.05)
     min_area = trial.suggest_int('min_area', 5, 40, step=5)
     max_area = trial.suggest_int('max_area', 2500, 8000, step=500)
     min_diameter = trial.suggest_float('min_diameter', 2, 10, step=0.5)
     min_depth = trial.suggest_float('min_depth', 0.1, 1, step=0.1)
-    max_depth = trial.suggest_int('max_depth', 30, 125, step=5)
+    max_depth = trial.suggest_int('max_depth', 60, 180, step=5)
 
     post_process_params = {
         'max_part_in_lake': max_part_in_lake,
@@ -53,7 +53,7 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, water_bodies_gdf, 
         'max_depth': max_depth
     } 
 
-    _ = merge_dem_over_aoi.main(dem_correspondence_df, aoi_gdf, dem_dir, resolution, output_dir=os.path.join(output_dir, 'merged_dems'))
+    _ = merge_dem_over_aoi.main(dem_correspondence_df, aoi_gdf, dem_dir, resolution, save_extra=True, output_dir=os.path.join(output_dir, 'merged_dems'))
     # get_slope.main(merged_tiles, output_dir=slope_dir)
     # possible_areas = define_possible_areas.main(slope_dir, non_sedi_areas_gdf, max_slope)
 
@@ -137,10 +137,10 @@ objective = partial(
     dem_dir=TILE_DIR, dem_correspondence_df=dem_correspondence_df, aoi_gdf=aoi_gdf, water_bodies_gdf=water_bodies_gdf, rivers_gdf=dissolved_rivers_gdf, ref_data_type=REF_TYPE, ref_data_gdf=ref_data_gdf,
     working_dir=WORKING_DIR, slope_dir=slope_dir, output_dir=output_dir
 )
-study.optimize(objective, n_trials=250, callbacks=[callback])
+study.optimize(objective, n_trials=100, callbacks=[callback])
 
-dump(study, study_path)
-written_files.append(study_path)
+# dump(study, study_path)
+# written_files.append(study_path)
 
 if study.best_value !=0:
     logger.info('Save the best parameters')
@@ -166,11 +166,12 @@ if study.best_value !=0:
     best_pp_param = {key: value for key, value in study.best_params.items() if key in [
         'max_part_in_lake', 'max_part_in_river', 'min_compactness', 'max_area', 'min_diameter', 'min_depth', 'max_depth'
     ]}
-    detected_dolines_gdf, _ = post_processing.main(detected_depressions_gdf, water_bodies_gdf, dissolved_rivers_gdf, **best_pp_param)
+    detected_dolines_gdf, _ = post_processing.main(detected_depressions_gdf, water_bodies_gdf, dissolved_rivers_gdf, output_dir=output_dir, **best_pp_param)
     # del possible_areas, merged_tiles
 
     detected_dolines_gdf = assess_results.prepare_dolines_to_assessment(detected_dolines_gdf)
-    metric, assessment_files = assess_results.main(REF_TYPE, ref_data_gdf, detected_dolines_gdf, aoi_gdf, det_type='watersheds', save_extra=True, output_dir='')
+    metric, assessment_files = assess_results.main(REF_TYPE, ref_data_gdf, detected_dolines_gdf, aoi_gdf, det_type='watersheds', 
+                                                   dem_dir=os.path.join(output_dir, 'merged_dems'), save_extra=True, output_dir=output_dir)
     written_files.extend(assessment_files)
 
 print()

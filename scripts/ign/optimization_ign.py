@@ -25,24 +25,24 @@ logger = misc.format_logger(logger)
 
 # ----- Define functions -----
 
-def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf, ref_data_type, ref_data_gdf, slope_dir='slope'):
+def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf, ref_data_type, ref_data_gdf, output_dir='outputs'):
 
     resolution = trial.suggest_float('resolution', 1.5, 5.5, step=0.25)
     max_slope = trial.suggest_float('max_slope', 1, 4, step=0.2)
 
     gaussian_kernel = trial.suggest_int('gaussian_kernel', 15, 27, step=2)
-    gaussian_sigma = trial.suggest_float('gaussian_sigma', 3, 5, step=0.5)
-    dem_diff_thrsld = trial.suggest_float('dem_diff_thrsld', 1.5, 5, step=0.5)
-    min_area = trial.suggest_int('min_area', 50, 170, step=10)
-    limit_compactness = trial.suggest_float('limit_compactness', 0.1, 0.6, step=0.05)
+    gaussian_sigma = trial.suggest_float('gaussian_sigma', 3, 7, step=0.5)
+    dem_diff_thrsld = trial.suggest_float('dem_diff_thrsld', 0.5, 4, step=0.25)
+    min_area = trial.suggest_int('min_area', 40, 170, step=10)
+    limit_compactness = trial.suggest_float('limit_compactness', 0.025, 0.35, step=0.025)
     min_voronoi_area = trial.suggest_int('min_voronoi_area', 5000, 100000, step=5000)
     min_merged_area = trial.suggest_int('min_merged_area', 100000, 300000, step=50000)
     max_long_area = trial.suggest_int('max_long_area', 1500, 7000, step=500)
-    min_long_compactness = trial.suggest_float('min_long_compactness', 0.05, 0.45, step=0.05)
+    min_long_compactness = trial.suggest_float('min_long_compactness', 0.025, 0.3, step=0.025)
     min_round_compactness = trial.suggest_float('min_round_compactness', 0.3, 0.75, step=0.03)
     thalweg_buffer = trial.suggest_int('thalweg_buffer', 1, 15, step=2)
     thalweg_threshold = trial.suggest_float('thalweg_threshold', 0.1, 0.9, step=0.1)
-    max_depth = trial.suggest_int('max_depth', 30, 100, step=5)
+    max_depth = trial.suggest_int('max_depth', 50, 150, step=5)
 
     dict_params = {
         'gaussian_kernel': gaussian_kernel,
@@ -61,17 +61,18 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf
     }
 
     merged_tiles = merge_dem_over_aoi.main(dem_correspondence_df, aoi_gdf, dem_dir, resolution)
+    slope_dir = os.path.join(output_dir, 'slope')
     get_slope.main(merged_tiles, output_dir=slope_dir)
     possible_areas = define_possible_areas.main(slope_dir, non_sedi_areas_gdf, max_slope)
 
-    detected_dolines_gdf, _ = doline_detection.main(merged_tiles, possible_areas, **dict_params)
+    detected_dolines_gdf, _ = doline_detection.main(merged_tiles, possible_areas, output_dir=output_dir, **dict_params)
     if detected_dolines_gdf.empty:
         return 0
     detected_dolines_gdf = assess_results.prepare_dolines_to_assessment(detected_dolines_gdf)
 
     del possible_areas, merged_tiles
 
-    metric, _ = assess_results.main(ref_data_type, ref_data_gdf, detected_dolines_gdf, aoi_gdf, det_type='ign', output_dir='')
+    metric, _ = assess_results.main(ref_data_type, ref_data_gdf, detected_dolines_gdf, aoi_gdf, det_type='ign')
 
     return metric
 
@@ -134,7 +135,7 @@ study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESam
 objective = partial(
     objective, 
     dem_dir=TILE_DIR, dem_correspondence_df=dem_correspondence_df, aoi_gdf=aoi_gdf, non_sedi_areas_gdf=non_sedi_areas_gdf, ref_data_type=REF_TYPE, ref_data_gdf=ref_data_gdf, 
-    slope_dir=slope_dir
+    output_dir=output_dir
 )
 study.optimize(objective, n_trials=100, callbacks=[callback])
 
@@ -152,18 +153,20 @@ if study.best_value !=0:
     written_files.extend(opti.plot_optimization_results(study, targets, output_path=output_plots))
 
     logger.info('Produce results for the best parameters')
-    merged_tiles = merge_dem_over_aoi.main(dem_correspondence_df, aoi_gdf, TILE_DIR, resolution=study.best_params['resolution'], save_extra=True, output_dir=output_dir)
+    merged_tiles = merge_dem_over_aoi.main(dem_correspondence_df, aoi_gdf, TILE_DIR, resolution=study.best_params['resolution'],
+                                           save_extra=True, output_dir=os.path.join(output_dir, 'merged_tiles'))
     get_slope.main(merged_tiles, slope_dir)
     possible_areas = define_possible_areas.main(slope_dir, non_sedi_areas_gdf, study.best_params['max_slope'])
 
     dict_params = {key: value for key, value in study.best_params.items() if key not in ['max_slope', 'resolution']}
-    detected_dolines_gdf, doline_files = doline_detection.main(merged_tiles, possible_areas, save_extra=True, **dict_params)
+    detected_dolines_gdf, doline_files = doline_detection.main(merged_tiles, possible_areas, save_extra=True, output_dir=output_dir, **dict_params)
     written_files.extend(doline_files)
 
     del possible_areas, merged_tiles
 
     detected_dolines_gdf = assess_results.prepare_dolines_to_assessment(detected_dolines_gdf)
-    metric, assessment_files = assess_results.main(REF_TYPE, ref_data_gdf, detected_dolines_gdf, aoi_gdf, det_type='ign', save_extra=True, output_dir='outputs')
+    metric, assessment_files = assess_results.main(REF_TYPE, ref_data_gdf, detected_dolines_gdf, aoi_gdf, det_type='ign', 
+                                                   dem_dir=os.path.join(output_dir, 'merged_tiles'), save_extra=True, output_dir=output_dir)
     written_files.extend(assessment_files)
 
 print()

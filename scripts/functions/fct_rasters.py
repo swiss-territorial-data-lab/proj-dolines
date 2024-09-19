@@ -36,8 +36,8 @@ def polygonize_raster(raster, meta=None, dtype=None):
     if dtype:
         band = band.astype(dtype)
 
-    shapes_on_band = list(shapes(band, transform=meta['transform']))
-    polygons = [(shape(geom), value) for geom, value in shapes_on_band if value != meta['nodata']]
+    shapes_on_band = list(shapes(band, mask=band!=meta['nodata'], transform=meta['transform']))
+    polygons = [(shape(geom), value) for geom, value in shapes_on_band]
 
     gdf = gpd.GeoDataFrame(polygons, columns=['geometry', 'number'])
     gdf.set_crs(crs=meta['crs'], inplace=True)

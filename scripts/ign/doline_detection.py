@@ -179,8 +179,10 @@ def main(dem_dict, fitted_area_dict,
         # too_deep_steep_ids = alti_gdf.loc[(alti_gdf['depth'] > max_depth) | (alti_gdf['alti_diff'] < min_alti_diff), 'doline_id']
         sinkholes_gdf = sinkholes_gdf[~sinkholes_gdf.doline_id.isin(too_deep_steep_ids)].copy()
 
+    cleaned_sinkholes_gdf = sinkholes_gdf[['doline_id', 'type', 'compactness', 'alti_diff', 'corresponding_dem', 'geometry']]
+
     filepath = os.path.join(output_dir, 'sinkholes.gpkg')
-    sinkholes_gdf[['doline_id', 'type', 'compactness', 'alti_diff', 'corresponding_dem', 'geometry']].to_file(filepath)
+    cleaned_sinkholes_gdf.to_file(filepath)
     written_files.append(filepath)
 
     if save_extra:
@@ -196,7 +198,7 @@ def main(dem_dict, fitted_area_dict,
         large_dense_areas.to_file(filepath)
         written_files.append(filepath)
 
-    return sinkholes_gdf, written_files
+    return cleaned_sinkholes_gdf, written_files
 
 
 if __name__ == '__main__':
