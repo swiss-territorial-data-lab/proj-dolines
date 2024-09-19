@@ -15,10 +15,6 @@ from global_parameters import AOI_TYPE
 logger = format_logger(logger)
 
 def main(dem_correspondence_pd, aoi_gdf, dem_dir, resolution, save_extra=False, output_dir='outputs'):
-    if AOI_TYPE:
-        logger.warning(f'Working only on the areas of type {AOI_TYPE}')
-        aoi_gdf = aoi_gdf[aoi_gdf['Type'] == AOI_TYPE].copy()
-        output_dir = os.path.join(output_dir, AOI_TYPE)
 
     if save_extra:
         os.makedirs(output_dir, exist_ok=True)
@@ -46,7 +42,7 @@ def main(dem_correspondence_pd, aoi_gdf, dem_dir, resolution, save_extra=False, 
             with rio.open(os.path.join(output_dir, tile_name), 'w', **meta) as dst:
                 dst.write(merged_dem)
 
-        dem_dict[tile_name] = (merged_dem, meta)
+        dem_dict[tile_name] = (merged_dem[0, :, :], meta)
 
     return dem_dict
 
@@ -57,6 +53,10 @@ def read_initial_data(aoi_path, dem_correspondence_csv):
     aoi_gdf = gpd.read_file(aoi_path)
     aoi_gdf = aoi_gdf.to_crs(2056)
     aoi_gdf.loc[:, 'geometry'] = aoi_gdf.geometry.buffer(2000)
+
+    if AOI_TYPE:
+        logger.warning(f'Working only on the areas of type {AOI_TYPE}')
+        aoi_gdf = aoi_gdf[aoi_gdf['Type'] == AOI_TYPE].copy()
 
     return dem_correspondence_pd, aoi_gdf
 
@@ -84,7 +84,10 @@ if __name__ == '__main__':
     logger.info('Read AOI data')
     dem_correspondence_pd, aoi_gdf = read_initial_data(AOI, DEM_CORRESPONDENCE)
 
-    _ = main(dem_correspondence_pd, aoi_gdf, DEM_DIR, RES, save_extra=True, output_dir=OUTPUT_DIR)
+    if AOI_TYPE:
+        output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE)
+
+    _ = main(dem_correspondence_pd, aoi_gdf, DEM_DIR, RES, save_extra=True, output_dir=output_dir)
     
 
     logger.success(f'Done! The files were written in {OUTPUT_DIR}.')

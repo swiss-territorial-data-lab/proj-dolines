@@ -87,17 +87,23 @@ def main(dem_dict, fitted_area_dict,
 
     # Find area with a high density of round depressions based on the area of vornoi polygons
     dissolved_vornoi_polys = voronoi_result_polys[voronoi_result_polys.area < min_voronoi_area].union_all('coverage')
-    dissolved_vornoi_polys_gs = gpd.GeoSeries([geom for geom in dissolved_vornoi_polys.geoms], crs='epsg:2056')
-    assert dissolved_vornoi_polys_gs.is_valid.all(), 'Dissolved voronoi polygons are not all valid.'
+    if dissolved_vornoi_polys.is_empty:
+        sinkholes_in_dense_area_gdf = gpd.GeoDataFrame(columns=filtered_sinkholes_gdf.columns)
+    else:
+        dissolved_vornoi_polys_gs = gpd.GeoSeries(
+            [geom for geom in dissolved_vornoi_polys.geoms] if dissolved_vornoi_polys.geom_type == 'MultiPolygon' else dissolved_vornoi_polys, 
+            crs='epsg:2056'
+        )
+        assert dissolved_vornoi_polys_gs.is_valid.all(), 'Dissolved voronoi polygons are not all valid.'
 
-    # Only keep large dense area and a buffer around
-    large_dense_areas = dissolved_vornoi_polys_gs[dissolved_vornoi_polys_gs.area > min_merged_area].copy()
-    large_dense_areas = large_dense_areas.geometry.buffer(100)
-    large_dense_areas_union = large_dense_areas.union_all()
+        # Only keep large dense area and a buffer around
+        large_dense_areas = dissolved_vornoi_polys_gs[dissolved_vornoi_polys_gs.area > min_merged_area].copy()
+        large_dense_areas = large_dense_areas.geometry.buffer(100)
+        large_dense_areas_union = large_dense_areas.union_all()
 
-    logger.info('Filter depressions depending on the local density...')
-    # Perform the time-consuming spatial operation separatly to avoid checking separatly for different types.
-    sinkholes_in_dense_area_gdf = filtered_sinkholes_gdf[filtered_sinkholes_gdf.geometry.within(large_dense_areas_union)].copy()
+        logger.info('Filter depressions depending on the local density...')
+        # Perform the time-consuming spatial operation separatly to avoid checking separatly for different types.
+        sinkholes_in_dense_area_gdf = filtered_sinkholes_gdf[filtered_sinkholes_gdf.geometry.within(large_dense_areas_union)].copy()
 
     # Only keep long depression that are within the large dense area
     long_sinkholes_gdf = sinkholes_in_dense_area_gdf[

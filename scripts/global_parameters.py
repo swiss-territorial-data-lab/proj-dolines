@@ -1,6 +1,7 @@
-AOI_TYPE = 'Molasse'     # Possible types: None, DGM (Dépression sur glace morte), Evaporites, Karst nu, Marnes sur karst, Molasse, RSVMC (Roches sédimentaires variées, à matrice calcaire)
+AOI_TYPE = 'DGM'     # Possible types: None (i.e all types), DGM (Dépression sur glace morte), Evaporites, Karst nu, Marnes sur karst, Molasse, 
+                            # RSVMC (Roches sédimentaires variées, à matrice calcaire)
 ALL_PARAMS_IGN = {
-    None: {
+    'All types': {
         'resolution': 30,
         'max_slope': 1.5,
         'gaussian_kernel': 25,
@@ -121,7 +122,7 @@ ALL_PARAMS_IGN = {
     },
 }
 ALL_PARAMS_WTSHD = {
-    None: {
+    'All types': {
         'resolution': 2,
         'simplification_param': 5,
         'mean_filter_size': 3,

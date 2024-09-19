@@ -18,6 +18,7 @@ sys.path.insert(1, 'scripts')
 import functions.fct_misc as misc
 import functions.fct_optimization as opti
 import assess_results, define_possible_areas, doline_detection, get_slope, merge_dem_over_aoi
+from global_parameters import AOI_TYPE
 
 logger = misc.format_logger(logger)
 
@@ -26,19 +27,19 @@ logger = misc.format_logger(logger)
 
 def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf, ref_data_type, ref_data_gdf, slope_dir='slope'):
 
-    resolution = trial.suggest_float('resolution', 0.5, 4, step=0.5)
-    max_slope = trial.suggest_float('max_slope', 0.7, 1.5, step=0.2)
+    resolution = trial.suggest_float('resolution', 1.5, 5.5, step=0.25)
+    max_slope = trial.suggest_float('max_slope', 1, 4, step=0.2)
 
-    gaussian_kernel = trial.suggest_int('gaussian_kernel', 25, 33, step=2)
+    gaussian_kernel = trial.suggest_int('gaussian_kernel', 15, 27, step=2)
     gaussian_sigma = trial.suggest_float('gaussian_sigma', 3, 5, step=0.5)
-    dem_diff_thrsld = trial.suggest_float('dem_diff_thrsld', 0.5, 2.5, step=0.5)
-    min_area = trial.suggest_int('min_area', 50, 150, step=10)
-    limit_compactness = trial.suggest_float('limit_compactness', 0.3, 0.8, step=0.1)
+    dem_diff_thrsld = trial.suggest_float('dem_diff_thrsld', 1.5, 5, step=0.5)
+    min_area = trial.suggest_int('min_area', 50, 170, step=10)
+    limit_compactness = trial.suggest_float('limit_compactness', 0.1, 0.6, step=0.05)
     min_voronoi_area = trial.suggest_int('min_voronoi_area', 5000, 100000, step=5000)
     min_merged_area = trial.suggest_int('min_merged_area', 100000, 300000, step=50000)
-    max_long_area = trial.suggest_int('max_long_area', 2500, 8000, step=500)
-    min_long_compactness = trial.suggest_float('min_long_compactness', 0.1, 0.5, step=0.05)
-    min_round_compactness = trial.suggest_float('min_round_compactness', 0.5, 0.9, step=0.05)
+    max_long_area = trial.suggest_int('max_long_area', 1500, 7000, step=500)
+    min_long_compactness = trial.suggest_float('min_long_compactness', 0.05, 0.45, step=0.05)
+    min_round_compactness = trial.suggest_float('min_round_compactness', 0.3, 0.75, step=0.03)
     thalweg_buffer = trial.suggest_int('thalweg_buffer', 1, 15, step=2)
     thalweg_threshold = trial.suggest_float('thalweg_threshold', 0.1, 0.9, step=0.1)
     max_depth = trial.suggest_int('max_depth', 30, 100, step=5)
@@ -66,12 +67,11 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf
     detected_dolines_gdf, _ = doline_detection.main(merged_tiles, possible_areas, **dict_params)
     if detected_dolines_gdf.empty:
         return 0
-    detected_dolines_gdf['det_class'] = 'doline'
-    detected_dolines_gdf.rename(columns={'corresponding_dem': 'tile_id'}, inplace=True)
+    detected_dolines_gdf = assess_results.prepare_dolines_to_assessment(detected_dolines_gdf)
 
     del possible_areas, merged_tiles
 
-    metric, _ = assess_results.main(ref_data_type, ref_data_gdf, detected_dolines_gdf, aoi_gdf, det_type='ign')
+    metric, _ = assess_results.main(ref_data_type, ref_data_gdf, detected_dolines_gdf, aoi_gdf, det_type='ign', output_dir='')
 
     return metric
 
@@ -105,8 +105,11 @@ logger.warning(f'The reference data of {REF_TYPE} will be used.')
 logger.warning(f'Then the {"f1 score" if REF_TYPE.lower() == "geocover" else "recall"} will be used as the metric.')
 
 os.chdir(WORKING_DIR)
-output_dir = os.path.join(OUTPUT_DIR) if REF_TYPE.lower() in OUTPUT_DIR.lower() else os.path.join(OUTPUT_DIR, REF_TYPE)
+output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE) if REF_TYPE.lower() in OUTPUT_DIR.lower() else os.path.join(OUTPUT_DIR, REF_TYPE, AOI_TYPE)
 written_files = []
+
+if AOI_TYPE:
+    logger.warning(f'Working only on the areas of type {AOI_TYPE}')
 
 logger.info('Read data...')
 
@@ -130,7 +133,8 @@ study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESam
 # study = load(study_path, 'r')
 objective = partial(
     objective, 
-    dem_dir=TILE_DIR, dem_correspondence_df=dem_correspondence_df, aoi_gdf=aoi_gdf, non_sedi_areas_gdf=non_sedi_areas_gdf, ref_data_type=REF_TYPE, ref_data_gdf=ref_data_gdf, slope_dir=slope_dir
+    dem_dir=TILE_DIR, dem_correspondence_df=dem_correspondence_df, aoi_gdf=aoi_gdf, non_sedi_areas_gdf=non_sedi_areas_gdf, ref_data_type=REF_TYPE, ref_data_gdf=ref_data_gdf, 
+    slope_dir=slope_dir
 )
 study.optimize(objective, n_trials=100, callbacks=[callback])
 
@@ -153,12 +157,13 @@ if study.best_value !=0:
     possible_areas = define_possible_areas.main(slope_dir, non_sedi_areas_gdf, study.best_params['max_slope'])
 
     dict_params = {key: value for key, value in study.best_params.items() if key not in ['max_slope', 'resolution']}
-    detected_dolines_gdf, doline_files = doline_detection.main(merged_tiles, possible_areas, **dict_params)
+    detected_dolines_gdf, doline_files = doline_detection.main(merged_tiles, possible_areas, save_extra=True, **dict_params)
     written_files.extend(doline_files)
 
     del possible_areas, merged_tiles
 
-    metric, assessment_files =assess_results.main(REF_TYPE, ref_data_gdf, detected_dolines_gdf, aoi_gdf, det_type='ign', save_extra=False, output_dir='outputs')
+    detected_dolines_gdf = assess_results.prepare_dolines_to_assessment(detected_dolines_gdf)
+    metric, assessment_files = assess_results.main(REF_TYPE, ref_data_gdf, detected_dolines_gdf, aoi_gdf, det_type='ign', save_extra=True, output_dir='outputs')
     written_files.extend(assessment_files)
 
 print()

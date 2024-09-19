@@ -32,6 +32,13 @@ def median_distance_between_datasets(reference_gdf, detections_gdf, rounding_dig
 
     return nearest_join_gdf['distance'].median().round(rounding_digits)
 
+
+def prepare_dolines_to_assessment(dolines_gdf):
+    dolines_gdf['det_class'] = 'doline'
+    dolines_gdf.rename(columns={'corresponding_dem': 'tile_id'}, inplace=True)
+
+    return dolines_gdf
+
 def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type, dem_dir='outputs', save_extra=False, output_dir='outputs'):
 
     logger.info(f'Source for the reference data: {ref_data_type}')
@@ -58,7 +65,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     tagged_detections_gdf = pd.concat([tp_gdf, fp_gdf, fn_gdf], ignore_index=True)
 
     logger.info('Calculate metrics on all dets...')
-    metric_fct = f1_score if ref_data_type == 'geocover' else recall_score
+    metric_fct = f1_score # if ref_data_type == 'geocover' else recall_score
     metric = metric_fct(tagged_detections_gdf['label_class'], tagged_detections_gdf['det_class'], pos_label='doline')
     metrics_dict = {
         'nbr labels': tagged_detections_gdf[tagged_detections_gdf.label_class == 'doline'].shape[0],
@@ -195,6 +202,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
 
     return metric, written_files
 
+
 if __name__ == '__main__':
     tic = time()
     logger.info('Starting...')
@@ -230,8 +238,7 @@ if __name__ == '__main__':
         ref_data_gdf.rename(columns={'OBJECTID': 'objectid'}, inplace=True)
 
     detections_gdf = gpd.read_file(DETECTIONS)
-    detections_gdf['det_class'] = 'doline'
-    detections_gdf.rename(columns={'corresponding_dem': 'tile_id'}, inplace=True)
+    detections_gdf = prepare_dolines_to_assessment(detections_gdf)
 
     pilot_areas_gdf = gpd.read_file(PILOT_AREAS)
     pilot_areas_gdf.to_crs(2056, inplace=True)

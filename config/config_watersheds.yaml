@@ -72,7 +72,7 @@ optimization_watersheds.py:
   ref_data_geocover: inputs/vectors/dolines.gpkg
   aoi: inputs/vectors/pilot_v2.geojson
   dem_correspondence: inputs/tiles/dem_per_aoi.csv
-  non_sedimentary_areas: outputs/merged_DEM_5_m/possible_areas/non_sedi_areas.gpkg
+  non_sedimentary_areas: outputs/merged_DEM_ign/possible_areas/non_sedi_areas.gpkg
   tlm_data: inputs/vectors/side_data/clipped_tlm_subset.gpkg
   ground_cover_layer: tlm_bb_bodenbedeckung
   rivers: inputs/vectors/side_data/clipped_typisierung-fliessgewaesser_2056.gpkg

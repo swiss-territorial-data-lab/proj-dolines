@@ -28,7 +28,7 @@ def main(dem_dict, output_dir='outputs/slope'):
 
         # Calculate slope
         cell_size = dem_meta['transform'][0]
-        px, py = np.gradient(dem_data[0, :, :], cell_size)
+        px, py = np.gradient(dem_data, cell_size)
         slope = np.sqrt(px**2 + py**2)
         
         slope_dem_meta = dem_meta.copy()
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     dem_dict = {}
     for dem_path in tqdm(dem_list, desc="Read DEM"):
         with rio.open(dem_path) as src:
-            dem_data = src.read()
+            dem_data = src.read(1)
             dem_meta = src.meta
         dem_dict[os.path.basename(dem_path)] = dem_data, dem_meta
 

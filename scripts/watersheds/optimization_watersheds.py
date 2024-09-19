@@ -18,6 +18,7 @@ sys.path.insert(1, 'scripts')
 import functions.fct_misc as misc
 import functions.fct_optimization as opti
 import assess_results, define_possible_areas, depression_detection, get_slope, merge_dem_over_aoi, post_processing
+from global_parameters import AOI_TYPE
 
 logger = misc.format_logger(logger)
 
@@ -52,7 +53,7 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, water_bodies_gdf, 
         'max_depth': max_depth
     } 
 
-    _ = merge_dem_over_aoi.main(dem_correspondence_df, aoi_gdf, dem_dir, resolution, save_extra=True, output_dir=os.path.join(output_dir, 'merged_dems'))
+    _ = merge_dem_over_aoi.main(dem_correspondence_df, aoi_gdf, dem_dir, resolution, output_dir=os.path.join(output_dir, 'merged_dems'))
     # get_slope.main(merged_tiles, output_dir=slope_dir)
     # possible_areas = define_possible_areas.main(slope_dir, non_sedi_areas_gdf, max_slope)
 
@@ -61,8 +62,7 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, water_bodies_gdf, 
     detected_dolines_gdf, _ = post_processing.main(detected_depressions_gdf, water_bodies_gdf, rivers_gdf, output_dir=output_dir, **post_process_params)
     if detected_dolines_gdf.empty:
         return 0
-    detected_dolines_gdf['det_class'] = 'doline'
-    detected_dolines_gdf.rename(columns={'corresponding_dem': 'tile_id'}, inplace=True)
+    detected_dolines_gdf = assess_results.prepare_dolines_to_assessment(detected_dolines_gdf)
 
     metric, _ = assess_results.main(ref_data_type, ref_data_gdf, detected_dolines_gdf, aoi_gdf, det_type='ign')
 
@@ -101,8 +101,11 @@ logger.warning(f'The reference data of {REF_TYPE} will be used.')
 logger.warning(f'Then the {"f1 score" if REF_TYPE.lower() == "geocover" else "recall"} will be used as the metric.')
 
 os.chdir(WORKING_DIR)
-output_dir = os.path.join(OUTPUT_DIR) if REF_TYPE.lower() in OUTPUT_DIR.lower() else os.path.join(OUTPUT_DIR, REF_TYPE)
+output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE) if REF_TYPE.lower() in OUTPUT_DIR.lower() else os.path.join(OUTPUT_DIR, REF_TYPE, AOI_TYPE)
 written_files = []
+
+if AOI_TYPE:
+    logger.warning(f'Working only on the areas of type {AOI_TYPE}')
 
 logger.info('Read data...')
 
@@ -134,14 +137,14 @@ objective = partial(
     dem_dir=TILE_DIR, dem_correspondence_df=dem_correspondence_df, aoi_gdf=aoi_gdf, water_bodies_gdf=water_bodies_gdf, rivers_gdf=dissolved_rivers_gdf, ref_data_type=REF_TYPE, ref_data_gdf=ref_data_gdf,
     working_dir=WORKING_DIR, slope_dir=slope_dir, output_dir=output_dir
 )
-study.optimize(objective, n_trials=100, callbacks=[callback])
+study.optimize(objective, n_trials=250, callbacks=[callback])
 
 dump(study, study_path)
 written_files.append(study_path)
 
 if study.best_value !=0:
     logger.info('Save the best parameters')
-    targets = {0: "f1 score" if REF_TYPE.lower() == "geocover" else "recall"}
+    targets = {0: "f1 score"}
     written_files.append(opti.save_best_parameters(study, targets, output_dir=output_dir))
 
     logger.info('Plot results...')
@@ -150,21 +153,24 @@ if study.best_value !=0:
     written_files.extend(opti.plot_optimization_results(study, targets, output_path=output_plots))
 
     logger.info('Produce results for the best parameters')
-    _ = merge_dem_over_aoi.main(dem_correspondence_df, aoi_gdf, study.best_params['resolution'], save_extra=True, output_dir=OUTPUT_DIR)
+    _ = merge_dem_over_aoi.main(dem_correspondence_df, aoi_gdf, TILE_DIR, study.best_params['resolution'], save_extra=True, output_dir=os.path.join(output_dir, 'merged_dems'))
     # get_slope.main(merged_tiles, slope_dir)
     # possible_areas = define_possible_areas.main(study.best_params['max_slope'])
 
+    dem_list = glob(os.path.join(output_dir, 'merged_dems', '*.tif'))
     detected_depressions_gdf, depression_files = depression_detection.main(
-        TILE_DIR, study.best_params['simplification_param'], study.best_params['mean_filter_size'], study.best_params['fill_depth'], working_dir=output_dir, overwrite=True
+        dem_list, study.best_params['simplification_param'], study.best_params['mean_filter_size'], study.best_params['fill_depth'], 
+        working_dir=WORKING_DIR, output_dir=output_dir, overwrite=True
     )
     written_files.extend(depression_files)
     best_pp_param = {key: value for key, value in study.best_params.items() if key in [
         'max_part_in_lake', 'max_part_in_river', 'min_compactness', 'max_area', 'min_diameter', 'min_depth', 'max_depth'
     ]}
-    detected_dolines_gdf, _ = post_processing.main(detected_depressions_gdf, water_bodies_gdf, rivers_gdf, **best_pp_param)
+    detected_dolines_gdf, _ = post_processing.main(detected_depressions_gdf, water_bodies_gdf, dissolved_rivers_gdf, **best_pp_param)
     # del possible_areas, merged_tiles
 
-    metric, assessment_files = assess_results.main(REF_TYPE, ref_data_gdf, detected_dolines_gdf, ref_data_gdf, det_type='ign')
+    detected_dolines_gdf = assess_results.prepare_dolines_to_assessment(detected_dolines_gdf)
+    metric, assessment_files = assess_results.main(REF_TYPE, ref_data_gdf, detected_dolines_gdf, aoi_gdf, det_type='watersheds', save_extra=True, output_dir='')
     written_files.extend(assessment_files)
 
 print()
