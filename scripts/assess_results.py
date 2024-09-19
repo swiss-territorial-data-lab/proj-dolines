@@ -128,7 +128,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
 
         # TODO: Make a graph P vs R on each area
 
-        similarity_dict = {'structural similarity': [], 'hausdorff distance': []}
+        similarity_dict = {'hausdorff distance': []}
         similarity_dir = os.path.join(output_dir, 'similarity_rasters')
         os.makedirs(similarity_dir, exist_ok=True)
         for area in tqdm(pilot_areas_gdf.itertuples(), desc='Compare image shapes', total=pilot_areas_gdf.shape[0]):
@@ -137,30 +137,15 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
 
             if area_ref_data_gdf.empty or area_dolines_gdf.empty:
                 logger.warning(f'No label or data for the area {area.name}.')
-                similarity_dict['structural similarity'].append(0)
                 similarity_dict['hausdorff distance'].append(0)
                 continue
             
             with rio.open(os.path.join(dem_dir, area.tile_id)) as src:
                 meta = src.meta
 
-                # Determine structural similarity
                 # Mask DEM with the dolines
                 ref_image, _ = mask(src, area_ref_data_gdf.geometry)
                 det_image, _ = mask(src, area_dolines_gdf.geometry)
-                ref_cond = ref_image != meta['nodata']
-                det_cond = det_image != meta['nodata']
-                # Get the max and min coordinates of the dolines in the pilot area -> Clip raster to AOI to limit the empty area increasing similarity
-                min_x = min(np.where(ref_cond)[1].min(), np.where(det_cond)[1].min())
-                min_y = min(np.where(ref_cond)[2].min(), np.where(det_cond)[2].min())
-                max_x = max(np.where(ref_cond)[1].max(), np.where(det_cond)[1].max())
-                max_y = max(np.where(ref_cond)[2].max(), np.where(det_cond)[2].max())
-
-                # Binary raster cropped to the dolines of the pilot area
-                binary_ref_image = np.where(ref_cond, 1, 0)[:, min_x:max_x, min_y:max_y]
-                binary_det_image = np.where(det_cond, 1, 0)[:, min_x:max_x, min_y:max_y]
-                
-                similarity_dict['structural similarity'].append(structural_similarity(binary_ref_image, binary_det_image, data_range=1, channel_axis=0))
 
                 # Determine hausdorff distance
                 area_pixel_doline_gdf = area_dolines_gdf.copy()
@@ -174,12 +159,6 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
                 det_image[det_image>0] = 1
 
                 similarity_dict['hausdorff distance'].append(hausdorff_distance(ref_image, det_image, method='modified'))
-
-            # with rio.open(os.path.join(similarity_dir, 'pt_ref_' + area_tile_id), 'w', **meta) as dst:
-            #     dst.write(ref_image)
-
-            # with rio.open(os.path.join(similarity_dir, 'pt_det_' + area_tile_id), 'w', **meta) as dst:
-            #     dst.write(det_image)
             
             # meta.update({'height': binary_ref_image.shape[1], 'width': binary_ref_image.shape[2], 'transform': meta['transform']})
             # with rio.open(os.path.join(similarity_dir, 'ref_' + area_tile_id), 'w', **meta) as dst:
