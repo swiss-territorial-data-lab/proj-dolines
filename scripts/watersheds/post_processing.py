@@ -97,12 +97,13 @@ if '__main__' == __name__:
 
     if AOI_TYPE:
         logger.warning(f'Working only on the areas of type {AOI_TYPE}')
-        potential_dolines_path = os.path.join(os.path.dirname(POTENTIAL_DOLINES), AOI_TYPE, os.path.basename(POTENTIAL_DOLINES))
+    potential_dolines_path = os.path.join(os.path.dirname(POTENTIAL_DOLINES), AOI_TYPE, os.path.basename(POTENTIAL_DOLINES)) if AOI_TYPE else POTENTIAL_DOLINES
+    output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE) if AOI_TYPE else OUTPUT_DIR
 
     # ----- Processing -----
 
     logger.info('Read data...')
-    potential_dolines_gdf = gpd.read_file(POTENTIAL_DOLINES)
+    potential_dolines_gdf = gpd.read_file(potential_dolines_path)
 
     rivers_gdf = gpd.read_file(RIVERS)
     ground_cover_gdf = gpd.read_file(TLM_DATA, layer=GROUND_COVER_LAYER)
@@ -110,7 +111,7 @@ if '__main__' == __name__:
     logger.info('Prepare additional data...')
     dissolved_rivers_gdf, water_bodies_gdf = prepare_filters(ground_cover_gdf, rivers_gdf)
 
-    dolines_gdf, filepath = main(potential_dolines_gdf, water_bodies_gdf, dissolved_rivers_gdf, output_dir=OUTPUT_DIR)
+    dolines_gdf, filepath = main(potential_dolines_gdf, water_bodies_gdf, dissolved_rivers_gdf, output_dir=output_dir)
 
     logger.success(f'Done! The file {filepath} was written.')
     logger.info(f'Done in {time() - tic:0.2f} seconds')

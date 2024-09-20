@@ -19,8 +19,10 @@ def main(dem_correspondence_pd, aoi_gdf, dem_dir, resolution, save_extra=False, 
     if save_extra:
         os.makedirs(output_dir, exist_ok=True)
 
+    buffered_aoi_gdf = aoi_gdf.copy()
+    buffered_aoi_gdf.loc[:, 'geometry'] = aoi_gdf.geometry.buffer(2000)
     dem_dict = {}
-    for aoi in tqdm(aoi_gdf.itertuples(), desc="Merge DEMs", total=aoi_gdf.shape[0]):
+    for aoi in tqdm(buffered_aoi_gdf.itertuples(), desc="Merge DEMs", total=buffered_aoi_gdf.shape[0]):
         dem_list = [
             os.path.join(dem_dir, dem) for dem in dem_correspondence_pd[aoi.name].tolist()
             if isinstance(dem, str) and os.path.exists(os.path.join(dem_dir, dem))
@@ -52,7 +54,6 @@ def read_initial_data(aoi_path, dem_correspondence_csv):
 
     aoi_gdf = gpd.read_file(aoi_path)
     aoi_gdf = aoi_gdf.to_crs(2056)
-    aoi_gdf.loc[:, 'geometry'] = aoi_gdf.geometry.buffer(2000)
 
     if AOI_TYPE:
         logger.warning(f'Working only on the areas of type {AOI_TYPE}')

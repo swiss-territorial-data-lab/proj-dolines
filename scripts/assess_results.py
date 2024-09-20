@@ -103,6 +103,8 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
 
         logger.info('Calculate the metrics for each pilot area...')
         pilot_areas = detections_gdf.tile_id.unique().tolist()
+        if pilot_areas != tagged_detections_gdf.tile_id.unique().tolist():
+            logger.error('Tile id not corresponding between labels and detections')
         metrics_per_area_dict = {
             'nbr labels': [], 'nbr detections': [],
             'precision': [], 'recall': [], 'f1': [], 'median IoU for TP': [], 'median distance': []
@@ -205,6 +207,7 @@ if __name__ == '__main__':
     if AOI_TYPE:
         logger.warning(f'Working only on the areas of type {AOI_TYPE}')
     dem_dir = os.path.join(DEM_DIR, AOI_TYPE) if AOI_TYPE else DEM_DIR
+    det_path = os.path.join(os.path.dirname(DETECTIONS), AOI_TYPE, os.path.basename(DETECTIONS)) if AOI_TYPE else DETECTIONS
 
      # ----- Processing -----
 
@@ -216,7 +219,7 @@ if __name__ == '__main__':
     if 'OBJECTID' in ref_data_gdf.columns:
         ref_data_gdf.rename(columns={'OBJECTID': 'objectid'}, inplace=True)
 
-    detections_gdf = gpd.read_file(DETECTIONS)
+    detections_gdf = gpd.read_file(det_path)
     detections_gdf = prepare_dolines_to_assessment(detections_gdf)
 
     pilot_areas_gdf = gpd.read_file(PILOT_AREAS)

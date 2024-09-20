@@ -27,16 +27,16 @@ logger = misc.format_logger(logger)
 
 def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf, ref_data_type, ref_data_gdf, output_dir='outputs'):
 
-    resolution = trial.suggest_float('resolution', 1.5, 5.5, step=0.25)
+    resolution = trial.suggest_float('resolution', 0.5, 4, step=0.25)
     max_slope = trial.suggest_float('max_slope', 1, 4, step=0.2)
 
     gaussian_kernel = trial.suggest_int('gaussian_kernel', 15, 27, step=2)
     gaussian_sigma = trial.suggest_float('gaussian_sigma', 3, 7, step=0.5)
-    dem_diff_thrsld = trial.suggest_float('dem_diff_thrsld', 0.5, 4, step=0.25)
-    min_area = trial.suggest_int('min_area', 40, 170, step=10)
+    dem_diff_thrsld = trial.suggest_float('dem_diff_thrsld', 0.2, 2, step=0.2)
+    min_area = trial.suggest_int('min_area', 20, 90, step=10)
     limit_compactness = trial.suggest_float('limit_compactness', 0.025, 0.35, step=0.025)
     min_voronoi_area = trial.suggest_int('min_voronoi_area', 5000, 100000, step=5000)
-    min_merged_area = trial.suggest_int('min_merged_area', 100000, 300000, step=50000)
+    min_merged_area = trial.suggest_int('min_merged_area', 200000, 400000, step=50000)
     max_long_area = trial.suggest_int('max_long_area', 1500, 7000, step=500)
     min_long_compactness = trial.suggest_float('min_long_compactness', 0.025, 0.3, step=0.025)
     min_round_compactness = trial.suggest_float('min_round_compactness', 0.3, 0.75, step=0.03)
@@ -103,7 +103,7 @@ DEM_CORRESPONDENCE = cfg['dem_correspondence']
 NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
 
 logger.warning(f'The reference data of {REF_TYPE} will be used.')
-logger.warning(f'Then the {"f1 score" if REF_TYPE.lower() == "geocover" else "recall"} will be used as the metric.')
+# logger.warning(f'Then the {"f1 score" if REF_TYPE.lower() == "geocover" else "recall"} will be used as the metric.')
 
 os.chdir(WORKING_DIR)
 output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE) if REF_TYPE.lower() in OUTPUT_DIR.lower() else os.path.join(OUTPUT_DIR, REF_TYPE, AOI_TYPE)

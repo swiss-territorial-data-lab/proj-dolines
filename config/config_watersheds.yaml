@@ -66,12 +66,12 @@ assess_results.py:
 optimization_watersheds.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/optimization_watersheds
-  tile_dir: inputs/tiles
+  tile_dir: inputs/tiles_watersheds
   ref_type: tlm
   ref_data_tlm: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
   ref_data_geocover: inputs/vectors/dolines.gpkg
   aoi: inputs/vectors/pilot_v2.geojson
-  dem_correspondence: inputs/tiles/dem_per_aoi.csv
+  dem_correspondence: inputs/tiles_watersheds/dem_per_aoi.csv
   non_sedimentary_areas: outputs/merged_DEM_ign/possible_areas/non_sedi_areas.gpkg
   tlm_data: inputs/vectors/side_data/clipped_tlm_subset.gpkg
   ground_cover_layer: tlm_bb_bodenbedeckung

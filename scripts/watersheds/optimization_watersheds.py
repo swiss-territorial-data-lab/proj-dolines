@@ -27,18 +27,18 @@ logger = misc.format_logger(logger)
 
 def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, water_bodies_gdf, rivers_gdf, ref_data_type, ref_data_gdf, working_dir, slope_dir='slope', output_dir='.'):
 
-    resolution = trial.suggest_float('resolution', 1, 5.5, step=0.75)
+    resolution = trial.suggest_float('resolution', 0.5, 5, step=0.75)
     # max_slope = trial.suggest_float('max_slope', 0.7, 1.5, step=0.2)
 
-    simplification_param = trial.suggest_float('simplification_param', 0.3, 3, step=0.3)
+    simplification_param = trial.suggest_float('simplification_param', 0.9, 3.3, step=0.3)
     mean_filter_size = trial.suggest_int('mean_filter_size', 1, 5, step=2)
-    fill_depth = trial.suggest_float('fill_depth', 3, 7, step=0.25)
+    fill_depth = trial.suggest_float('fill_depth', 0.5, 4.5, step=0.25)
     max_part_in_lake = trial.suggest_float('max_part_in_lake', 0.05, 0.55, step=0.1)
     max_part_in_river = trial.suggest_float('max_part_in_river', 0.1, 0.4, step=0.05)
     min_compactness = trial.suggest_float('min_compactness', 0.6, 1, step=0.05)
     min_area = trial.suggest_int('min_area', 5, 40, step=5)
     max_area = trial.suggest_int('max_area', 2500, 8000, step=500)
-    min_diameter = trial.suggest_float('min_diameter', 2, 10, step=0.5)
+    min_diameter = trial.suggest_float('min_diameter', 5, 12, step=0.5)
     min_depth = trial.suggest_float('min_depth', 0.1, 1, step=0.1)
     max_depth = trial.suggest_int('max_depth', 60, 180, step=5)
 
@@ -98,7 +98,7 @@ GROUND_COVER = cfg['ground_cover_layer']
 RIVERS = cfg['rivers']
 
 logger.warning(f'The reference data of {REF_TYPE} will be used.')
-logger.warning(f'Then the {"f1 score" if REF_TYPE.lower() == "geocover" else "recall"} will be used as the metric.')
+# logger.warning(f'Then the {"f1 score" if REF_TYPE.lower() == "geocover" else "recall"} will be used as the metric.')
 
 os.chdir(WORKING_DIR)
 output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE) if REF_TYPE.lower() in OUTPUT_DIR.lower() else os.path.join(OUTPUT_DIR, REF_TYPE, AOI_TYPE)
