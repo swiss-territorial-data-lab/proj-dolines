@@ -1,18 +1,13 @@
 import os
 import sys
-from glob import glob
 from loguru import logger
 from time import time
-from tqdm import tqdm
 
 import geopandas as gpd
-import pandas as pd
-from rasterio import open
 
 import optuna
 from functools import partial
 from joblib import dump, load
-from math import floor
 
 sys.path.insert(1, 'scripts')
 import functions.fct_misc as misc
@@ -27,22 +22,22 @@ logger = misc.format_logger(logger)
 
 def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf, ref_data_type, ref_data_gdf, output_dir='outputs'):
 
-    resolution = trial.suggest_float('resolution', 0.5, 4, step=0.25)
-    max_slope = trial.suggest_float('max_slope', 1, 4, step=0.2)
+    resolution = trial.suggest_float('resolution', 0.5, 4.5, step=0.25)
+    max_slope = trial.suggest_float('max_slope', 1.6, 3.6, step=0.2)
 
-    gaussian_kernel = trial.suggest_int('gaussian_kernel', 15, 27, step=2)
-    gaussian_sigma = trial.suggest_float('gaussian_sigma', 3, 7, step=0.5)
-    dem_diff_thrsld = trial.suggest_float('dem_diff_thrsld', 0.2, 2, step=0.2)
-    min_area = trial.suggest_int('min_area', 20, 90, step=10)
-    limit_compactness = trial.suggest_float('limit_compactness', 0.025, 0.35, step=0.025)
-    min_voronoi_area = trial.suggest_int('min_voronoi_area', 5000, 100000, step=5000)
-    min_merged_area = trial.suggest_int('min_merged_area', 200000, 400000, step=50000)
-    max_long_area = trial.suggest_int('max_long_area', 1500, 7000, step=500)
+    gaussian_kernel = trial.suggest_int('gaussian_kernel', 15, 35, step=2)
+    gaussian_sigma = trial.suggest_float('gaussian_sigma', 5, 9, step=0.5)
+    dem_diff_thrsld = trial.suggest_float('dem_diff_thrsld', 1.5, 3, step=0.1)
+    min_area = trial.suggest_int('min_area', 20, 70, step=5)
+    limit_compactness = trial.suggest_float('limit_compactness', 0.1, 0.4, step=0.05)
+    min_voronoi_area = trial.suggest_int('min_voronoi_area', 25000, 100000, step=5000)
+    min_merged_area = trial.suggest_int('min_merged_area', 25000, 250000, step=25000)
+    max_long_area = trial.suggest_int('max_long_area', 500, 3500, step=500)
     min_long_compactness = trial.suggest_float('min_long_compactness', 0.025, 0.3, step=0.025)
-    min_round_compactness = trial.suggest_float('min_round_compactness', 0.3, 0.75, step=0.03)
-    thalweg_buffer = trial.suggest_int('thalweg_buffer', 1, 15, step=2)
-    thalweg_threshold = trial.suggest_float('thalweg_threshold', 0.1, 0.9, step=0.1)
-    max_depth = trial.suggest_int('max_depth', 50, 150, step=5)
+    min_round_compactness = trial.suggest_float('min_round_compactness', 0.2, 0.71, step=0.03)
+    thalweg_buffer = trial.suggest_float('thalweg_buffer', 1, 8, step=0.5)
+    thalweg_threshold = trial.suggest_float('thalweg_threshold', 0.2, 1.2, step=0.1)
+    max_depth = trial.suggest_int('max_depth', 75, 160, step=5)
 
     dict_params = {
         'gaussian_kernel': gaussian_kernel,
@@ -106,11 +101,12 @@ logger.warning(f'The reference data of {REF_TYPE} will be used.')
 # logger.warning(f'Then the {"f1 score" if REF_TYPE.lower() == "geocover" else "recall"} will be used as the metric.')
 
 os.chdir(WORKING_DIR)
-output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE) if REF_TYPE.lower() in OUTPUT_DIR.lower() else os.path.join(OUTPUT_DIR, REF_TYPE, AOI_TYPE)
+output_dir = OUTPUT_DIR if REF_TYPE.lower() in OUTPUT_DIR.lower() else os.path.join(OUTPUT_DIR, REF_TYPE)
 written_files = []
 
 if AOI_TYPE:
     logger.warning(f'Working only on the areas of type {AOI_TYPE}')
+    output_dir = os.path.join(output_dir, AOI_TYPE) if AOI_TYPE else output_dir
 
 logger.info('Read data...')
 

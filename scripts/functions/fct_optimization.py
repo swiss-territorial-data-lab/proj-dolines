@@ -4,7 +4,6 @@ from loguru import logger
 import pandas as pd
 
 import optuna.visualization as optviz
-from joblib import dump
 
 
 def plot_optimization_results(study, targets={0: 'f1 score'}, output_path='.'):

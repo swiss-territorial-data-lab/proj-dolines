@@ -1,4 +1,4 @@
-AOI_TYPE = 'Marnes sur karst'     # Possible types: None (i.e all types), DGM (Dépression sur glace morte), Evaporites, Karst nu, Marnes sur karst, Molasse, 
+AOI_TYPE = 'RSVMC'   # Possible types: None (i.e all types), DGM (Dépression sur glace morte), Evaporites, Karst nu, Marnes sur karst, Molasse, 
                             # RSVMC (Roches sédimentaires variées, à matrice calcaire)
 ALL_PARAMS_IGN = {
     'All types': {
@@ -137,32 +137,32 @@ ALL_PARAMS_WTSHD = {
         'max_depth': 30
     },
     'DGM': {
-        'resolution': 3.25,
-        'simplification_param': 2.4,
-        'mean_filter_size': 3,
-        'fill_depth': 4.75,
-        'max_part_in_lake': 0.15,
-        'max_part_in_river': 0.10,
-        'min_compactness': 0.45,
-        'min_area': 35,
-        'max_area': 3500,
-        'min_diameter': 8,
-        'min_depth': 0.3,
-        'max_depth': 70
+        'resolution': 4.75,
+        'simplification_param': 3,
+        'mean_filter_size': 1,
+        'fill_depth': 5.75,
+        'max_part_in_lake': 0.1,
+        'max_part_in_river': 0.35,
+        'min_compactness': 0.75,
+        'min_area': 25,
+        'max_area': 7000,
+        'min_diameter': 7.5,
+        'min_depth': 0.7,
+        'max_depth': 125
     },
     'Evaporites': {
         'resolution': 2,
-        'simplification_param': 5,
-        'mean_filter_size': 3,
-        'fill_depth': 0.5,
-        'max_part_in_lake': 0.1,
-        'max_part_in_river': 0.1,
-        'min_compactness': 0.5,
-        'min_area': 35,
-        'max_area': 2500,
-        'min_diameter': 2,
-        'min_depth': 0.1,
-        'max_depth': 30
+        'simplification_param': 2.7,
+        'mean_filter_size': 1,
+        'fill_depth': 5.25,
+        'max_part_in_lake': 0.5,
+        'max_part_in_river': 0.2,
+        'min_compactness': 0.8,
+        'min_area': 30,
+        'max_area': 7000,
+        'min_diameter': 5,
+        'min_depth': 0.4,
+        'max_depth': 110
     },
     # 'Karst nu': {
     #    'resolution': 2,

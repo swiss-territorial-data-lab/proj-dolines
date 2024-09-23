@@ -7,7 +7,6 @@ from tqdm import tqdm
 
 import geopandas as gpd
 import numpy as np
-import pandas as pd
 import rasterio as rio
 from rasterio.mask import mask
 from shapely.geometry import box

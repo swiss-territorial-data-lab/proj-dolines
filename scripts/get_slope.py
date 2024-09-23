@@ -5,12 +5,8 @@ from loguru import logger
 from time import time
 from tqdm import tqdm
 
-import geopandas as gpd
 import numpy as np
-import pandas as pd
 import rasterio as rio
-from rasterio.enums import Resampling
-from rasterio.windows import Window
 
 from math import ceil, floor
 

@@ -79,7 +79,7 @@ optimization_ign.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/optimization_ign
   tile_dir: inputs/tiles_ign
-  ref_type: geocover
+  ref_type: tlm
   ref_data_tlm: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
   ref_data_geocover: inputs/vectors/dolines.gpkg
   aoi: inputs/vectors/pilot_v2.geojson

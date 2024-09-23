@@ -9,9 +9,7 @@ import numpy as np
 import pandas as pd
 import rasterio as rio
 from rasterio.mask import mask
-from rasterio.windows import Window
 
-from math import floor, ceil
 from skimage.metrics import hausdorff_distance, structural_similarity
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
 
@@ -131,8 +129,8 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         # TODO: Make a graph P vs R on each area
 
         similarity_dict = {'hausdorff distance': []}
-        similarity_dir = os.path.join(output_dir, 'similarity_rasters')
-        os.makedirs(similarity_dir, exist_ok=True)
+        # similarity_dir = os.path.join(output_dir, 'similarity_rasters')
+        # os.makedirs(similarity_dir, exist_ok=True)
         for area in tqdm(pilot_areas_gdf.itertuples(), desc='Compare image shapes', total=pilot_areas_gdf.shape[0]):
             area_dolines_gdf = dets_in_aoi_gdf[dets_in_aoi_gdf.tile_id == area.tile_id].copy()
             area_ref_data_gdf = ref_data_in_aoi_gdf[ref_data_in_aoi_gdf.tile_id == area.tile_id].copy()
