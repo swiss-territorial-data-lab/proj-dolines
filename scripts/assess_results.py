@@ -115,11 +115,14 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
             metrics_per_area_dict['nbr labels'].append(results_in_area_gdf[results_in_area_gdf.label_class == 'doline'].shape[0])
             metrics_per_area_dict['nbr detections'].append(results_in_area_gdf[results_in_area_gdf.det_class == 'doline'].shape[0])
 
-            metrics_per_area_dict['precision'].append(precision_score(results_in_area_gdf.label_class, results_in_area_gdf.det_class, pos_label='doline'))
+            metrics_per_area_dict['precision'].append(precision_score(results_in_area_gdf.label_class, results_in_area_gdf.det_class, pos_label='doline', zero_division=0))
             metrics_per_area_dict['recall'].append(recall_score(results_in_area_gdf.label_class, results_in_area_gdf.det_class, pos_label='doline', zero_division=0))
             metrics_per_area_dict['f1'].append(f1_score(results_in_area_gdf.label_class, results_in_area_gdf.det_class, pos_label='doline'))
             metrics_per_area_dict['median IoU for TP'].append(results_in_area_gdf.loc[results_in_area_gdf.tag=='TP', 'IOU'].median())
-            metrics_per_area_dict['median distance'].append(median_distance_between_datasets(ref_data_in_aoi_gdf, results_in_area_gdf))
+            metrics_per_area_dict['median distance'].append(median_distance_between_datasets(
+                ref_data_in_aoi_gdf[ref_data_in_aoi_gdf.tile_id == area_name],
+                results_in_area_gdf[~results_in_area_gdf.doline_id.isna()]
+            ))
 
         metrics_per_area_df = pd.DataFrame.from_dict(
             metrics_per_area_dict, orient='index', columns=pilot_areas
