@@ -12,7 +12,7 @@ merge_dem_over_aoi.py:
   dem_dir: inputs/tiles_watersheds
   dem_correspondence: inputs/tiles_watersheds/dem_per_aoi.csv
   aoi: inputs/vectors/pilot_v2.geojson
-  res: 0.5
+  # res: 0.5
 
 
 get_slope.py:
@@ -35,7 +35,7 @@ depression_detection.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/dolines
   dem_dir: outputs/merged_DEM_wtsh
-  vw_threshold: 0.06
+  # vw_threshold: 0.06
 
 
 post_processing.py:
@@ -59,7 +59,7 @@ assess_results.py:
     ign: outputs/dolines/sinkholes.gpkg
   pilot_areas: inputs/vectors/pilot_v2.geojson
   type:
-    ref_data: tlm
+    ref_data: geocover
     dets: watersheds
 
 

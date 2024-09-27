@@ -1,16 +1,14 @@
 import os
-import sys
 from loguru import logger
 from time import time
 from tqdm import tqdm
 
 import geopandas as gpd
-import numpy as np
 import pandas as pd
 import rasterio as rio
 from rasterio.mask import mask
 
-from skimage.metrics import hausdorff_distance, structural_similarity
+from skimage.metrics import hausdorff_distance
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
 
 from functions.fct_metrics import get_fractional_sets
@@ -21,10 +19,13 @@ logger = format_logger(logger)
 
 
 def median_distance_between_datasets(reference_gdf, detections_gdf, rounding_digits=2):
+    _ref_gdf = reference_gdf.copy()
+    _dets_gdf = detections_gdf.copy()
+    
     # Get the median distance between elements of the reference data and detection dataset
-    nearest_left_join_gdf = reference_gdf[['objectid', 'geometry']].sjoin_nearest(detections_gdf[['doline_id', 'geometry']], how='left', distance_col='distance')
+    nearest_left_join_gdf = _ref_gdf[['objectid', 'geometry']].sjoin_nearest(_dets_gdf[['doline_id', 'geometry']], how='left', distance_col='distance')
     nearest_left_join_gdf.drop_duplicates(subset=['objectid', 'distance'], inplace=True)
-    nearest_right_join_gdf = reference_gdf[['objectid', 'geometry']].sjoin_nearest(detections_gdf[['doline_id', 'geometry']], how='right', distance_col='distance')
+    nearest_right_join_gdf = _ref_gdf[['objectid', 'geometry']].sjoin_nearest(_dets_gdf[['doline_id', 'geometry']], how='right', distance_col='distance')
     nearest_right_join_gdf.drop_duplicates(subset=['doline_id', 'distance'], inplace=True)
     nearest_join_gdf = pd.concat([nearest_left_join_gdf, nearest_right_join_gdf], ignore_index=True)
 
@@ -32,12 +33,16 @@ def median_distance_between_datasets(reference_gdf, detections_gdf, rounding_dig
 
 
 def prepare_dolines_to_assessment(dolines_gdf):
-    dolines_gdf['det_class'] = 'doline'
-    dolines_gdf.rename(columns={'corresponding_dem': 'tile_id'}, inplace=True)
+    prepared_dolines_gdf = dolines_gdf.copy()
+    prepared_dolines_gdf['det_class'] = 'doline'
+    prepared_dolines_gdf.rename(columns={'corresponding_dem': 'tile_id'}, inplace=True)
 
-    return dolines_gdf
+    return prepared_dolines_gdf
 
 def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type, dem_dir='outputs', save_extra=False, output_dir='outputs'):
+    _ref_gdf = ref_data_gdf.copy()
+    _dets_gdf = detections_gdf.copy()
+    _pilot_areas_gdf = pilot_areas_gdf.copy()
 
     logger.info(f'Source for the reference data: {ref_data_type}')
     logger.info(f'Detection method: {det_type}')
@@ -45,13 +50,13 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     assert (ref_data_type.lower() in ['geocover', 'tlm']), 'Reference data type must be geocover or tlm.'
     assert (det_type.lower() in ['watersheds', 'ign']), 'Detection method must be watersheds or ign.'
 
-    if 'type' in detections_gdf:
-        detections_gdf = detections_gdf[detections_gdf['type']!='thalweg'].copy()
+    if 'type' in _dets_gdf:
+        _dets_gdf = _dets_gdf[_dets_gdf['type']!='thalweg'].copy()
 
     logger.info('Match detections with ground truth...')        # TODO: Associate dem name to ref data
-    pilot_areas_gdf.loc[:, 'tile_id'] = [tile_id + '.tif' for tile_id in pilot_areas_gdf[f'tile_id_{det_type}']]
-    ref_data_in_aoi_gdf = ref_data_gdf.sjoin(pilot_areas_gdf[['tile_id', 'geometry']], how='inner')
-    dets_in_aoi_gdf = detections_gdf[detections_gdf.geometry.within(pilot_areas_gdf.geometry.union_all())].copy()
+    _pilot_areas_gdf.loc[:, 'tile_id'] = [tile_id + '.tif' for tile_id in _pilot_areas_gdf[f'tile_id_{det_type}']]
+    ref_data_in_aoi_gdf = _ref_gdf.sjoin(_pilot_areas_gdf[['tile_id', 'geometry']], how='inner')
+    dets_in_aoi_gdf = _dets_gdf[_dets_gdf.geometry.within(_pilot_areas_gdf.geometry.union_all())].copy()
 
     tp_gdf, fp_gdf, fn_gdf, _ = get_fractional_sets(dets_in_aoi_gdf, ref_data_in_aoi_gdf[['objectid', 'label_class', 'tile_id', 'geometry']], iou_threshold=0.1)
     tp_gdf['tag'] = 'TP'
@@ -71,7 +76,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         'precision': precision_score(tagged_detections_gdf.label_class, tagged_detections_gdf.det_class, pos_label='doline'),
         'recall': recall_score(tagged_detections_gdf['label_class'], tagged_detections_gdf['det_class'], pos_label='doline'),
         'f1': f1_score(tagged_detections_gdf['label_class'], tagged_detections_gdf['det_class'], pos_label='doline'),
-        'median IoU for TP': tp_gdf['IOU'].median()
+        'median IoU for TP': 0 if tp_gdf.empty else tp_gdf['IOU'].median()
     }
 
     metrics_dict['median distance'] = median_distance_between_datasets(ref_data_in_aoi_gdf, dets_in_aoi_gdf)
@@ -100,7 +105,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         written_files.append(filepath)
 
         logger.info('Calculate the metrics for each pilot area...')
-        pilot_areas = detections_gdf.tile_id.unique().tolist()
+        pilot_areas = _dets_gdf.tile_id.unique().tolist()
         if pilot_areas != tagged_detections_gdf.tile_id.unique().tolist():
             logger.error('Tile id not corresponding between labels and detections')
         metrics_per_area_dict = {
@@ -129,12 +134,10 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         ).transpose().round(3)
         metrics_df = pd.concat([metrics_df, metrics_per_area_df])
 
-        # TODO: Make a graph P vs R on each area
-
         similarity_dict = {'hausdorff distance': []}
         # similarity_dir = os.path.join(output_dir, 'similarity_rasters')
         # os.makedirs(similarity_dir, exist_ok=True)
-        for area in tqdm(pilot_areas_gdf.itertuples(), desc='Compare image shapes', total=pilot_areas_gdf.shape[0]):
+        for area in tqdm(_pilot_areas_gdf.itertuples(), desc='Compare image shapes', total=_pilot_areas_gdf.shape[0]):
             area_dolines_gdf = dets_in_aoi_gdf[dets_in_aoi_gdf.tile_id == area.tile_id].copy()
             area_ref_data_gdf = ref_data_in_aoi_gdf[ref_data_in_aoi_gdf.tile_id == area.tile_id].copy()
 
@@ -153,7 +156,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
                 # Determine hausdorff distance
                 area_pixel_doline_gdf = area_dolines_gdf.copy()
                 area_pixel_doline_gdf.loc[:, 'geometry'] = area_pixel_doline_gdf.geometry.centroid.buffer(meta['transform'][0], cap_style=3)
-                area_pixel_ref_gdf = ref_data_gdf.copy()
+                area_pixel_ref_gdf = _ref_gdf.copy()
                 area_pixel_ref_gdf.loc[:, 'geometry'] = area_pixel_ref_gdf.geometry.centroid.buffer(meta['transform'][0], cap_style=3)
 
                 ref_image, _ = mask(src, area_pixel_ref_gdf.geometry, nodata=0)  # Set nodata to 0, because the hausdorff distance works with non-zero pixels
@@ -174,7 +177,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         metrics_df = pd.concat([metrics_df, similarity_df], axis=1).reset_index().rename(columns={'index': 'tile_id'})
         metrics_df.loc[:, 'tile_id'] = metrics_df.tile_id.str.rstrip('.tif')
         metrics_df = pd.merge(
-            pilot_areas_gdf[['name', f'tile_id_{det_type}']], metrics_df, 
+            _pilot_areas_gdf[['name', f'tile_id_{det_type}']], metrics_df, 
             left_on=f'tile_id_{det_type}', right_on='tile_id', how='outer'
         ).drop(columns=f'tile_id_{det_type}')
 

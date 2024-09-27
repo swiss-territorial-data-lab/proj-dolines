@@ -21,7 +21,7 @@ wbt = whitebox.WhiteboxTools()
 sys.path.insert(1, 'scripts')
 from functions.fct_misc import format_logger, get_config
 from functions.fct_rasters import polygonize_binary_raster, polygonize_raster
-from global_parameters import AOI_TYPE
+from global_parameters import ALL_PARAMS_WATERSHEDS, AOI_TYPE
 
 logger = format_logger(logger)
 
@@ -209,22 +209,28 @@ if __name__ == '__main__':
     OUTPUT_DIR = cfg['output_dir']
     DEM_DIR = cfg['dem_dir']
 
-    VW_THRESHOLD = cfg['vw_threshold']
     overwrite = False
 
     os.chdir(WORKING_DIR)
 
     if AOI_TYPE:
         logger.warning(f'Working only on the areas of type {AOI_TYPE}')
+        aoi_type_key = AOI_TYPE
+    else:
+        aoi_type_key = 'All types'
     dem_dir = os.path.join(DEM_DIR, AOI_TYPE) if AOI_TYPE else DEM_DIR
     output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE) if AOI_TYPE else OUTPUT_DIR
+
+    VW_THRESHOLD = ALL_PARAMS_WATERSHEDS[aoi_type_key]['simplification_param']
+    MEAN_FILTER = ALL_PARAMS_WATERSHEDS[aoi_type_key]['mean_filter_size']
+    FILL_DEPTH = ALL_PARAMS_WATERSHEDS[aoi_type_key]['fill_depth']
 
     # ----- Data processing -----
 
     logger.info('Read data...')
 
     dem_list = glob(os.path.join(dem_dir, '*.tif'))
-    potential_dolines_gdf, written_files = main(dem_list, VW_THRESHOLD, working_dir=WORKING_DIR, output_dir=output_dir, save_extra=True)
+    potential_dolines_gdf, written_files = main(dem_list, VW_THRESHOLD, MEAN_FILTER, FILL_DEPTH, working_dir=WORKING_DIR, output_dir=output_dir, save_extra=True)
 
     logger.success('Done! The following files were written:')
     for file in written_files:

@@ -12,7 +12,7 @@ merge_dem_over_aoi.py:
   dem_dir: inputs/tiles_ign
   dem_correspondence: inputs/tiles_ign/dem_per_aoi.csv
   aoi: inputs/vectors/pilot_v2.geojson
-  res: 3
+  # res: 3
 
 
 gt_analysis.py:
@@ -37,7 +37,7 @@ define_possible_areas.py:
   slope_dir: outputs/merged_DEM_ign/slope
   non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
   aoi: inputs/vectors/pilot_v2.geojson
-  max_slope: 1.5
+  # max_slope: 1.5
 
 
 treatment_mask.py:
@@ -65,13 +65,13 @@ assess_results.py:
   dem_dir: outputs/merged_DEM_ign
   ref_data:
     geocover: inputs/vectors/dolines.gpkg
-    tlm: inputs/vectors/TLM-Dolinen-20240814/TLM-Dolinen-20240814.gpkg
+    tlm: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
   detections:
     watersheds: outputs/dolines/dolines.gpkg
     ign: outputs/dolines/sinkholes.gpkg
   pilot_areas: inputs/vectors/pilot_v2.geojson
   type:
-    ref_data: geocover
+    ref_data: tlm
     dets: ign
 
   

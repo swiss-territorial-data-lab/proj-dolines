@@ -13,11 +13,14 @@ from shapely.geometry import box
 from skimage.morphology import disk, opening
 
 from functions.fct_misc import format_logger, get_config
-from global_parameters import AOI_TYPE
+from global_parameters import ALL_PARAMS_IGN, AOI_TYPE
 
 logger = format_logger(logger)
 
 def main(slope_dir, non_sedi_areas_gdf, max_slope=1.1, save_extra=False, output_dir='outputs'):
+
+    _non_sedi_areas_gdf = non_sedi_areas_gdf.copy()
+
     if save_extra:
         os.makedirs(output_dir, exist_ok=True)
 
@@ -33,9 +36,9 @@ def main(slope_dir, non_sedi_areas_gdf, max_slope=1.1, save_extra=False, output_
 
         # Mask non-sedimentary areas
         with rio.open(tile_path) as src:
-            sedimentary_slopes, _ = mask(src, non_sedi_areas_gdf.geometry, invert=True)
+            sedimentary_slopes, _ = mask(src, _non_sedi_areas_gdf.geometry, invert=True)
             meta = src.meta
-            if (sedimentary_slopes==meta['nodata']).all() and not non_sedi_areas_gdf.geometry.intersects(box(*src.bounds)).any():
+            if (sedimentary_slopes==meta['nodata']).all() and not _non_sedi_areas_gdf.geometry.intersects(box(*src.bounds)).any():
                 sedimentary_slopes = src.read()
 
         # Remove areas with a high slope
@@ -68,15 +71,17 @@ if __name__ == '__main__':
     NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
     AOI = cfg['aoi']
 
-    MAX_SLOPE = cfg['max_slope']
-
     os.chdir(WORKING_DIR)
 
     if AOI_TYPE:
         logger.warning(f'Working only on the areas of type {AOI_TYPE}')
+        aoi_type_key = AOI_TYPE
+    else:
+        aoi_type_key = 'All types'
     slope_dir = os.path.join(SLOPE_DIR, AOI_TYPE) if AOI_TYPE else SLOPE_DIR
     output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE) if AOI_TYPE else OUTPUT_DIR
-    os.makedirs(output_dir, exist_ok=True)
+
+    MAX_SLOPE = ALL_PARAMS_IGN[aoi_type_key]['max_slope']
 
     # ----- Data processing -----
 

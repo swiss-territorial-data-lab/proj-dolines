@@ -7,13 +7,13 @@ import geopandas as gpd
 
 sys.path.insert(1, 'scripts')
 from functions.fct_misc import format_logger, get_config
-from global_parameters import AOI_TYPE
+from global_parameters import ALL_PARAMS_WATERSHEDS, AOI_TYPE
 
 logger = format_logger(logger)
 
 
 def main(potential_dolines_gdf, water_bodies_gdf, dissolved_rivers_gdf, 
-        max_part_in_lake=0.15, max_part_in_river=0.3, min_compactness=0.45, min_area=1, max_area=3000, min_diameter=5.5, min_depth=0.4, max_depth=70,
+        max_part_in_lake, max_part_in_river, min_compactness, min_area, max_area, min_diameter, min_depth, max_depth,
         output_dir='outputs'):
     os.makedirs(output_dir, exist_ok=True)
 
@@ -61,15 +61,18 @@ def main(potential_dolines_gdf, water_bodies_gdf, dissolved_rivers_gdf,
 
 
 def prepare_filters(ground_cover_gdf, rivers_gdf):
-    rivers_gdf = rivers_gdf[
-        ~rivers_gdf.CODE.isin([12111, 12121, 12131, 33111, 33121, 33131, 43111, 43121, 43131, 53131])
-        & (rivers_gdf.BIOGEO!='Mittelland')
+    _ground_cover_gdf = ground_cover_gdf.copy()
+    _rivers_gdf = rivers_gdf.copy()
+
+    _rivers_gdf = _rivers_gdf[
+        ~_rivers_gdf.CODE.isin([12111, 12121, 12131, 33111, 33121, 33131, 43111, 43121, 43131, 53131])
+        & (_rivers_gdf.BIOGEO!='Mittelland')
     ].copy()
-    rivers_gdf.loc[:, 'geometry'] = rivers_gdf.geometry.buffer(1)
-    dissolved_rivers_gdf = rivers_gdf.dissolve(by='BIOGEO').explode()
+    _rivers_gdf.loc[:, 'geometry'] = _rivers_gdf.geometry.buffer(1)
+    dissolved_rivers_gdf = _rivers_gdf.dissolve(by='BIOGEO').explode()
     dissolved_rivers_gdf['buff_river_geom'] = dissolved_rivers_gdf.geometry
 
-    water_bodies_gdf = ground_cover_gdf[ground_cover_gdf.objektart=='Stehende Gewaesser'].copy()
+    water_bodies_gdf = _ground_cover_gdf[_ground_cover_gdf.objektart=='Stehende Gewaesser'].copy()
     water_bodies_gdf['wb_geom'] = water_bodies_gdf.geometry
 
     return dissolved_rivers_gdf, water_bodies_gdf
@@ -97,8 +100,15 @@ if '__main__' == __name__:
 
     if AOI_TYPE:
         logger.warning(f'Working only on the areas of type {AOI_TYPE}')
+        aoi_type_key = AOI_TYPE
+    else:
+        aoi_type_key = 'All types'
     potential_dolines_path = os.path.join(os.path.dirname(POTENTIAL_DOLINES), AOI_TYPE, os.path.basename(POTENTIAL_DOLINES)) if AOI_TYPE else POTENTIAL_DOLINES
     output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE) if AOI_TYPE else OUTPUT_DIR
+
+    param_dict = {k: v for k, v in ALL_PARAMS_WATERSHEDS[aoi_type_key].items() if k in [
+        'max_part_in_lake', 'max_part_in_river', 'min_compactness', 'min_area', 'max_area', 'min_diameter', 'min_depth', 'max_depth'
+    ]}
 
     # ----- Processing -----
 
@@ -111,7 +121,7 @@ if '__main__' == __name__:
     logger.info('Prepare additional data...')
     dissolved_rivers_gdf, water_bodies_gdf = prepare_filters(ground_cover_gdf, rivers_gdf)
 
-    dolines_gdf, filepath = main(potential_dolines_gdf, water_bodies_gdf, dissolved_rivers_gdf, output_dir=output_dir)
+    dolines_gdf, filepath = main(potential_dolines_gdf, water_bodies_gdf, dissolved_rivers_gdf, output_dir=output_dir, **param_dict)
 
     logger.success(f'Done! The file {filepath} was written.')
     logger.info(f'Done in {time() - tic:0.2f} seconds')

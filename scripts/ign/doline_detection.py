@@ -15,7 +15,7 @@ from rasterstats import zonal_stats
 sys.path.insert(1, 'scripts')
 from functions.fct_misc import format_logger, get_config
 from functions.fct_rasters import polygonize_binary_raster
-from global_parameters import AOI_TYPE
+from global_parameters import ALL_PARAMS_IGN, AOI_TYPE
 
 logger = format_logger(logger)
 
@@ -24,9 +24,9 @@ tic = time()
 logger.info('Starting...')
 
 def main(dem_dict, fitted_area_dict,
-         gaussian_kernel=31, gaussian_sigma=4.5, dem_diff_thrsld=1.5, min_area=100, limit_compactness=0.5,
-         min_voronoi_area=30000, min_merged_area=45000, max_long_area=7000, min_long_compactness=0.3, min_round_compactness=0.1,
-         thalweg_buffer=9, thalweg_threshold=0.3, max_depth=50, min_alti_diff=-5,
+         gaussian_kernel, gaussian_sigma, dem_diff_thrsld, min_area, limit_compactness,
+         min_voronoi_area, min_merged_area, max_long_area, min_long_compactness, min_round_compactness,
+         thalweg_buffer, thalweg_threshold, max_depth, min_alti_diff=-5,
          save_extra=False, output_dir='outputs'):
 
     os.makedirs(output_dir, exist_ok=True)
@@ -194,9 +194,12 @@ def main(dem_dict, fitted_area_dict,
         filtered_sinkholes_gdf.to_file(filepath)
         written_files.append(filepath)
 
-        filepath = os.path.join(output_dir, 'large_dense_area.gpkg')
-        large_dense_areas.to_file(filepath)
-        written_files.append(filepath)
+        try:
+            filepath = os.path.join(output_dir, 'large_dense_area.gpkg')
+            large_dense_areas.to_file(filepath)
+            written_files.append(filepath)
+        except UnboundLocalError:
+            pass
 
     return cleaned_sinkholes_gdf, written_files
 
@@ -214,8 +217,13 @@ if __name__ == '__main__':
 
     if AOI_TYPE:
         logger.warning(f'Working only on the areas of type {AOI_TYPE}')
+        aoi_type_key = AOI_TYPE
+    else:
+        aoi_type_key = 'All types'
     dem_dir = os.path.join(DEM_DIR, AOI_TYPE) if AOI_TYPE else DEM_DIR
     output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE) if AOI_TYPE else OUTPUT_DIR
+
+    param_dict = {k: v for k, v in ALL_PARAMS_IGN[aoi_type_key].items() if k not in ['resolution', 'max_slope']}
 
     logger.info('Read data...')
 
@@ -241,7 +249,7 @@ if __name__ == '__main__':
         logger.critical('No DEM files found.')
         sys.exit(1)
 
-    dolines_gdf, written_files = main(dem_dict, potential_area_dict, save_extra=True, output_dir=output_dir)
+    dolines_gdf, written_files = main(dem_dict, potential_area_dict, save_extra=True, output_dir=output_dir, **param_dict)
 
     logger.success('Done! The following files were written:')
     for file in written_files:

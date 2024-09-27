@@ -1,7 +1,10 @@
 import os
+import sys
+from argparse import ArgumentParser
 from loguru import logger
 from time import time
 from tqdm import tqdm
+from yaml import FullLoader, load
 
 import geopandas as gpd
 import pandas as pd
@@ -10,7 +13,7 @@ from rasterio.enums import Resampling
 from rasterio.merge import merge
 
 from functions.fct_misc import format_logger, get_config
-from global_parameters import AOI_TYPE
+from global_parameters import ALL_PARAMS_IGN, ALL_PARAMS_WATERSHEDS, AOI_TYPE
 
 logger = format_logger(logger)
 
@@ -68,7 +71,17 @@ if __name__ == '__main__':
 
     # ----- Get parameters -----
 
-    cfg = get_config(os.path.basename(__file__), desc="This script merges the DEM files over the AOI.")
+    # Argument and parameter specification
+    parser = ArgumentParser(description="This script merges the DEM files over the AOI.")
+    parser.add_argument('config_file', type=str, help='Framework configuration file')
+    args = parser.parse_args()
+
+    logger.info(f"Using {args.config_file} as config file.")
+
+    with open(args.config_file) as fp:
+        cfg = load(fp, Loader=FullLoader)[os.path.basename(__file__)]
+
+    METHOD_TYPE = args.config_file.split('_')[-1].split('.')[0].upper()
 
     WORKING_DIR = cfg['working_dir']
     OUTPUT_DIR = cfg['output_dir']
@@ -76,7 +89,20 @@ if __name__ == '__main__':
     DEM_CORRESPONDENCE = cfg['dem_correspondence']
     AOI = cfg['aoi']
 
-    RES = cfg['res'] # in meters
+    if AOI_TYPE:
+        output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE)
+        aoi_type_key = AOI_TYPE
+    else:
+        aoi_type_key = 'All types'
+
+    if METHOD_TYPE == 'IGN':
+        RES = ALL_PARAMS_IGN[aoi_type_key]['resolution']
+    elif METHOD_TYPE == 'WATERSHEDS':
+        RES = ALL_PARAMS_WATERSHEDS[aoi_type_key]['resolution']
+    else:
+        logger.critical(f'Unknown method type {METHOD_TYPE}.') 
+        logger.critical(f'Please choose among ign and watersheds.')
+        sys.exit(1)
 
     os.chdir(WORKING_DIR)
 
@@ -85,8 +111,6 @@ if __name__ == '__main__':
     logger.info('Read AOI data')
     dem_correspondence_pd, aoi_gdf = read_initial_data(AOI, DEM_CORRESPONDENCE)
 
-    if AOI_TYPE:
-        output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE)
 
     _ = main(dem_correspondence_pd, aoi_gdf, DEM_DIR, RES, save_extra=True, output_dir=output_dir)
     
