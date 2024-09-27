@@ -8,6 +8,7 @@ import pandas as pd
 import rasterio as rio
 from rasterio.mask import mask
 
+import matplotlib.pyplot as plt
 from skimage.metrics import hausdorff_distance
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
 
@@ -107,7 +108,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         logger.info('Calculate the metrics for each pilot area...')
         pilot_areas = _dets_gdf.tile_id.unique().tolist()
         if pilot_areas != tagged_detections_gdf.tile_id.unique().tolist():
-            logger.error('Tile id not corresponding between labels and detections')
+            logger.error('Tile ids not corresponding between labels and detections')
         metrics_per_area_dict = {
             'nbr labels': [], 'nbr detections': [],
             'precision': [], 'recall': [], 'f1': [], 'median IoU for TP': [], 'median distance': []
@@ -183,6 +184,37 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
 
         filepath = os.path.join(output_dir, f'{AOI_TYPE + "_" if AOI_TYPE else ""}{ref_data_type}_metrics.csv')
         metrics_df.to_csv(filepath)
+        written_files.append(filepath)
+
+        logger.info(f'Make some graphs...')
+        sub_metrics_df = metrics_df[~metrics_df.name.isna()].copy()
+        graphs_dir = os.path.join(output_dir, 'graphs')
+        os.makedirs(graphs_dir, exist_ok=True)
+
+        # Make a graph of the metrics between 0 and 1 for each zone
+        fig, ax = plt.subplots()
+        df_plot = sub_metrics_df.plot(
+            x='name', y=['precision', 'recall', 'f1', 'median IoU for TP'], kind='line', style='o',
+            title='Metrics per zone', grid=True, legend=True, xlabel='Zone name', ylabel='Metric value', ax=ax
+        )
+        ax.set_ylim(ymin=0)
+
+        filepath = os.path.join(graphs_dir, f'{AOI_TYPE + "_" if AOI_TYPE else ""}{ref_data_type}_metrics_per_zone.jpg')
+        fig.savefig(filepath)
+        written_files.append(filepath)
+
+        # Make a graph f1 vs median distance
+        fig, ax = plt.subplots()
+        df_plot = sub_metrics_df.plot(
+            x='f1', y='median distance', kind='scatter',
+            title='F1 vs median distance between labels and detections', grid=True, legend=True, xlabel='F1', ylabel='Median distance', ax=ax
+        )
+
+        for row in sub_metrics_df.itertuples():
+            ax.annotate(row.name, (row.f1, row._9))
+
+        filepath = os.path.join(graphs_dir, f'{AOI_TYPE + "_" if AOI_TYPE else ""}{ref_data_type}_f1_vs_median_distance.jpg')
+        fig.savefig(filepath)
         written_files.append(filepath)
 
     return metric, written_files
