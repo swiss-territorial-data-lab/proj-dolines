@@ -9,17 +9,14 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import rasterio as rio
-from shapely.geometry import mapping
-from shapely.validation import make_valid
 from rasterio.features import rasterize
 from rasterstats import zonal_stats
 
-import visvalingamwyatt as vw
 import whitebox 
 wbt = whitebox.WhiteboxTools()
 
 sys.path.insert(1, 'scripts')
-from functions.fct_misc import format_logger, get_config
+from functions.fct_misc import format_logger, get_config, simplify_with_vw
 from functions.fct_rasters import polygonize_binary_raster, polygonize_raster
 from global_parameters import ALL_PARAMS_WATERSHEDS, AOI_TYPE
 
@@ -40,8 +37,6 @@ def main(dem_list, simplification_param, mean_filter_size=7, fill_depth=0.5, wor
     if not save_extra:
         wbt.set_verbose_mode(False)
 
-    logger.info('Perform hydrological processing...')
-
     potential_dolines_gdf = gpd.GeoDataFrame()
     for dem_path in dem_list:
         dem_name = os.path.basename(dem_path)
@@ -52,6 +47,7 @@ def main(dem_list, simplification_param, mean_filter_size=7, fill_depth=0.5, wor
         watershed_path = os.path.join(dem_processing_dir, 'watersheds_' + dem_name)
         zonal_fill_path = os.path.join(dem_processing_dir, 'zonal_fill_' + dem_name)
 
+        logger.info(f'Perform hydrological processing for area {dem_name.rstrip(".tif")}...')
         if os.path.exists(watershed_path) and not overwrite:
             with rio.open(watershed_path) as src:
                 wtshd_band = src.read(1)
@@ -153,30 +149,7 @@ def main(dem_list, simplification_param, mean_filter_size=7, fill_depth=0.5, wor
 
         potential_dolines_gdf = pd.concat([potential_dolines_gdf, local_depression_gdf[['geometry', 'corresponding_dem', 'depth']]], ignore_index=True)
 
-    failed_transform = 0
-    mapped_objects = mapping(potential_dolines_gdf)
-    for feature in tqdm(mapped_objects['features'], "Simplifying features"):
-        coords = feature['geometry']['coordinates'][0]
-        simplified_coords = vw.Simplifier(coords).simplify(threshold=simplification_param)
-        if len(simplified_coords) >= 3:
-            feature['geometry']['coordinates'] = (tuple([tuple(arr) for arr in simplified_coords]),)
-            continue
-        else:
-            simplified_coords = vw.Simplifier(coords).simplify(threshold=simplification_param/2)
-            if len(simplified_coords) >= 3:
-                feature['geometry']['coordinates'] = (tuple([tuple(arr) for arr in simplified_coords]),)
-                continue
-            
-        failed_transform += 1
-
-    logger.warning(f'Simplification failed for {failed_transform} out of {len(mapped_objects["features"])} features')
-
-    simplified_pot_dolines_gdf = gpd.GeoDataFrame.from_features(mapped_objects, crs='EPSG:2056')
-    simplified_pot_dolines_gdf.loc[simplified_pot_dolines_gdf.is_valid==False, 'geometry'] = \
-        simplified_pot_dolines_gdf.loc[simplified_pot_dolines_gdf.is_valid==False, 'geometry'].apply(make_valid)
-    if (potential_dolines_gdf.geometry == simplified_pot_dolines_gdf.geometry).all():
-        logger.warning('no simplification happened')
-    assert (potential_dolines_gdf.shape[0] == simplified_pot_dolines_gdf.shape[0]), 'some elements disappeared during simplification'
+    simplified_pot_dolines_gdf = simplify_with_vw(potential_dolines_gdf, simplification_param)
 
     simplified_pot_dolines_gdf['diameter'] = simplified_pot_dolines_gdf.minimum_bounding_radius()*2
     # compute Schwartzberg compactness, the ratio of the perimeter to the circumference of the circle whose area is equal to the polygon area
@@ -209,8 +182,6 @@ if __name__ == '__main__':
     OUTPUT_DIR = cfg['output_dir']
     DEM_DIR = cfg['dem_dir']
 
-    overwrite = False
-
     os.chdir(WORKING_DIR)
 
     if AOI_TYPE:
@@ -230,7 +201,7 @@ if __name__ == '__main__':
     logger.info('Read data...')
 
     dem_list = glob(os.path.join(dem_dir, '*.tif'))
-    potential_dolines_gdf, written_files = main(dem_list, VW_THRESHOLD, MEAN_FILTER, FILL_DEPTH, working_dir=WORKING_DIR, output_dir=output_dir, save_extra=True)
+    potential_dolines_gdf, written_files = main(dem_list, VW_THRESHOLD, MEAN_FILTER, FILL_DEPTH, working_dir=WORKING_DIR, output_dir=output_dir, save_extra=True, overwrite=True)
 
     logger.success('Done! The following files were written:')
     for file in written_files:

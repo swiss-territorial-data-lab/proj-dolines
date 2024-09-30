@@ -106,8 +106,8 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         written_files.append(filepath)
 
         logger.info('Calculate the metrics for each pilot area...')
-        pilot_areas = _dets_gdf.tile_id.unique().tolist()
-        if pilot_areas != tagged_detections_gdf.tile_id.unique().tolist():
+        pilot_areas = _dets_gdf.tile_id.sort_values().unique().tolist()
+        if pilot_areas != tagged_detections_gdf.tile_id.sort_values().unique().tolist():
             logger.error('Tile ids not corresponding between labels and detections')
         metrics_per_area_dict = {
             'nbr labels': [], 'nbr detections': [],
@@ -187,7 +187,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         written_files.append(filepath)
 
         logger.info(f'Make some graphs...')
-        sub_metrics_df = metrics_df[~metrics_df.name.isna()].copy()
+        sub_metrics_df = metrics_df[~metrics_df.name.isna()].sort_values(by='name')
         graphs_dir = os.path.join(output_dir, 'graphs')
         os.makedirs(graphs_dir, exist_ok=True)
 
@@ -195,26 +195,26 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         fig, ax = plt.subplots()
         df_plot = sub_metrics_df.plot(
             x='name', y=['precision', 'recall', 'f1', 'median IoU for TP'], kind='line', style='o',
-            title='Metrics per zone', grid=True, legend=True, xlabel='Zone name', ylabel='Metric value', ax=ax
+            title='Metrics per zone', grid=True, legend=True, xlabel='Zone name', ylabel='Metric value', xticks=range(sub_metrics_df.shape[0]), figsize=(1.5*sub_metrics_df.shape[0], 5), ax=ax
         )
         ax.set_ylim(ymin=0)
 
         filepath = os.path.join(graphs_dir, f'{AOI_TYPE + "_" if AOI_TYPE else ""}{ref_data_type}_metrics_per_zone.jpg')
-        fig.savefig(filepath)
+        fig.savefig(filepath, bbox_inches='tight')
         written_files.append(filepath)
 
         # Make a graph f1 vs median distance
         fig, ax = plt.subplots()
         df_plot = sub_metrics_df.plot(
             x='f1', y='median distance', kind='scatter',
-            title='F1 vs median distance between labels and detections', grid=True, legend=True, xlabel='F1', ylabel='Median distance', ax=ax
+            title='F1 vs median distance between labels and detections', grid=True, legend=True, xlabel='F1', ylabel='Median distance',ax=ax
         )
 
         for row in sub_metrics_df.itertuples():
             ax.annotate(row.name, (row.f1, row._9))
 
         filepath = os.path.join(graphs_dir, f'{AOI_TYPE + "_" if AOI_TYPE else ""}{ref_data_type}_f1_vs_median_distance.jpg')
-        fig.savefig(filepath)
+        fig.savefig(filepath, bbox_inches='tight')
         written_files.append(filepath)
 
     return metric, written_files

@@ -51,6 +51,8 @@ def main(slope_dir, non_sedi_areas_gdf, max_slope=1.1, save_extra=False, output_
         if save_extra:
             with rio.open(os.path.join(output_dir, new_tile_name), 'w', **meta) as dst:
                 dst.write(opened_doline_areas[np.newaxis, ...])
+            
+            non_sedi_areas_gdf.to_file(os.path.join(output_dir, 'non_sedi_areas.gpkg'))
 
         possible_area_dict[tile_name.lstrip('slope_')] = (opened_doline_areas[np.newaxis, ...], meta)
 
@@ -94,7 +96,6 @@ if __name__ == '__main__':
     logger.info('Limit non-sedimentary info to AOI...')
     aoi_gdf.loc[:, 'geometry'] = aoi_gdf.geometry.buffer(1000)
     non_sedi_areas_gdf = gpd.overlay(non_sedi_areas_gdf, aoi_gdf, keep_geom_type=True)
-    non_sedi_areas_gdf.to_file(os.path.join(output_dir, 'non_sedi_areas.gpkg'))
 
     _ = main(slope_dir, non_sedi_areas_gdf, max_slope=MAX_SLOPE, save_extra=True, output_dir=output_dir)
 

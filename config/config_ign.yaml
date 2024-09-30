@@ -71,7 +71,7 @@ assess_results.py:
     ign: outputs/dolines/sinkholes.gpkg
   pilot_areas: inputs/vectors/pilot_v2.geojson
   type:
-    ref_data: tlm
+    ref_data: geocover
     dets: ign
 
   
@@ -85,3 +85,15 @@ optimization_ign.py:
   aoi: inputs/vectors/pilot_v2.geojson
   dem_correspondence: inputs/tiles_ign/dem_per_aoi.csv
   non_sedimentary_areas: outputs/merged_DEM_ign/possible_areas/non_sedi_areas.gpkg
+
+
+merge_dolines.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data/outputs/dolines
+  output_dir: .
+  aoi: ../../inputs/vectors/pilot_v2.geojson
+  dgm: DGM/sinkholes.gpkg
+  evaporites: Evaporites/dolines.gpkg
+  karst_nu: Karst nu/sinkholes.gpkg
+  marnes_sur_karst: Marnes sur karst/sinkholes.gpkg
+  molasse: Molasse/dolines.gpkg
+  rsvmc: RSVMC/dolines.gpkg

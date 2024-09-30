@@ -94,6 +94,7 @@ if __name__ == '__main__':
         aoi_type_key = AOI_TYPE
     else:
         aoi_type_key = 'All types'
+        output_dir = OUTPUT_DIR
 
     if METHOD_TYPE == 'IGN':
         RES = ALL_PARAMS_IGN[aoi_type_key]['resolution']

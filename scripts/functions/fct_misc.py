@@ -1,7 +1,14 @@
 import sys
 from argparse import ArgumentParser
 from loguru import logger
+from tqdm import tqdm
 from yaml import FullLoader, load
+
+from geopandas import GeoDataFrame
+from shapely.geometry import mapping
+from shapely.validation import make_valid
+
+import visvalingamwyatt as vw
 
 
 def format_logger(logger):
@@ -75,3 +82,48 @@ def get_maximum_coordinates(bbox_geom):
 
     return (max_x, max_y)
 
+
+def simplify_with_vw(gdf, simplification_param):
+    """
+    Simplify a GeoDataFrame using the Visvalingam-Whyatt algorithm.
+
+    Args:
+        gdf (GeoDataFrame): The GeoDataFrame to simplify.
+        simplification_param (float): The simplification parameter for the Visvalingam-Whyatt algorithm.
+
+    Returns:
+        GeoDataFrame: The simplified GeoDataFrame.
+
+    Notes:
+        Some features may not be simplified. This is indicated by a warning message.
+        The function uses a fallback simplification parameter of half the original value
+        if the original value results in a polygon with less than 3 vertices.
+    """
+    _gdf = gdf.copy()
+
+    failed_transform = 0
+    mapped_objects = mapping(_gdf)
+    for feature in tqdm(mapped_objects['features'], "Simplifying features"):
+        coords = feature['geometry']['coordinates'][0]
+        simplified_coords = vw.Simplifier(coords).simplify(threshold=simplification_param)
+        if len(simplified_coords) >= 3:
+            feature['geometry']['coordinates'] = (tuple([tuple(arr) for arr in simplified_coords]),)
+            continue
+        else:
+            simplified_coords = vw.Simplifier(coords).simplify(threshold=simplification_param/2)
+            if len(simplified_coords) >= 3:
+                feature['geometry']['coordinates'] = (tuple([tuple(arr) for arr in simplified_coords]),)
+                continue
+            
+        failed_transform += 1
+
+    logger.warning(f'Simplification failed for {failed_transform} out of {len(mapped_objects["features"])} features')
+
+    simplified_gdf = GeoDataFrame.from_features(mapped_objects, crs='EPSG:2056')
+    simplified_gdf.loc[simplified_gdf.is_valid==False, 'geometry'] = \
+        simplified_gdf.loc[simplified_gdf.is_valid==False, 'geometry'].apply(make_valid)
+    if (_gdf.geometry == simplified_gdf.geometry).all():
+        logger.warning('no simplification happened')
+    assert (_gdf.shape[0] == simplified_gdf.shape[0]), 'some elements disappeared during simplification'
+
+    return simplified_gdf
