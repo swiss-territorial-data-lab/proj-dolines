@@ -5,6 +5,7 @@ matplotlib
 optuna
 plotly
 pyarrow
+pygeohash
 PyYAML
 rasterstats
 rdp

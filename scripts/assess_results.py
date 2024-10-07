@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from skimage.metrics import hausdorff_distance
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
 
-from functions.fct_metrics import get_fractional_sets
+from functions.fct_metrics import get_fractional_sets, median_group_distance
 from functions.fct_misc import format_logger, get_config
 from global_parameters import AOI_TYPE
 
@@ -29,6 +29,7 @@ def median_distance_between_datasets(reference_gdf, detections_gdf, rounding_dig
     nearest_right_join_gdf = _ref_gdf[['objectid', 'geometry']].sjoin_nearest(_dets_gdf[['doline_id', 'geometry']], how='right', distance_col='distance')
     nearest_right_join_gdf.drop_duplicates(subset=['doline_id', 'distance'], inplace=True)
     nearest_join_gdf = pd.concat([nearest_left_join_gdf, nearest_right_join_gdf], ignore_index=True)
+    nearest_join_gdf.drop_duplicates(subset=['objectid', 'doline_id'], inplace=True)
 
     return nearest_join_gdf['distance'].median().round(rounding_digits)
 
@@ -81,6 +82,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     }
 
     metrics_dict['median distance'] = median_distance_between_datasets(ref_data_in_aoi_gdf, dets_in_aoi_gdf)
+    metrics_dict['median group distance'], group_med_dist_gdf = median_group_distance(ref_data_in_aoi_gdf, dets_in_aoi_gdf)
 
     metrics_df = pd.DataFrame.from_dict(metrics_dict, orient='index', columns=['all']).transpose().round(3)
 
@@ -97,6 +99,17 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         tagged_detections_gdf[detections_gdf.columns.tolist() + ['objectid', 'label_class', 'IOU', 'tag']].to_file(filepath)
         written_files.append(filepath)
 
+        group_med_dist_gdf.sort_values('distance', inplace=True)
+        dist_ref_gdf = pd.merge(
+            ref_data_in_aoi_gdf[['objectid', 'tile_id', 'geometry']], group_med_dist_gdf[['objectid', 'doline_id', 'distance', 'group_id', 'group_distance']].drop_duplicates('objectid'), 
+            on='objectid'
+        )
+        dist_det_gdf = pd.merge(dets_in_aoi_gdf, group_med_dist_gdf[['objectid', 'doline_id', 'distance', 'group_id', 'group_distance']].drop_duplicates('doline_id'), on='doline_id')
+        all_med_dist_gdf = pd.concat([dist_ref_gdf, dist_det_gdf], ignore_index=True)
+        filepath = os.path.join(output_dir, f'{AOI_TYPE + "_" if AOI_TYPE else ""}{ref_data_type}_grouped_results.gpkg')
+        all_med_dist_gdf.to_file(filepath)
+        written_files.append(filepath)
+
         confusion_matrix_df = pd.DataFrame(confusion_matrix(
             tagged_detections_gdf['label_class'], tagged_detections_gdf['det_class']
         )).rename(columns={0: 'doline', 1: 'non-doline'}, index={0: 'doline', 1: 'non-doline'})
@@ -111,7 +124,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
             logger.error('Tile ids not corresponding between labels and detections')
         metrics_per_area_dict = {
             'nbr labels': [], 'nbr detections': [],
-            'precision': [], 'recall': [], 'f1': [], 'median IoU for TP': [], 'median distance': []
+            'precision': [], 'recall': [], 'f1': [], 'median IoU for TP': [], 'median distance': [], 'median group distance': []
         }
         for area_name in pilot_areas:
             results_in_area_gdf = tagged_detections_gdf[tagged_detections_gdf.tile_id == area_name].copy()
@@ -129,6 +142,9 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
                 ref_data_in_aoi_gdf[ref_data_in_aoi_gdf.tile_id == area_name],
                 results_in_area_gdf[~results_in_area_gdf.doline_id.isna()]
             ))
+
+            med_group_dist, _ = median_group_distance(ref_data_in_aoi_gdf[ref_data_in_aoi_gdf.tile_id == area_name],results_in_area_gdf[~results_in_area_gdf.doline_id.isna()])
+            metrics_per_area_dict['median group distance'].append(med_group_dist)
 
         metrics_per_area_df = pd.DataFrame.from_dict(
             metrics_per_area_dict, orient='index', columns=pilot_areas
@@ -197,7 +213,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
             x='name', y=['precision', 'recall', 'f1', 'median IoU for TP'], kind='line', style='o',
             title='Metrics per zone', grid=True, legend=True, xlabel='Zone name', ylabel='Metric value', xticks=range(sub_metrics_df.shape[0]), figsize=(1.5*sub_metrics_df.shape[0], 5), ax=ax
         )
-        ax.set_ylim(ymin=0)
+        ax.set_ylim(ymin=0, ymax=1)
 
         filepath = os.path.join(graphs_dir, f'{AOI_TYPE + "_" if AOI_TYPE else ""}{ref_data_type}_metrics_per_zone.jpg')
         fig.savefig(filepath, bbox_inches='tight')
@@ -209,11 +225,27 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
             x='f1', y='median distance', kind='scatter',
             title='F1 vs median distance between labels and detections', grid=True, legend=True, xlabel='F1', ylabel='Median distance',ax=ax
         )
+        ax.set_ylim(ymin=0)
 
         for row in sub_metrics_df.itertuples():
             ax.annotate(row.name, (row.f1, row._9))
 
         filepath = os.path.join(graphs_dir, f'{AOI_TYPE + "_" if AOI_TYPE else ""}{ref_data_type}_f1_vs_median_distance.jpg')
+        fig.savefig(filepath, bbox_inches='tight')
+        written_files.append(filepath)
+
+        # Make a graph f1 vs median distance
+        fig, ax = plt.subplots()
+        df_plot = sub_metrics_df.plot(
+            x='f1', y='median group distance', kind='scatter',
+            title='F1 vs median distance between labels and detections', grid=True, legend=True, xlabel='F1', ylabel='Median group distance',ax=ax
+        )
+        ax.set_ylim(ymin=0)
+
+        for row in sub_metrics_df.itertuples():
+            ax.annotate(row.name, (row.f1, row._10))
+
+        filepath = os.path.join(graphs_dir, f'{AOI_TYPE + "_" if AOI_TYPE else ""}{ref_data_type}_f1_vs_median_group_distance.jpg')
         fig.savefig(filepath, bbox_inches='tight')
         written_files.append(filepath)
 
@@ -252,6 +284,8 @@ if __name__ == '__main__':
     ref_data_gdf = gpd.read_file(REF_DATA)
     ref_data_gdf.to_crs(2056, inplace=True)
     ref_data_gdf['label_class'] = 'doline'
+    ref_data_gdf = ref_data_gdf.explode(index_parts=False)
+    assert gpd.read_file(REF_DATA).shape[0] == ref_data_gdf.shape[0], 'Some multipart geometries were present in the reference data.'
     if 'OBJECTID' in ref_data_gdf.columns:
         ref_data_gdf.rename(columns={'OBJECTID': 'objectid'}, inplace=True)
 
