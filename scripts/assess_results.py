@@ -20,6 +20,23 @@ logger = format_logger(logger)
 
 
 def median_distance_between_datasets(reference_gdf, detections_gdf, rounding_digits=2):
+    """
+    Calculate the median distance between all pairs of closest elements in the reference data and detections.
+
+    Parameters
+    ----------
+    reference_gdf : GeoDataFrame
+        GeoDataFrame of the reference data
+    detections_gdf : GeoDataFrame
+        GeoDataFrame of the detections
+    rounding_digits : int, optional
+        Number of decimal places to round the output to (default: 2)
+
+    Returns
+    -------
+    median_distance : float
+        Median distance between all pairs of closest elements in the reference data and detections
+    """
     _ref_gdf = reference_gdf.copy()
     _dets_gdf = detections_gdf.copy()
     
@@ -35,13 +52,61 @@ def median_distance_between_datasets(reference_gdf, detections_gdf, rounding_dig
 
 
 def prepare_dolines_to_assessment(dolines_gdf):
+    """
+    Prepare the dolines GeoDataFrame for the assessment by adding a 'det_class' column and renaming 'corresponding_dem' to 'tile_id'.
+    """
     prepared_dolines_gdf = dolines_gdf.copy()
     prepared_dolines_gdf['det_class'] = 'doline'
     prepared_dolines_gdf.rename(columns={'corresponding_dem': 'tile_id'}, inplace=True)
 
     return prepared_dolines_gdf
 
+
+def prepare_reference_data_to_assessment(ref_path):
+    """
+    Ensure the stability of the reference data format and add a 'label_class' column.
+    """
+    ini_ref_data_gdf = gpd.read_file(ref_path)
+    ini_ref_data_gdf.to_crs(2056, inplace=True)
+    ini_ref_data_gdf['label_class'] = 'doline'
+    ref_data_gdf = ini_ref_data_gdf.explode(index_parts=False)
+    assert ini_ref_data_gdf.shape[0] == ref_data_gdf.shape[0], 'Some multipart geometries were present in the reference data.'
+    if 'OBJECTID' in ref_data_gdf.columns:
+        ref_data_gdf.rename(columns={'OBJECTID': 'objectid'}, inplace=True)
+
+    return ref_data_gdf
+
+
 def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type, dem_dir='outputs', save_extra=False, output_dir='outputs'):
+    """
+    Main function to assess the quality of the doline detection model.
+
+    Parameters
+    ----------
+    ref_data_type : str
+        Type of reference data, either 'geocover' or 'tlm'.
+    ref_data_gdf : GeoDataFrame
+        GeoDataFrame of the reference data.
+    detections_gdf : GeoDataFrame
+        GeoDataFrame of the detections.
+    pilot_areas_gdf : GeoDataFrame
+        GeoDataFrame of the pilot areas.
+    det_type : str
+        Type of detection method, either 'watersheds' or 'ign'.
+    dem_dir : str, optional
+        Directory of the DEM files (default: 'outputs').
+    save_extra : bool, optional
+        Whether to save global and fine-grained metrics (default: False).
+    output_dir : str, optional
+        Directory of the output files (default: 'outputs').
+
+    Returns
+    -------
+    metric : float
+        F1 score of the detection model.
+    written_files : list of str
+        List of paths to the written files.
+    """
     _ref_gdf = ref_data_gdf.copy()
     _dets_gdf = detections_gdf.copy()
     _pilot_areas_gdf = pilot_areas_gdf.copy()
@@ -281,13 +346,7 @@ if __name__ == '__main__':
 
     logger.info('Read data...')
 
-    ref_data_gdf = gpd.read_file(REF_DATA)
-    ref_data_gdf.to_crs(2056, inplace=True)
-    ref_data_gdf['label_class'] = 'doline'
-    ref_data_gdf = ref_data_gdf.explode(index_parts=False)
-    assert gpd.read_file(REF_DATA).shape[0] == ref_data_gdf.shape[0], 'Some multipart geometries were present in the reference data.'
-    if 'OBJECTID' in ref_data_gdf.columns:
-        ref_data_gdf.rename(columns={'OBJECTID': 'objectid'}, inplace=True)
+    ref_data_gdf = prepare_reference_data_to_assessment(REF_DATA)
 
     detections_gdf = gpd.read_file(det_path)
     detections_gdf = prepare_dolines_to_assessment(detections_gdf)

@@ -23,6 +23,39 @@ logger = misc.format_logger(logger)
 # ----- Define functions -----
 
 def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, water_bodies_gdf, rivers_gdf, ref_data_type, ref_data_gdf, working_dir, slope_dir='slope', output_dir='.'):
+    """
+    Objective function to optimize for doline detection with the watershed method.
+
+    Parameters
+    ----------
+    trial : optuna.trial
+        The trial object from the Optuna optimization process.
+    dem_dir : str
+        The directory where the DEMs are stored.
+    dem_correspondence_df : pandas.DataFrame
+        The DataFrame containing the correspondence between the DEMs and the AOIs.
+    aoi_gdf : geopandas.GeoDataFrame
+        The GeoDataFrame containing the AOIs.
+    water_bodies_gdf : geopandas.GeoDataFrame
+        The GeoDataFrame containing the water bodies.
+    rivers_gdf : geopandas.GeoDataFrame
+        The GeoDataFrame containing the rivers.
+    ref_data_type : str
+        The type of reference data, possible values are 'geocover' and 'tlm'.
+    ref_data_gdf : geopandas.GeoDataFrame
+        The GeoDataFrame containing the formatted reference data.
+    working_dir : str
+        The directory where the intermediate files will be saved.
+    slope_dir : str, optional
+        The directory where the slope files will be saved. Defaults to 'slope'.
+    output_dir : str, optional
+        The directory where the output files will be saved. Defaults to '.'.
+
+    Returns
+    -------
+    float
+        The value of the objective function, i.e. the f1 score.
+    """
 
     resolution = trial.suggest_float('resolution', 0.5, 5, step=0.5)
     # max_slope = trial.suggest_float('max_slope', 0.7, 1.5, step=0.2)
@@ -67,7 +100,18 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, water_bodies_gdf, 
 
 
 def callback(study, trial):
-   # cf. https://stackoverflow.com/questions/62144904/python-how-to-retrive-the-best-model-from-optuna-lightgbm-study/62164601#62164601
+    """
+    Save the study to disk every 5 trials.
+    cf. https://stackoverflow.com/questions/62144904/python-how-to-retrive-the-best-model-from-optuna-lightgbm-study/62164601#62164601
+
+    Parameters
+    ----------
+    study : optuna.study.Study
+        The study object from the Optuna optimization process.
+    trial : optuna.trial.Trial
+        The trial object from the Optuna optimization process.
+    """
+    
     if (trial.number%5) == 0:
         study_path=os.path.join(output_dir, 'study.pkl')
         dump(study, study_path)
@@ -119,11 +163,7 @@ rivers_gdf = gpd.read_file(RIVERS)
 dissolved_rivers_gdf, water_bodies_gdf = post_processing.prepare_filters(ground_cover_gdf, rivers_gdf)
 
 # For the assessment
-ref_data_gdf = gpd.read_file(REF_DATA)
-ref_data_gdf.to_crs(2056, inplace=True)
-ref_data_gdf['label_class'] = 'doline'
-if 'OBJECTID' in ref_data_gdf.columns:
-    ref_data_gdf.rename(columns={'OBJECTID': 'objectid'}, inplace=True)
+ref_data_gdf = assess_results.prepare_reference_data_to_assessment(REF_DATA)
 
 slope_dir = os.path.join(output_dir, 'slope')
 study_path = os.path.join(output_dir, 'study.pkl')
@@ -137,8 +177,8 @@ objective = partial(
 )
 study.optimize(objective, n_trials=100, callbacks=[callback])
 
-# dump(study, study_path)
-# written_files.append(study_path)
+dump(study, study_path)
+written_files.append(study_path)
 
 if study.best_value !=0:
     logger.info('Save the best parameters')
