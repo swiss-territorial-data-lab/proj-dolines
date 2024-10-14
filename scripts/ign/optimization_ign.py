@@ -21,6 +21,33 @@ logger = misc.format_logger(logger)
 # ----- Define functions -----
 
 def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf, ref_data_type, ref_data_gdf, output_dir='outputs'):
+    """
+    Objective function to optimize for IGN doline detection.
+
+    Parameters
+    ----------
+    trial : optuna.trial
+        The trial object from the Optuna optimization process.
+    dem_dir : str
+        The directory where the DEMs are stored.
+    dem_correspondence_df : pandas.DataFrame
+        The DataFrame containing the correspondence between the DEMs and the AOIs.
+    aoi_gdf : geopandas.GeoDataFrame
+        The GeoDataFrame containing the AOIs.
+    non_sedi_areas_gdf : geopandas.GeoDataFrame
+        The GeoDataFrame containing the non-sedimentary areas.
+    ref_data_type : str
+        The type of reference data, possible values are 'geocover' and 'tlm'.
+    ref_data_gdf : geopandas.GeoDataFrame
+        The GeoDataFrame containing the formatted reference data.
+    output_dir : str, optional
+        The directory where the output files will be saved. Defaults to 'outputs'.
+
+    Returns
+    -------
+    float
+        The value of the objective function, i.e. the f1 score.
+    """
 
     resolution = trial.suggest_float('resolution', 0.5, 4.5, step=0.25)
     max_slope = trial.suggest_float('max_slope', 1.6, 3.6, step=0.2)
@@ -73,7 +100,20 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf
 
 
 def callback(study, trial):
-   # cf. https://stackoverflow.com/questions/62144904/python-how-to-retrive-the-best-model-from-optuna-lightgbm-study/62164601#62164601
+    """
+    Save the study to disk every 5 trials.
+
+    Parameters
+    ----------
+    study : optuna.study.Study
+        The study object from the Optuna optimization process.
+    trial : optuna.trial.Trial
+        The trial object from the Optuna optimization process.
+
+    Notes
+    -----
+    cf. https://stackoverflow.com/questions/62144904/python-how-to-retrive-the-best-model-from-optuna-lightgbm-study/62164601#62164601
+    """
     if (trial.number%5) == 0:
         study_path=os.path.join(output_dir, 'study.pkl')
         dump(study, study_path)

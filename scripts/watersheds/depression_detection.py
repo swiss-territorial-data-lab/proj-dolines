@@ -23,6 +23,35 @@ from global_parameters import ALL_PARAMS_WATERSHEDS, AOI_TYPE
 logger = format_logger(logger)
 
 def main(dem_list, simplification_param, mean_filter_size=7, fill_depth=0.5, working_dir='.', output_dir='outputs', overwrite=False, save_extra=False):
+    """
+    Main function to detect depressions in a DEM.
+
+    Parameters
+    ----------
+    dem_list : list
+        List of paths to the DEM files.
+    simplification_param : float
+        Simplification parameter for the potential dolines with the Visvalingam-Whyatt algorithm.
+    mean_filter_size : int, optional
+        Size of the mean filter for noise removal. Defaults to 7.
+    fill_depth : float, optional
+        Maximum depth for the depression filling. Defaults to 0.5.
+    working_dir : str, optional
+        Working directory. Defaults to '.'.
+    output_dir : str, optional
+        Output directory for the results. Defaults to 'outputs'.
+    overwrite : bool, optional
+        Whether to overwrite existing files. Defaults to False.
+    save_extra : bool, optional
+        Whether to save intermediate results. Defaults to False.
+
+    Returns
+    -------
+    simplified_pot_dolines_gdf : geopandas.GeoDataFrame
+        GeoDataFrame with the potential dolines.
+    written_files : list
+        List of paths to the written files.
+    """
     os.makedirs(output_dir, exist_ok=True)
     dem_processing_dir = os.path.join(working_dir, output_dir, 'dem_processing') # WBT works with absolute paths
     os.makedirs(dem_processing_dir, exist_ok=True)

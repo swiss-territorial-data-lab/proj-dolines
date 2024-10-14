@@ -28,6 +28,55 @@ def main(dem_dict, fitted_area_dict,
          min_voronoi_area, min_merged_area, max_long_area, min_long_compactness, min_round_compactness,
          thalweg_buffer, thalweg_threshold, max_depth, min_alti_diff=-5,
          save_extra=False, output_dir='outputs'):
+    """
+    Main function to detect dolines.
+
+    Parameters
+    ----------
+    dem_dict : dict
+        Dictionary with keys as the name of the DEM tiles and values as a tuple containing the DEM array and its metadata.
+    fitted_area_dict : dict
+        Dictionary with keys as the name of the DEM tiles and values as a tuple containing the polygon of the binary raster of possible doline areas and its metadata.
+    gaussian_kernel : int
+        Kernel size for the Gaussian filter.
+    gaussian_sigma : int
+        Sigma value for the Gaussian filter.
+    dem_diff_thrsld : float
+        Threshold value for the difference between the original and smoothed DEM.
+    min_area : float
+        Minimum area for the detected dolines.
+    limit_compactness : float
+        Limit value between long and round dolines.
+    min_voronoi_area : float
+        Minimum area for the voronoi polygons.
+    min_merged_area : float
+        Minimum area for the merged voronoi polygons.
+    max_long_area : float
+        Maximum area for the long depressions.
+    min_long_compactness : float
+        Minimum compactness for the long depressions.
+    min_round_compactness : float
+        Minimum compactness for the round depressions.
+    thalweg_buffer : float
+        Buffer size for the thalwegs.
+    thalweg_threshold : float
+        Threshold value for the thalwegs.
+    max_depth : float
+        Maximum depth for the dolines.
+    min_alti_diff : float, optional
+        Minimum difference between the lowest point of the sinkhole and its buffer outline. Defaults to -5.
+    save_extra : bool, optional
+        Whether to save the intermediate results. Defaults to False.
+    output_dir : str, optional
+        Output directory for the results. Defaults to 'outputs'.
+
+    Returns
+    -------
+    cleaned_sinkholes_gdf : geopandas.GeoDataFrame
+        GeoDataFrame containing the detected doline data.
+    written_files : list
+        List of written file paths.
+    """
 
     os.makedirs(output_dir, exist_ok=True)
     # diff_dir = os.path.join(output_dir, 'diff_smoothed_dem')

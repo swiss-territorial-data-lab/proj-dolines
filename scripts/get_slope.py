@@ -17,6 +17,16 @@ logger = format_logger(logger)
 
 
 def main(dem_dict, output_dir='outputs/slope'):
+    """
+    Calculate the slope of a DEM and save it to a new file.
+
+    Parameters
+    ----------
+    dem_dict : dict
+        Dictionary with keys as the name of the DEM tiles and values as a tuple containing the DEM array and its metadata.
+    output_dir : str, optional
+        Output directory for the results. Defaults to 'outputs/slope'.
+    """
     os.makedirs(output_dir, exist_ok=True)
     
     for dem_name, data in tqdm(dem_dict.items(), desc="Calculate slope"):

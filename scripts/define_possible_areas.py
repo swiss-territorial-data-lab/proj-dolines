@@ -18,7 +18,27 @@ from global_parameters import ALL_PARAMS_IGN, AOI_TYPE
 logger = format_logger(logger)
 
 def main(slope_dir, non_sedi_areas_gdf, max_slope=1.1, save_extra=False, output_dir='outputs'):
+    """
+    Main function to produce a binary raster of possible doline areas.
 
+    Parameters
+    ----------
+    slope_dir : str
+        Directory containing the slope tiles.
+    non_sedi_areas_gdf : geopandas.GeoDataFrame
+        GeoDataFrame with the non-sedimentary areas.
+    max_slope : float, optional
+        Maximum slope value to consider an area as a possible doline. Defaults to 1.1.
+    save_extra : bool, optional
+        Whether to save the results. Defaults to False.
+    output_dir : str, optional
+        Output directory for the results. Defaults to 'outputs'.
+
+    Returns
+    -------
+    possible_area_dict : dict
+        Dictionary with keys as the name of the DEM tiles and values as a tuple containing the binary raster of the possible doline areas and its metadata.
+    """
     _non_sedi_areas_gdf = non_sedi_areas_gdf.copy()
 
     if save_extra:

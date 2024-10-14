@@ -15,8 +15,44 @@ logger = format_logger(logger)
 def main(potential_dolines_gdf, water_bodies_gdf, dissolved_rivers_gdf, 
         max_part_in_lake, max_part_in_river, min_compactness, min_area, max_area, min_diameter, min_depth, max_depth,
         output_dir='outputs'):
-    os.makedirs(output_dir, exist_ok=True)
+    """
+    Post-processing of the potential dolines.
 
+    Parameters
+    ----------
+    potential_dolines_gdf : geopandas.GeoDataFrame
+        GeoDataFrame with the potential dolines.
+    water_bodies_gdf : geopandas.GeoDataFrame
+        GeoDataFrame with the water bodies.
+    dissolved_rivers_gdf : geopandas.GeoDataFrame
+        GeoDataFrame with the rivers as dissolved polygons.
+    max_part_in_lake : float
+        Maximum proportion of the doline that can be in a lake.
+    max_part_in_river : float
+        Maximum proportion of the doline that can be in a river.
+    min_compactness : float
+        Minimum compactness for the dolines.
+    min_area : float
+        Minimum area for the dolines.
+    max_area : float
+        Maximum area for the dolines.
+    min_diameter : float
+        Minimum diameter for the dolines.
+    min_depth : float
+        Minimum depth for the dolines.
+    max_depth : float
+        Maximum depth for the dolines.
+    output_dir : str, optional
+        Output directory for the results. Defaults to 'outputs'.
+    
+    Returns
+    -------
+    dolines_gdf : geopandas.GeoDataFrame
+        GeoDataFrame with the filtered dolines.
+    filepath : str
+        Path to the written file.
+    """
+    os.makedirs(output_dir, exist_ok=True)
 
     logger.info('Filter potential dolines in lakes...')
 
@@ -61,6 +97,24 @@ def main(potential_dolines_gdf, water_bodies_gdf, dissolved_rivers_gdf,
 
 
 def prepare_filters(ground_cover_gdf, rivers_gdf):
+    """
+    Prepare the filters to remove the potential dolines that are in a lake or a river.
+
+    Parameters
+    ----------
+    ground_cover_gdf : geopandas.GeoDataFrame
+        The GeoDataFrame containing the water bodies.
+    rivers_gdf : geopandas.GeoDataFrame
+        The GeoDataFrame containing the rivers.
+
+    Returns
+    -------
+    dissolved_rivers_gdf : geopandas.GeoDataFrame
+        The GeoDataFrame containing the rivers as dissolved polygons.
+    water_bodies_gdf : geopandas.GeoDataFrame
+        The GeoDataFrame containing the water bodies.
+
+    """
     _ground_cover_gdf = ground_cover_gdf.copy()
     _rivers_gdf = rivers_gdf.copy()
 

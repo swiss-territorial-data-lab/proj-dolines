@@ -5,7 +5,28 @@ from rasterio.features import shapes
 
 
 def polygonize_binary_raster(binary_raster, crs=None, transform=None):
+    """
+    Transform a binary raster into a geopandas GeoDataFrame.
 
+    Parameters
+    ----------
+    binary_raster : numpy array or str
+        The binary raster to be polygonized. If a str, it is interpreted as a
+        path to a raster file.
+    crs : str, optional
+        The coordinate reference system of the raster. If not specified, it is
+        inferred from the raster file.
+    transform : Affine, optional
+        The transformation of the raster. If not specified, it is inferred from
+        the raster file.
+
+    Returns
+    -------
+    GeoDataFrame
+        A GeoDataFrame of the areas equal to one in the binary raster.
+
+    """
+    
     if isinstance(binary_raster, str):
         with rio.open(binary_raster) as src:
             image=src.read(1)
@@ -23,7 +44,28 @@ def polygonize_binary_raster(binary_raster, crs=None, transform=None):
 
 
 def polygonize_raster(raster, meta=None, dtype=None):
-    
+    """
+    Transform a raster into a geopandas GeoDataFrame.
+
+    Parameters
+    ----------
+    raster : numpy array or str
+        The raster to be polygonized. If a str, it is interpreted as a
+        path to a raster file.
+    meta : dict, optional
+        The metadata of the raster. If not specified, it is inferred from
+        the raster file.
+    dtype : numpy.dtype, optional
+        The data type of the raster. If not specified, it is inferred from
+        the raster file.
+
+    Returns
+    -------
+    GeoDataFrame
+        A GeoDataFrame of the different areas and their value in the raster.
+
+    """
+
     if isinstance(raster, str):
         with rio.open(raster) as src:
             band = src.read(1)

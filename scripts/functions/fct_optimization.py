@@ -7,7 +7,8 @@ import optuna.visualization as optviz
 
 
 def plot_optimization_results(study, targets={0: 'f1 score'}, output_path='.'):
-    """Plot the parameter importance, the contour, the EDF, the history and the slice for the optimization.
+    """
+    Plot the parameter importance, the contour, the EDF, the history and the slice for the optimization.
 
     Args:
         study (optuna study): study of the parameters.

@@ -64,6 +64,24 @@ def geohash(row):
 
 
 def get_config(config_key, desc=""):
+    """
+    Load a configuration dictionary from a yaml file given as a command line argument.
+
+    The yaml file should contain the configuration dictionary with the given
+    config_key.
+
+    Parameters
+    ----------
+    config_key : str
+        The key for the configuration dictionary in the yaml file.
+    desc : str, optional
+        A short description of the script, by default ""
+
+    Returns
+    -------
+    cfg : dict
+        The configuration dictionary loaded from the yaml file.
+    """
 
     # Argument and parameter specification
     parser = ArgumentParser(description=desc)
@@ -79,7 +97,8 @@ def get_config(config_key, desc=""):
 
 
 def get_bbox_origin(bbox_geom):
-    """Get the lower xy coorodinates of a bounding box.
+    """
+    Get the lower xy coorodinates of a bounding box.
 
     Args:
         bbox_geom (geometry): bounding box

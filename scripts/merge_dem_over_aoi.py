@@ -18,7 +18,30 @@ from global_parameters import ALL_PARAMS_IGN, ALL_PARAMS_WATERSHEDS, AOI_TYPE
 logger = format_logger(logger)
 
 def main(dem_correspondence_pd, aoi_gdf, dem_dir, resolution, save_extra=False, output_dir='outputs'):
+    """
+    Merge DEMs for each AOI
 
+    Parameters
+    ----------
+    dem_correspondence_pd : pandas.DataFrame
+        Dataframe with the correspondence between the AOIs and the DEMs
+    aoi_gdf : geopandas.GeoDataFrame
+        GeoDataFrame with the AOIs
+    dem_dir : str
+        Directory where the DEMs are stored
+    resolution : float
+        Resolution of the merged DEMs
+    save_extra : bool, optional
+        Whether to save the merged DEMs. Defaults to False
+    output_dir : str, optional
+        Directory where to save the merged DEMs. Defaults to 'outputs'
+
+    Returns
+    -------
+    dict
+        Dictionary with the merged DEMs and their associated metadata
+    """
+    
     if save_extra:
         os.makedirs(output_dir, exist_ok=True)
 

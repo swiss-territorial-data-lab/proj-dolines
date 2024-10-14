@@ -139,8 +139,33 @@ def intersection_over_union(polygon1_shape, polygon2_shape):
 
 
 def median_group_distance(gt, dets):
+    """
+    Compute the median distance between groups of a geodataframe, where a group is a set of connected
+    geohashes. The function takes a geodataframe of the GT and a geodataframe of the detections as input.
+
+    The function first adds a geohash column to the two input geodataframes, then performs a spatial join
+    to get the nearest detection and GT for each detection and GT. The resulting geodataframe is then
+    used to make groups of connected geohashes using NetworkX. The median distance between each group is
+    then computed.
+
+    Parameters
+    ----------
+    gt : geodaframe
+        geodaframe of the GT
+    dets : geodaframe
+        geodaframe of the detections
+
+    Returns
+    -------
+    median_group_dist : float
+        median distance between groups
+    group_med_dist_gdf : geodaframe
+        geodaframe with the median distance between each group
+
+    """
 
     ### --- helper functions --- ###
+
     def add_geohash(gdf, prefix=None, suffix=None):
         """Add geohash column to a geodaframe.
 
