@@ -12,7 +12,7 @@ from functions.fct_misc import geohash
 def get_fractional_sets(dets_gdf, labels_gdf, iou_threshold=0.25):
     """
     Find the intersecting detections and labels.
-    Control their IoU and class to get the TP.
+    If the labels are polygons, control the IoU and class to get the TP.
     Tag detections and labels not intersecting or not intersecting enough as FP and FN respectively.
     Save the intersections with mismatched class ids in a separate geodataframe.
 
@@ -63,19 +63,30 @@ def get_fractional_sets(dets_gdf, labels_gdf, iou_threshold=0.25):
     # IoU computation between labels and detections
     geom1 = candidates_tp_gdf['geometry'].to_numpy().tolist()
     geom2 = candidates_tp_gdf['label_geom'].to_numpy().tolist()
-    candidates_tp_gdf['IOU'] = [intersection_over_union(i, ii) for (i, ii) in zip(geom1, geom2)]
-    
-    # Filter detections based on IoU value
-    best_matches_gdf = candidates_tp_gdf.groupby(['det_id'], group_keys=False).apply(lambda g:g[g.IOU==g.IOU.max()])
+    if (labels_gdf.geometry.geom_type == 'Point').any():
+        candidates_tp_gdf['dist_centroid'] = [distance(i.centroid, ii) for (i, ii) in zip(geom1, geom2)]
+        resemblance_column = 'dist_centroid'
+        # Filter detections based on the distance to the centroid
+        best_matches_gdf = candidates_tp_gdf.groupby(['det_id'], group_keys=False).apply(lambda g:g[g.dist_centroid==g.dist_centroid.min()])
+    else: 
+        candidates_tp_gdf['IOU'] = [intersection_over_union(i, ii) for (i, ii) in zip(geom1, geom2)]
+        resemblance_column = 'IOU'
+        # Filter detections based on IoU value
+        best_matches_gdf = candidates_tp_gdf.groupby(['det_id'], group_keys=False).apply(lambda g:g[g.IOU==g.IOU.max()])
+        
     best_matches_gdf.drop_duplicates(subset=['det_id'], inplace=True) # <- could change the results depending on which line is dropped (but rarely effective)
 
-    # Detection, resp labels, with IOU lower than threshold value are considered as FP, resp FN, and saved as such
     if 'tile_id_det' in best_matches_gdf.columns:
         best_matches_gdf.rename(columns={'tile_id_label': 'tile_id'}, inplace=True)
         best_matches_gdf.drop(columns=['tile_id_det'], inplace=True)
-    actual_matches_gdf = best_matches_gdf[best_matches_gdf['IOU'] >= iou_threshold].copy()
-    actual_matches_gdf = actual_matches_gdf.sort_values(by=['IOU'], ascending=False).drop_duplicates(subset=['label_id', 'tile_id'])
-    actual_matches_gdf['IOU'] = actual_matches_gdf.IOU.round(3)
+
+    # Detection, resp labels, with IOU lower than threshold value are considered as FP, resp FN, and saved as such
+    actual_matches_gdf = best_matches_gdf[best_matches_gdf['IOU'] >= iou_threshold].copy() if resemblance_column == 'IOU' else best_matches_gdf.copy()
+
+    # Duplicate detections of the same labels are removed too
+    ascendance = False if resemblance_column == 'IOU' else True
+    actual_matches_gdf = actual_matches_gdf.sort_values(by=[resemblance_column], ascending=ascendance).drop_duplicates(subset=['label_id', 'tile_id'])
+    actual_matches_gdf[resemblance_column] = actual_matches_gdf[resemblance_column].round(3)
 
     matched_det_ids = actual_matches_gdf['det_id'].unique().tolist()
     matched_label_ids = actual_matches_gdf['label_id'].unique().tolist()
@@ -96,7 +107,7 @@ def get_fractional_sets(dets_gdf, labels_gdf, iou_threshold=0.25):
     assert(len(fp_gdf[fp_gdf.duplicated()]) == 0)
     fp_gdf = pd.concat([fp_gdf_temp, fp_gdf], ignore_index=True)
     fp_gdf.drop(
-        columns=_labels_gdf.drop(columns='geometry').columns.to_list() + ['index_label', 'dataset_label', 'label_geom', 'IOU', 'tile_id_label'], 
+        columns=_labels_gdf.drop(columns='geometry').columns.to_list() + ['index_label', 'dataset_label', 'label_geom', resemblance_column, 'tile_id_label'], 
         errors='ignore', 
         inplace=True
     )
@@ -111,7 +122,7 @@ def get_fractional_sets(dets_gdf, labels_gdf, iou_threshold=0.25):
         fn_gdf.drop_duplicates(subset=['label_id', 'tile_id_label'], inplace=True)
     fn_gdf = pd.concat([fn_gdf_temp, fn_gdf], ignore_index=True)
     fn_gdf.drop(
-        columns=_dets_gdf.drop(columns='geometry').columns.to_list() + ['dataset_det', 'index_label', 'x', 'y', 'z', 'label_geom', 'IOU', 'index_det', 'tile_id_det'], 
+        columns=_dets_gdf.drop(columns='geometry').columns.to_list() + ['dataset_det', 'index_label', 'x', 'y', 'z', 'label_geom', resemblance_column, 'index_det', 'tile_id_det'], 
         errors='ignore', 
         inplace=True
     )
