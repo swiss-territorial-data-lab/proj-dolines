@@ -124,9 +124,7 @@ if __name__ == '__main__':
     elif METHOD_TYPE == 'WATERSHEDS':
         RES = ALL_PARAMS_WATERSHEDS[aoi_type_key]['resolution']
     else:
-        logger.critical(f'Unknown method type {METHOD_TYPE}.') 
-        logger.critical(f'Please choose among ign and watersheds.')
-        sys.exit(1)
+        RES = cfg['res']
 
     os.chdir(WORKING_DIR)
 

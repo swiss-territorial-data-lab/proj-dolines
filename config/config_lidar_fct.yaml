@@ -1,0 +1,24 @@
+download_tiles.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: inputs/tiles_lidar_fct
+  aoi: inputs/vectors/pilot_v2.geojson
+  buffer: 100
+  overwrite: False
+
+
+merge_dem_over_aoi.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: outputs/merged_DEM_lidar_fct
+  dem_dir: inputs/tiles_lidar_fct
+  dem_correspondence: inputs/tiles_ign/dem_per_aoi.csv
+  aoi: inputs/vectors/pilot_v2.geojson
+  res: 0.5
+
+
+test_wbt_stochastic_depressions.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: outputs/stochastic_depressions
+  dem_dir: outputs/merged_DEM_lidar_fct
+  rmse: 0.5             # 0.3 or 0.5 if alti < 2000 m, else 1 to 3 m
+  autocorr_range: 15    # 3 to 15 times the resolution while staying in the interval 15-30 cm should be good. Test for 3, 5 and 8 times the resolution.
+  iterations: 100       # 100 to 500 is generally enough
