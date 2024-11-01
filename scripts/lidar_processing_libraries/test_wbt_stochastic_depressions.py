@@ -21,7 +21,7 @@ from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
 
-def main(dem_list, autocorr_range, iterations, threshold, save_extra=False, working_dir='.', output_dir='outputs'):
+def main(dem_list, autocorr_range, iterations, threshold, save_extra=False, overwrite=False, working_dir='.', output_dir='outputs'):
 
     if not save_extra:
         wbt.set_verbose_mode(False)
@@ -44,14 +44,16 @@ def main(dem_list, autocorr_range, iterations, threshold, save_extra=False, work
     potential_dolines_gdf = gpd.GeoDataFrame()
     for dem in dem_list:
         outpath = os.path.join(working_dir, output_dir, os.path.splitext(os.path.basename(dem))[0] + '_pdep.tif')
-        wbt.stochastic_depression_analysis(
-            dem = os.path.join(working_dir, dem),
-            output = outpath,
-            rmse = rmse[os.path.splitext(os.path.basename(dem))[0]],
-            range = autocorr_range,
-            iterations = iterations
-        )
-        written_files.append(outpath)
+        
+        if not os.path.exists(outpath) or overwrite:
+            wbt.stochastic_depression_analysis(
+                dem = os.path.join(working_dir, dem),
+                output = outpath,
+                rmse = rmse[os.path.splitext(os.path.basename(dem))[0]],
+                range = autocorr_range,
+                iterations = iterations
+            )
+            written_files.append(outpath)
 
         with rio.open(outpath) as src:
             proba_depression = src.read(1)

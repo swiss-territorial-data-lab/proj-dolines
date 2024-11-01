@@ -35,6 +35,9 @@ def polygonize_binary_raster(binary_raster, crs=None, transform=None):
     else:
         image = binary_raster
 
+    assert image.min() == 0 and image.max() == 1, 'Raster must be binary'
+    image = image.astype('int16')
+
     mask= image==1
     geoms = ((shape(s), v) for s, v in shapes(image, mask, transform=transform))
     gdf = gpd.GeoDataFrame(geoms, columns=['geometry', 'number'])
