@@ -1,36 +1,80 @@
 import os
 import sys
-from argparse import ArgumentParser
 from glob import glob
 from loguru import logger
 from time import time
-from tqdm import tqdm
+
+import geopandas as gpd
+import numpy as np
+import pandas as pd
+import rasterio as rio
+from skimage.morphology import disk, opening, closing
+
 
 import whitebox
 wbt = whitebox.WhiteboxTools()
 
 sys.path.insert(1, 'scripts')
 from functions.fct_misc import format_logger, get_config
+from functions.fct_rasters import polygonize_binary_raster
 from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
 
-def main(dem_list, rmse, autocorr_range, iterations, working_dir='.', output_dir='outputs'):
+def main(dem_list, autocorr_range, iterations, threshold, save_extra=False, working_dir='.', output_dir='outputs'):
+
+    if not save_extra:
+        wbt.set_verbose_mode(False)
+
+    rmse = {
+        '2019_2523_1199': 0.3,
+        '2019_2568_1126': 0.3,
+        '2020_2697_1157': 1,
+        '2023_2783_1163': 1,
+        '2023_2795_1170': 0.3,
+        '2023_2822_1184': 1,
+        '2019_2709_1204': 2,
+        '2019_2573_1224': 0.3,
+        '2019_2724_1234': 0.3,
+        '2021_2590_1170': 0.3,
+        '2020_2622_1267': 0.3
+    }
 
     written_files = []
-    for dem in dem_list[:2]:
+    potential_dolines_gdf = gpd.GeoDataFrame()
+    for dem in dem_list:
         outpath = os.path.join(working_dir, output_dir, os.path.splitext(os.path.basename(dem))[0] + '_pdep.tif')
         wbt.stochastic_depression_analysis(
             dem = os.path.join(working_dir, dem),
             output = outpath,
-            rmse = rmse,
+            rmse = rmse[os.path.splitext(os.path.basename(dem))[0]],
             range = autocorr_range,
             iterations = iterations
         )
-
         written_files.append(outpath)
 
-    return written_files
+        with rio.open(outpath) as src:
+            proba_depression = src.read(1)
+            im_meta = src.meta
+
+        logger.info('Remove resiudal pixels...')
+        binary_image = np.where(proba_depression > threshold, 1, 0)
+        closed_binary_image = closing(binary_image, disk(5))
+        opened_binary_image = opening(closed_binary_image, disk(3))
+
+
+        logger.info('Polygonize...')
+        tmp_dolines_gdf = polygonize_binary_raster(opened_binary_image, crs=im_meta['crs'], transform=im_meta['transform'])
+        tmp_dolines_gdf['corresponding_dem'] = os.path.basename(dem)
+        potential_dolines_gdf = pd.concat([tmp_dolines_gdf, potential_dolines_gdf], ignore_index=True)
+
+
+    if save_extra:
+        filepath = os.path.join(working_dir, output_dir, 'potential_dolines.gpkg')
+        potential_dolines_gdf.to_file(filepath)
+        written_files.append(filepath)
+
+    return potential_dolines_gdf, written_files
 
 
 if __name__ == "__main__":
@@ -49,6 +93,7 @@ if __name__ == "__main__":
     RMSE = cfg['rmse']
     AUTOCORR_RANGE = cfg['autocorr_range']
     ITERATIONS = cfg['iterations']
+    THRESHOLD = cfg['threshold']
 
     os.chdir(WORKING_DIR)
 
@@ -63,7 +108,7 @@ if __name__ == "__main__":
         logger.critical(f'No DEM found in {dem_dir}')
         sys.exit(1)
 
-    written_files = main(dem_list, RMSE, AUTOCORR_RANGE, ITERATIONS, WORKING_DIR, output_dir=output_dir)
+    _, written_files = main(dem_list, AUTOCORR_RANGE, ITERATIONS, THRESHOLD, save_extra=True, working_dir=WORKING_DIR, output_dir=output_dir)
 
     logger.info('The following files were written:')
     for file in written_files:
