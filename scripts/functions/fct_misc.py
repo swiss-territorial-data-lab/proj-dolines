@@ -4,12 +4,38 @@ from loguru import logger
 from tqdm import tqdm
 from yaml import FullLoader, load
 
+import numpy as np
 from geopandas import GeoDataFrame
+from pandas import concat
+from rasterstats import zonal_stats
 from shapely.geometry import mapping
 from shapely.validation import make_valid
 
 import pygeohash as pgh
 import visvalingamwyatt as vw
+
+sys.path.insert(1, 'scripts')
+from functions.fct_rasters import polygonize_binary_raster
+
+
+def format_local_depressions(potential_dolines_arr, dem_name, dem_path, simplified_dem_meta, potential_dolines_gdf):
+    _potential_dolines_gdf = potential_dolines_gdf.copy()
+
+    logger.info('Polygonize potential dolines...')
+    local_depression_gdf = polygonize_binary_raster(potential_dolines_arr, crs=simplified_dem_meta['crs'], transform=simplified_dem_meta['transform'])
+
+    local_depression_gdf['corresponding_dem'] = dem_name
+
+    if local_depression_gdf.empty:
+        return potential_dolines_gdf
+
+    # Get depth
+    depression_stats = zonal_stats(local_depression_gdf.geometry, dem_path, affine=simplified_dem_meta['transform'], stats=['min', 'max'])
+    local_depression_gdf['depth'] = [x['max'] - x['min'] for x in depression_stats]
+
+    _potential_dolines_gdf = concat([_potential_dolines_gdf, local_depression_gdf[['geometry', 'corresponding_dem', 'depth']]], ignore_index=True)
+
+    return _potential_dolines_gdf
 
 
 def format_logger(logger):
@@ -34,6 +60,16 @@ def format_logger(logger):
             level="ERROR")
 
     return logger
+
+
+def format_global_depressions(depressions_gdf, simplification_param):
+    simplified_pot_dolines_gdf = simplify_with_vw(depressions_gdf, simplification_param)
+
+    simplified_pot_dolines_gdf['diameter'] = simplified_pot_dolines_gdf.minimum_bounding_radius()*2
+    # compute Schwartzberg compactness, the ratio of the perimeter to the circumference of the circle whose area is equal to the polygon area
+    simplified_pot_dolines_gdf['compactness'] = 2*np.pi*np.sqrt(simplified_pot_dolines_gdf.area/np.pi)/simplified_pot_dolines_gdf.length
+
+    return simplified_pot_dolines_gdf
 
 
 def geohash(row):

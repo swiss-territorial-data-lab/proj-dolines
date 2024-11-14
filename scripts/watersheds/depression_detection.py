@@ -7,7 +7,6 @@ from tqdm import tqdm
 
 import geopandas as gpd
 import numpy as np
-import pandas as pd
 import rasterio as rio
 from rasterio.features import rasterize
 from rasterstats import zonal_stats
@@ -16,8 +15,8 @@ import whitebox
 wbt = whitebox.WhiteboxTools()
 
 sys.path.insert(1, 'scripts')
-from functions.fct_misc import format_logger, get_config, simplify_with_vw
-from functions.fct_rasters import polygonize_binary_raster, polygonize_raster
+from functions.fct_misc import format_global_depressions, format_local_depressions, format_logger, get_config, simplify_with_vw
+from functions.fct_rasters import polygonize_raster
 from global_parameters import ALL_PARAMS_WATERSHEDS, AOI_TYPE
 
 logger = format_logger(logger)
@@ -165,24 +164,9 @@ def main(dem_list, simplification_param, mean_filter_size=7, fill_depth=0.5, wor
         )
         potential_dolines_arr = np.where(difference_arr > 0, 1, 0)
 
-        logger.info('Polygonize potential dolines...')
-        local_depression_gdf = polygonize_binary_raster(potential_dolines_arr.astype(np.int16), crs=simplified_dem_meta['crs'], transform=simplified_dem_meta['transform'])
-        local_depression_gdf['corresponding_dem'] = dem_name
+        potential_dolines_gdf = format_local_depressions(potential_dolines_arr, dem_name, dem_path, simplified_dem_meta, potential_dolines_gdf)
 
-        if local_depression_gdf.empty:
-            continue
-
-        # Get depth
-        depression_stats = zonal_stats(local_depression_gdf.geometry, dem_path, affine=simplified_dem_meta['transform'], stats=['min', 'max'])
-        local_depression_gdf['depth'] = [x['max'] - x['min'] for x in depression_stats]
-
-        potential_dolines_gdf = pd.concat([potential_dolines_gdf, local_depression_gdf[['geometry', 'corresponding_dem', 'depth']]], ignore_index=True)
-
-    simplified_pot_dolines_gdf = simplify_with_vw(potential_dolines_gdf, simplification_param)
-
-    simplified_pot_dolines_gdf['diameter'] = simplified_pot_dolines_gdf.minimum_bounding_radius()*2
-    # compute Schwartzberg compactness, the ratio of the perimeter to the circumference of the circle whose area is equal to the polygon area
-    simplified_pot_dolines_gdf['compactness'] = 2*np.pi*np.sqrt(simplified_pot_dolines_gdf.area/np.pi)/simplified_pot_dolines_gdf.length
+    simplified_pot_dolines_gdf = format_global_depressions(potential_dolines_gdf, simplification_param)
 
     filepath = os.path.join(output_dir, 'potential_dolines.gpkg')
     simplified_pot_dolines_gdf.to_file(filepath)

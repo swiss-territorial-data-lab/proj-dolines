@@ -42,6 +42,7 @@ post_processing.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/dolines
   potential_dolines: outputs/dolines/potential_dolines.gpkg
+  non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
   tlm_data: inputs/vectors/side_data/clipped_tlm_subset.gpkg
   ground_cover_layer: tlm_bb_bodenbedeckung
   rivers: inputs/vectors/side_data/clipped_typisierung-fliessgewaesser_2056.gpkg

@@ -6,7 +6,6 @@ from time import time
 
 import geopandas as gpd
 import numpy as np
-import pandas as pd
 import rasterio as rio
 from skimage.morphology import disk, opening, closing
 
@@ -15,41 +14,41 @@ import whitebox
 wbt = whitebox.WhiteboxTools()
 
 sys.path.insert(1, 'scripts')
-from functions.fct_misc import format_logger, get_config
-from functions.fct_rasters import polygonize_binary_raster
+from functions.fct_misc import format_local_depressions, format_logger, format_global_depressions, get_config
 from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
 
-def main(dem_list, autocorr_range, iterations, threshold, save_extra=False, overwrite=False, working_dir='.', output_dir='outputs'):
+def main(dem_list, autocorr_range, iterations, threshold, simplification_param, save_extra=False, overwrite=False, working_dir='.', output_dir='outputs'):
 
     if not save_extra:
         wbt.set_verbose_mode(False)
 
     rmse = {
-        '2019_2523_1199': 0.3,
-        '2019_2568_1126': 0.3,
-        '2020_2697_1157': 1,
-        '2023_2783_1163': 1,
-        '2023_2795_1170': 0.3,
-        '2023_2822_1184': 1,
-        '2019_2709_1204': 2,
-        '2019_2573_1224': 0.3,
-        '2019_2724_1234': 0.3,
-        '2021_2590_1170': 0.3,
-        '2020_2622_1267': 0.3
+        '2019_2523_1199.tif': 0.3,
+        '2019_2568_1126.tif': 0.3,
+        '2020_2697_1157.tif': 1,
+        '2023_2783_1163.tif': 1,
+        '2023_2795_1170.tif': 0.3,
+        '2023_2822_1184.tif': 1,
+        '2019_2709_1204.tif': 2,
+        '2019_2573_1224.tif': 0.3,
+        '2019_2724_1234.tif': 0.3,
+        '2021_2590_1170.tif': 0.3,
+        '2020_2622_1267.tif': 0.3
     }
 
     written_files = []
     potential_dolines_gdf = gpd.GeoDataFrame()
-    for dem in dem_list:
-        outpath = os.path.join(working_dir, output_dir, os.path.splitext(os.path.basename(dem))[0] + '_pdep.tif')
+    for dem_path in dem_list:
+        dem_name = os.path.basename(dem_path)
+        outpath = os.path.join(working_dir, output_dir, dem_name.rstrip('.tif') + '_pdep.tif')
         
         if not os.path.exists(outpath) or overwrite:
             wbt.stochastic_depression_analysis(
-                dem = os.path.join(working_dir, dem),
+                dem = os.path.join(working_dir, dem_path),
                 output = outpath,
-                rmse = rmse[os.path.splitext(os.path.basename(dem))[0]],
+                rmse = rmse[dem_name],
                 range = autocorr_range,
                 iterations = iterations
             )
@@ -64,12 +63,10 @@ def main(dem_list, autocorr_range, iterations, threshold, save_extra=False, over
         closed_binary_image = closing(binary_image, disk(5))
         opened_binary_image = opening(closed_binary_image, disk(3))
 
+        potential_dolines_gdf = format_local_depressions(opened_binary_image, dem_name, dem_path, im_meta, potential_dolines_gdf)
 
-        logger.info('Polygonize...')
-        tmp_dolines_gdf = polygonize_binary_raster(opened_binary_image, crs=im_meta['crs'], transform=im_meta['transform'])
-        tmp_dolines_gdf['corresponding_dem'] = os.path.basename(dem)
-        potential_dolines_gdf = pd.concat([tmp_dolines_gdf, potential_dolines_gdf], ignore_index=True)
-
+    
+    potential_dolines_gdf = format_global_depressions(potential_dolines_gdf, simplification_param)
 
     if save_extra:
         filepath = os.path.join(working_dir, output_dir, 'potential_dolines.gpkg')
@@ -92,10 +89,10 @@ if __name__ == "__main__":
     OUTPUT_DIR = cfg['output_dir']
     DEM_DIR = cfg['dem_dir']
 
-    RMSE = cfg['rmse']
     AUTOCORR_RANGE = cfg['autocorr_range']
     ITERATIONS = cfg['iterations']
     THRESHOLD = cfg['threshold']
+    SIMPLIFICATION_PARAM = cfg['simplification_param']
 
     os.chdir(WORKING_DIR)
 
@@ -110,7 +107,7 @@ if __name__ == "__main__":
         logger.critical(f'No DEM found in {dem_dir}')
         sys.exit(1)
 
-    _, written_files = main(dem_list, AUTOCORR_RANGE, ITERATIONS, THRESHOLD, save_extra=True, working_dir=WORKING_DIR, output_dir=output_dir)
+    _, written_files = main(dem_list, AUTOCORR_RANGE, ITERATIONS, THRESHOLD, SIMPLIFICATION_PARAM, save_extra=True, working_dir=WORKING_DIR, output_dir=output_dir)
 
     logger.info('The following files were written:')
     for file in written_files:

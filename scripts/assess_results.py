@@ -119,13 +119,17 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     name_suffix = f'{AOI_TYPE + "_" if AOI_TYPE else ""}{ref_data_type}_'
 
     assert (ref_data_type.lower() in ['geocover', 'tlm', 'ground_truth']), 'Reference data type must be geocover, tlm or ground_truth.'
-    assert (det_type.lower() in ['watersheds', 'ign']), 'Detection method must be watersheds or ign.'
+    assert (det_type.lower() in ['watersheds', 'ign', 'lidar_lib', 'stochastic_depressions']), 'Detection method must be watersheds or ign.'
+
+    if _dets_gdf.loc[0, 'tile_id'].endswith('.tif'):
+        _dets_gdf.loc[:, 'tile_id'] = _dets_gdf.loc[:, 'tile_id'].str.rstrip('.tif')
 
     if 'type' in _dets_gdf:
         _dets_gdf = _dets_gdf[_dets_gdf['type']!='thalweg'].copy()
 
-    logger.info('Match detections with ground truth...')        # TODO: Associate dem name to ref data
-    _pilot_areas_gdf.loc[:, 'tile_id'] = [tile_id + '.tif' for tile_id in _pilot_areas_gdf[f'tile_id_{det_type}']]
+    logger.info('Match detections with reference data...')        # TODO: Associate dem name to ref data
+    tile_id = f'tile_id_{det_type}' if det_type in ['watersheds', 'ign'] else 'tile_id'
+    _pilot_areas_gdf['tile_id'] = _pilot_areas_gdf[tile_id]
     ref_data_in_aoi_gdf = _ref_gdf.sjoin(_pilot_areas_gdf[['tile_id', 'geometry']], how='inner')
     dets_in_aoi_gdf = _dets_gdf[_dets_gdf.geometry.within(_pilot_areas_gdf.geometry.union_all())].copy()
 
@@ -283,11 +287,12 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
             metrics_df = pd.concat([metrics_df, similarity_df], axis=1)
 
         metrics_df = metrics_df.reset_index().rename(columns={'index': 'tile_id'})
-        metrics_df.loc[:, 'tile_id'] = metrics_df.tile_id.str.rstrip('.tif')
         metrics_df = pd.merge(
-            _pilot_areas_gdf[['name', f'tile_id_{det_type}']], metrics_df, 
-            left_on=f'tile_id_{det_type}', right_on='tile_id', how='outer'
-        ).drop(columns=f'tile_id_{det_type}')
+            _pilot_areas_gdf[['name', tile_id]], metrics_df, 
+            left_on=tile_id, right_on='tile_id', how='outer'
+        )
+        if tile_id != 'tile_id':
+            metrics_df.drop(columns=f'tile_id_{det_type}', inplace=True)
 
         filepath = os.path.join(output_dir, f'{name_suffix}metrics.csv')
         metrics_df.to_csv(filepath)

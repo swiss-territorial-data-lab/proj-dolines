@@ -19,17 +19,57 @@ test_wbt_stochastic_depressions.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/stochastic_depressions
   dem_dir: outputs/merged_DEM_lidar_fct
-  rmse: 0.5             # 0.3 or 0.5 if alti < 2000 m, else 1 to 3 m
-  autocorr_range: 2.5    # 3 to 15 times the resolution while staying in the interval 15-30 cm should be good. Test for 3, 5 and 8 times the resolution.
+  # rmse: 0.5             # 0.3 or 0.5 if alti < 2000 m, else 1 to 3 m. The function docs recommand a value between 0.15 and 0.3 for LiDAR data or the vertical accuracy
+  autocorr_range: 10    # 3 to 15 times the resolution. Test for 3, 5 and 8 times the resolution.
   iterations: 100       # 100 to 500 is generally enough
   threshold: 0.8
+  simplification_param: 1.5
 
 
 test_lidar_lib.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/lidar_lib
   dem_dir: outputs/merged_DEM_lidar_fct
-  min_size: 3
+  min_size: 20
   min_depth: 0.3
   interval: 0.25
   bool_shp: False
+  simplification_param: 1.5
+
+
+post_processing.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: outputs/lidar_lib
+  potential_dolines: outputs/lidar_lib/potential_dolines.gpkg
+  non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
+  tlm_data: inputs/vectors/side_data/clipped_tlm_subset.gpkg
+  ground_cover_layer: tlm_bb_bodenbedeckung
+  rivers: inputs/vectors/side_data/clipped_typisierung-fliessgewaesser_2056.gpkg
+  parameters:
+    max_part_in_lake: 0.2
+    max_part_in_river: 0.2
+    min_compactness: 0.2
+    min_area: 25
+    max_area: 8000
+    min_diameter: 4
+    min_depth: 0.3
+    max_depth: 200
+
+
+assess_results.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: outputs/assessment
+  dem_dir: outputs/merged_DEM_lidar_fct
+  ref_data:
+    geocover: inputs/vectors/dolines.gpkg
+    tlm: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
+    ground_truth: inputs/vectors/new_gt/fake_gt.gpkg
+  detections:
+    watersheds: outputs/dolines/dolines.gpkg
+    ign: outputs/dolines/sinkholes.gpkg
+    lidar_lib: outputs/lidar_lib/dolines.gpkg
+    stochastic_depressions: outputs/stochastic_depressions/dep_2pt5_100/dolines.gpkg
+  pilot_areas: inputs/vectors/pilot_v2.geojson
+  type:
+    ref_data: ground_truth
+    dets: stochastic_depressions

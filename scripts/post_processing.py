@@ -12,7 +12,7 @@ from global_parameters import ALL_PARAMS_WATERSHEDS, AOI_TYPE
 logger = format_logger(logger)
 
 
-def main(potential_dolines_gdf, water_bodies_gdf, dissolved_rivers_gdf, 
+def main(potential_dolines_gdf, non_sedimentary_gdf, water_bodies_gdf, dissolved_rivers_gdf, 
         max_part_in_lake, max_part_in_river, min_compactness, min_area, max_area, min_diameter, min_depth, max_depth,
         output_dir='outputs'):
     """
@@ -79,15 +79,23 @@ def main(potential_dolines_gdf, water_bodies_gdf, dissolved_rivers_gdf,
         potential_dolines_gdf.columns.tolist() + ['part_in_river']
     ]
 
+    logger.info('Filter non sedimentary dolines...')
+    sedimentary_potential_dolines_gdf = gpd.overlay(potential_dolines_gdf, non_sedimentary_gdf, how='difference').explode()
+
     logger.info('Filter based on attributes...')
-    dolines_gdf = potential_dolines_gdf[
-        (potential_dolines_gdf.compactness > min_compactness)
-        & (potential_dolines_gdf.area > min_area)
-        & (potential_dolines_gdf.area < max_area)
-        & (potential_dolines_gdf.diameter > min_diameter)
-        & (potential_dolines_gdf.depth > min_depth)
-        & (potential_dolines_gdf.depth < max_depth)
+    dolines_gdf = sedimentary_potential_dolines_gdf[
+        (sedimentary_potential_dolines_gdf.compactness > min_compactness)
+        & (sedimentary_potential_dolines_gdf.area > min_area)
+        & (sedimentary_potential_dolines_gdf.area < max_area)
+        & (sedimentary_potential_dolines_gdf.diameter > min_diameter)
+        & (sedimentary_potential_dolines_gdf.depth > min_depth)
+        & (sedimentary_potential_dolines_gdf.depth < max_depth)
     ].copy()
+
+    duplicate_ids =  dolines_gdf.doline_id.duplicated()
+    if duplicate_ids.any():
+        logger.info('Duplicated ids because of the overlay with non-sedimentary areas.')
+        dolines_gdf.loc[duplicate_ids, 'doline_id'] = dolines_gdf.loc[duplicate_ids, 'doline_id'] + dolines_gdf.doline_id.max()
 
     logger.info('Save file...')
     filepath = os.path.join(output_dir, 'dolines.gpkg')
@@ -146,10 +154,11 @@ if '__main__' == __name__:
 
     POTENTIAL_DOLINES = cfg['potential_dolines']
 
+    NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
     TLM_DATA = cfg['tlm_data']
     GROUND_COVER_LAYER = cfg['ground_cover_layer']
     RIVERS = cfg['rivers']
-
+    
     os.chdir(WORKING_DIR)
 
     if AOI_TYPE:
@@ -160,22 +169,25 @@ if '__main__' == __name__:
     potential_dolines_path = os.path.join(os.path.dirname(POTENTIAL_DOLINES), AOI_TYPE, os.path.basename(POTENTIAL_DOLINES)) if AOI_TYPE else POTENTIAL_DOLINES
     output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE) if AOI_TYPE else OUTPUT_DIR
 
-    param_dict = {k: v for k, v in ALL_PARAMS_WATERSHEDS[aoi_type_key].items() if k in [
-        'max_part_in_lake', 'max_part_in_river', 'min_compactness', 'min_area', 'max_area', 'min_diameter', 'min_depth', 'max_depth'
-    ]}
+    param_list = ['max_part_in_lake', 'max_part_in_river', 'min_compactness', 'min_area', 'max_area', 'min_diameter', 'min_depth', 'max_depth']
+    if 'dolines' in output_dir:
+        param_dict = {k: v for k, v in ALL_PARAMS_WATERSHEDS[aoi_type_key].items() if k in param_list}
+    else:
+        param_dict = {param_name: cfg['parameters'][param_name] for param_name in param_list}
 
     # ----- Processing -----
 
     logger.info('Read data...')
     potential_dolines_gdf = gpd.read_file(potential_dolines_path)
 
+    non_sedimentary_gdf = gpd.read_parquet(NON_SEDIMENTARY_AREAS)
     rivers_gdf = gpd.read_file(RIVERS)
     ground_cover_gdf = gpd.read_file(TLM_DATA, layer=GROUND_COVER_LAYER)
 
     logger.info('Prepare additional data...')
     dissolved_rivers_gdf, water_bodies_gdf = prepare_filters(ground_cover_gdf, rivers_gdf)
 
-    dolines_gdf, filepath = main(potential_dolines_gdf, water_bodies_gdf, dissolved_rivers_gdf, output_dir=output_dir, **param_dict)
+    dolines_gdf, filepath = main(potential_dolines_gdf, non_sedimentary_gdf, water_bodies_gdf, dissolved_rivers_gdf, output_dir=output_dir, **param_dict)
 
     logger.success(f'Done! The file {filepath} was written.')
     logger.info(f'Done in {time() - tic:0.2f} seconds')
