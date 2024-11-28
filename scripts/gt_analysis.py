@@ -68,7 +68,7 @@ for tile in tqdm(dem_tile_list, desc="Get zonal stats"):
     slope_name = 'slope_' +dem_name
 
     with rio.open(tile) as src:
-        altitude = zonal_stats(gt_gdf, src.read(1), affine=src.transform, stats=['min', 'max', 'median'])
+        altitude = zonal_stats(gt_gdf, src.read(1), affine=src.transform, stats=['min', 'max', 'median', 'std'])
 
     with rio.open(os.path.join(SLOPE_DIR, slope_name)) as src:
         slope = zonal_stats(gt_gdf, src.read(1), affine=src.transform, stats=['median'])

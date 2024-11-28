@@ -16,7 +16,7 @@ from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
 
-def main(dem_list, min_size, min_depth, interval, bool_shp, simplification_param, save_extra=False, overwrite=False, output_dir='outputs'):
+def main(dem_list, min_size, min_depth, interval, bool_shp, simplification_param, non_sedimentary_gdf, builtup_areas_gdf, save_extra=False, overwrite=False, output_dir='outputs'):
 
     written_files = []
     raw_potential_dolines_gdf = gpd.GeoDataFrame()
@@ -46,7 +46,7 @@ def main(dem_list, min_size, min_depth, interval, bool_shp, simplification_param
         logger.info('Keep depressions of level 1 or 2 depending on the size...')
         # Check id for 1st level that are large enough
         level_one_dolines_gdf = local_dolines_gdf[local_dolines_gdf['level'] == 1].copy()
-        large_dolines_gdf = level_one_dolines_gdf[level_one_dolines_gdf.area > 100].copy()
+        large_dolines_gdf = level_one_dolines_gdf[level_one_dolines_gdf.area > 50].copy()
         
         # Check if all 1st level are eliminated for a region id
         large_dolines_count = large_dolines_gdf.groupby('region_id').count().reset_index()
@@ -78,12 +78,20 @@ def main(dem_list, min_size, min_depth, interval, bool_shp, simplification_param
         if filtered_local_dolines_gdf.empty:
             continue
 
-        logger.info('Get zonal stats of depth and elevation...')
-        depression_stats = zonal_stats(filtered_local_dolines_gdf.geometry, dem, stats=['min', 'max', 'std'])
-        filtered_local_dolines_gdf['depth'] = [x['max'] - x['min'] for x in depression_stats]
-        filtered_local_dolines_gdf['std'] = [x['std'] for x in depression_stats]
+        logger.info('Filter non sedimentary dolines...')
+        sedimentary_potential_dolines_gdf = gpd.overlay(filtered_local_dolines_gdf, non_sedimentary_gdf, how='difference').explode()
+        logger.info(f'Filter dolines on built-up areas...')
+        spatially_filtered_dolines_gdf = gpd.overlay(sedimentary_potential_dolines_gdf, builtup_areas_gdf, how='difference').explode()
 
-        raw_potential_dolines_gdf = pd.concat([raw_potential_dolines_gdf, filtered_local_dolines_gdf[['geometry', 'corresponding_dem', 'depth', 'std']]], ignore_index=True)
+        logger.info('Remove tiny tiny things to speed up the zonal stats...')
+        spatially_filtered_dolines_gdf = spatially_filtered_dolines_gdf[spatially_filtered_dolines_gdf.area > 10].copy()
+
+        logger.info('Get zonal stats of depth and elevation...')
+        depression_stats = zonal_stats(spatially_filtered_dolines_gdf.geometry, dem, stats=['min', 'max', 'std'])
+        spatially_filtered_dolines_gdf['depth'] = [x['max'] - x['min'] for x in depression_stats]
+        spatially_filtered_dolines_gdf['std'] = [x['std'] for x in depression_stats]
+
+        raw_potential_dolines_gdf = pd.concat([raw_potential_dolines_gdf, spatially_filtered_dolines_gdf[['geometry', 'corresponding_dem', 'depth', 'std']]], ignore_index=True)
 
     potential_dolines_gdf = format_global_depressions(raw_potential_dolines_gdf, simplification_param)
 
@@ -114,6 +122,9 @@ if __name__ == "__main__":
     MIN_DEPTH = cfg['min_depth']
     INTERVAL = cfg['interval']
     BOOL_SHP = cfg['bool_shp']
+    
+    NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
+    BUILTUP_AREAS = cfg['builtup_areas']
     SIMPLIFICATION_PARAM = cfg['simplification_param']
 
     OVERWRITE = False
@@ -126,12 +137,18 @@ if __name__ == "__main__":
     output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE) if AOI_TYPE else OUTPUT_DIR
     os.makedirs(output_dir, exist_ok=True)
 
+    logger.info('Read data...')
     dem_list = glob(os.path.join(dem_dir, '*.tif'))
     if len(dem_list) == 0:
         logger.critical(f'No DEM found in {dem_dir}')
         sys.exit(1)
+        
+    non_sedimentary_gdf = gpd.read_parquet(NON_SEDIMENTARY_AREAS)
+    builtup_areas_gdf = gpd.read_file(BUILTUP_AREAS)
 
-    written_files = main(dem_list, MIN_SIZE, MIN_DEPTH, INTERVAL, BOOL_SHP, SIMPLIFICATION_PARAM, save_extra=True, overwrite=OVERWRITE, output_dir=output_dir)
+    written_files = main(
+        dem_list, MIN_SIZE, MIN_DEPTH, INTERVAL, BOOL_SHP, SIMPLIFICATION_PARAM, non_sedimentary_gdf, builtup_areas_gdf, save_extra=True, overwrite=OVERWRITE, output_dir=output_dir
+    )
 
     logger.info('The following files were written:')
     for file in written_files:

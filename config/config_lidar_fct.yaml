@@ -23,6 +23,8 @@ test_wbt_stochastic_depressions.py:
   autocorr_range: 10    # 3 to 15 times the resolution. Test for 3, 5 and 8 times the resolution.
   iterations: 100       # 100 to 500 is generally enough
   threshold: 0.8
+  non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
+  builtup_areas: inputs/vectors/siedlung_2024_2056.gpkg
   simplification_param: 1.5
 
 
@@ -34,6 +36,8 @@ test_lidar_lib.py:
   min_depth: 0.3
   interval: 0.25
   bool_shp: False
+  non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
+  builtup_areas: inputs/vectors/siedlung_2024_2056.gpkg
   simplification_param: 1.5
 
 
@@ -41,19 +45,19 @@ post_processing.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/lidar_lib
   potential_dolines: outputs/lidar_lib/potential_dolines.gpkg
-  non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
   tlm_data: inputs/vectors/side_data/clipped_tlm_subset.gpkg
   ground_cover_layer: tlm_bb_bodenbedeckung
   rivers: inputs/vectors/side_data/clipped_typisierung-fliessgewaesser_2056.gpkg
   parameters:
     max_part_in_lake: 0.2
     max_part_in_river: 0.2
-    min_compactness: 0.2
+    min_compactness: 0.55
     min_area: 25
     max_area: 8000
     min_diameter: 4
     min_depth: 0.3
     max_depth: 200
+    max_std_elev: 7
 
 
 assess_results.py:

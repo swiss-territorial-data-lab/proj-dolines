@@ -21,7 +21,7 @@ from global_parameters import ALL_PARAMS_WATERSHEDS, AOI_TYPE
 
 logger = format_logger(logger)
 
-def main(dem_list, simplification_param, mean_filter_size=7, fill_depth=0.5, working_dir='.', output_dir='outputs', overwrite=False, save_extra=False):
+def main(dem_list, simplification_param, non_sedimentary_gdf, builtup_areas_gdf, mean_filter_size=7, fill_depth=0.5, working_dir='.', output_dir='outputs', overwrite=False, save_extra=False):
     """
     Main function to detect depressions in a DEM.
 
@@ -164,7 +164,7 @@ def main(dem_list, simplification_param, mean_filter_size=7, fill_depth=0.5, wor
         )
         potential_dolines_arr = np.where(difference_arr > 0, 1, 0)
 
-        potential_dolines_gdf = format_local_depressions(potential_dolines_arr, dem_name, dem_path, simplified_dem_meta, potential_dolines_gdf)
+        potential_dolines_gdf = format_local_depressions(potential_dolines_arr, dem_name, dem_path, simplified_dem_meta, potential_dolines_gdf, non_sedimentary_gdf, builtup_areas_gdf)
 
     simplified_pot_dolines_gdf = format_global_depressions(potential_dolines_gdf, simplification_param)
 
@@ -195,6 +195,9 @@ if __name__ == '__main__':
     OUTPUT_DIR = cfg['output_dir']
     DEM_DIR = cfg['dem_dir']
 
+    NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
+    BUILTUP_AREAS = cfg['builtup_areas']
+
     os.chdir(WORKING_DIR)
 
     if AOI_TYPE:
@@ -212,9 +215,13 @@ if __name__ == '__main__':
     # ----- Data processing -----
 
     logger.info('Read data...')
-
     dem_list = glob(os.path.join(dem_dir, '*.tif'))
-    potential_dolines_gdf, written_files = main(dem_list, VW_THRESHOLD, MEAN_FILTER, FILL_DEPTH, working_dir=WORKING_DIR, output_dir=output_dir, save_extra=True, overwrite=True)
+    non_sedimentary_areas_gdf = gpd.read_file(NON_SEDIMENTARY_AREAS)
+    builtup_areas_gdf = gpd.read_file(BUILTUP_AREAS)
+
+    potential_dolines_gdf, written_files = main(
+        dem_list, VW_THRESHOLD, non_sedimentary_areas_gdf, builtup_areas_gdf, MEAN_FILTER, FILL_DEPTH, working_dir=WORKING_DIR, output_dir=output_dir, save_extra=True, overwrite=True
+    )
 
     logger.success('Done! The following files were written:')
     for file in written_files:

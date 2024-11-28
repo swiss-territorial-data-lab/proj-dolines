@@ -19,7 +19,8 @@ from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
 
-def main(dem_list, autocorr_range, iterations, threshold, simplification_param, save_extra=False, overwrite=False, working_dir='.', output_dir='outputs'):
+def main(dem_list, autocorr_range, iterations, threshold, simplification_param, non_sedimentary_gdf, builtup_areas_gdf, 
+         save_extra=False, overwrite=False, working_dir='.', output_dir='outputs'):
 
     if not save_extra:
         wbt.set_verbose_mode(False)
@@ -63,7 +64,7 @@ def main(dem_list, autocorr_range, iterations, threshold, simplification_param, 
         closed_binary_image = closing(binary_image, disk(5))
         opened_binary_image = opening(closed_binary_image, disk(3))
 
-        potential_dolines_gdf = format_local_depressions(opened_binary_image, dem_name, dem_path, im_meta, potential_dolines_gdf)
+        potential_dolines_gdf = format_local_depressions(opened_binary_image, dem_name, dem_path, im_meta, potential_dolines_gdf, non_sedimentary_gdf, builtup_areas_gdf)
 
     
     potential_dolines_gdf = format_global_depressions(potential_dolines_gdf, simplification_param)
@@ -93,6 +94,8 @@ if __name__ == "__main__":
     ITERATIONS = cfg['iterations']
     THRESHOLD = cfg['threshold']
     SIMPLIFICATION_PARAM = cfg['simplification_param']
+    NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
+    BUILTUP_AREAS = cfg['builtup_areas']
 
     os.chdir(WORKING_DIR)
 
@@ -102,12 +105,18 @@ if __name__ == "__main__":
     output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE) if AOI_TYPE else OUTPUT_DIR
     os.makedirs(output_dir, exist_ok=True)
 
+    logger.info('Read data...')
     dem_list = glob(os.path.join(dem_dir, '*.tif'))
     if len(dem_list) == 0:
         logger.critical(f'No DEM found in {dem_dir}')
         sys.exit(1)
 
-    _, written_files = main(dem_list, AUTOCORR_RANGE, ITERATIONS, THRESHOLD, SIMPLIFICATION_PARAM, save_extra=True, working_dir=WORKING_DIR, output_dir=output_dir)
+    non_sedimentary_gdf = gpd.read_parquet(NON_SEDIMENTARY_AREAS)
+    builtup_areas_gdf = gpd.read_file(BUILTUP_AREAS)
+
+    _, written_files = main(
+        dem_list, AUTOCORR_RANGE, ITERATIONS, THRESHOLD, SIMPLIFICATION_PARAM, non_sedimentary_gdf, builtup_areas_gdf, save_extra=True, working_dir=WORKING_DIR, output_dir=output_dir
+    )
 
     logger.info('The following files were written:')
     for file in written_files:
