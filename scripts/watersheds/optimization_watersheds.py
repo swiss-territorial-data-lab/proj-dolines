@@ -58,7 +58,7 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, ref_data_type, ref
         The value of the objective function, i.e. the f1 score.
     """
 
-    resolution = trial.suggest_float('resolution', 0.5, 5, step=0.5)
+    resolution = trial.suggest_float('resolution', 0.5, 2.5, step=0.5)
     # max_slope = trial.suggest_float('max_slope', 0.7, 1.5, step=0.2)
 
     mean_filter_size = trial.suggest_int('mean_filter_size', 1, 5, step=2)

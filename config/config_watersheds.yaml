@@ -38,6 +38,7 @@ depression_detection.py:
   # vw_threshold: 0.06
   non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
   builtup_areas: inputs/vectors/restricted_siedlung_2024_2056.gpkg
+  aoi: inputs/vectors/pilot_v2.geojson
 
 
 post_processing.py:

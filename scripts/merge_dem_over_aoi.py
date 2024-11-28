@@ -48,7 +48,7 @@ def main(dem_correspondence_pd, aoi_gdf, dem_dir, resolution, save_extra=False, 
     buffered_aoi_gdf = aoi_gdf.copy()
     buffered_aoi_gdf.loc[:, 'geometry'] = aoi_gdf.geometry.buffer(2000)
     dem_dict = {}
-    for aoi in tqdm(buffered_aoi_gdf.itertuples(), desc="Merge DEMs", total=buffered_aoi_gdf.shape[0]):
+    for aoi in tqdm(buffered_aoi_gdf.itertuples(), desc=f"Merge DEMs to a resolution of {resolution} m", total=buffered_aoi_gdf.shape[0]):
         dem_list = [
             os.path.join(dem_dir, dem) for dem in dem_correspondence_pd[aoi.name].tolist()
             if isinstance(dem, str) and os.path.exists(os.path.join(dem_dir, dem))

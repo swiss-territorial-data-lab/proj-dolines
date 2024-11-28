@@ -88,7 +88,7 @@ def main(potential_dolines_gdf, water_bodies_gdf, dissolved_rivers_gdf,
         & (potential_dolines_gdf.std_elev < max_std_elev)
         & (potential_dolines_gdf.depth > min_depth)
         & (potential_dolines_gdf.depth < max_depth)
-    ].copy()
+    ].reset_index(drop=True)
 
     duplicate_ids =  dolines_gdf.doline_id.duplicated()
     if duplicate_ids.any():

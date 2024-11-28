@@ -21,7 +21,8 @@ from global_parameters import ALL_PARAMS_WATERSHEDS, AOI_TYPE
 
 logger = format_logger(logger)
 
-def main(dem_list, non_sedimentary_gdf, builtup_areas_gdf, mean_filter_size=7, fill_depth=0.5, working_dir='.', output_dir='outputs', overwrite=False, save_extra=False):
+def main(dem_list, non_sedimentary_gdf, builtup_areas_gdf, aoi_gdf=None, 
+         mean_filter_size=7, fill_depth=0.5, working_dir='.', output_dir='outputs', overwrite=False, save_extra=False):
     """
     Main function to detect depressions in a DEM.
 
@@ -128,22 +129,24 @@ def main(dem_list, non_sedimentary_gdf, builtup_areas_gdf, mean_filter_size=7, f
         logger.info(f'Perform zonal fill for area {dem_name.rstrip('.tif')}...')
         # Implement zonal fill
         logger.info('Step 1: polygonize the watershed...')
-        # Step 1: polygonize the watershed
         with rio.open(watershed_path) as src:
             wtshd_band = src.read(1)
             wtshd_meta = src.meta
         watersheds_gdf = polygonize_raster(wtshd_band, meta=wtshd_meta)
+        if isinstance(aoi_gdf, gpd.GeoDataFrame):
+            logger.info('Control AOI coverage...')
+            unary_wtshd = watersheds_gdf.union_all()
+            if not unary_wtshd.contains(aoi_gdf.loc[aoi_gdf.tile_id_watersheds == dem_name.rstrip('.tif'), 'geometry'].iloc[0]):
+                logger.error(f'AOI is not completely covered with watersheds for area {dem_name.rstrip(".tif")}. Please, control the watershed raster.')
         watersheds_gdf = watersheds_gdf[watersheds_gdf.area > 7].copy()  # remove small polygons to speed up zonal stats
         
         logger.info('Step 2: get the minimal altitude on each polygon boundary...')
-        # Step 2: get the minimal altitude on each polygon boundary
         min_alti_list = zonal_stats(watersheds_gdf.geometry.boundary, simplified_dem_path, affine=wtshd_meta['transform'], stats='min')
 
         zonal_fill_gdf =  watersheds_gdf.copy()
         zonal_fill_gdf['min_alti'] = [x['min'] for x in min_alti_list]
 
         logger.info('Step 3: transform the geodataframe back to raster...')
-        # Step 3: transform the geodataframe back to raster
         out_arr = wtshd_band.astype(np.float64)
         shapes_w_new_value = ((geom, value) for geom, value in zip(zonal_fill_gdf.geometry, zonal_fill_gdf.min_alti))
         zonal_fill_arr = rasterize(shapes=shapes_w_new_value, fill=wtshd_meta['nodata'], out=out_arr, transform=wtshd_meta['transform'], dtype=np.float64)
@@ -196,6 +199,7 @@ if __name__ == '__main__':
 
     NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
     BUILTUP_AREAS = cfg['builtup_areas']
+    AOI = cfg['aoi']
 
     os.chdir(WORKING_DIR)
 
@@ -216,9 +220,10 @@ if __name__ == '__main__':
     dem_list = glob(os.path.join(dem_dir, '*.tif'))
     non_sedimentary_areas_gdf = gpd.read_parquet(NON_SEDIMENTARY_AREAS)
     builtup_areas_gdf = gpd.read_file(BUILTUP_AREAS)
+    aoi_gdf = gpd.read_file(AOI)
 
     potential_dolines_gdf, written_files = main(
-        dem_list, non_sedimentary_areas_gdf, builtup_areas_gdf, MEAN_FILTER, FILL_DEPTH, working_dir=WORKING_DIR, output_dir=output_dir, save_extra=True, overwrite=True
+        dem_list, non_sedimentary_areas_gdf, builtup_areas_gdf, aoi_gdf, MEAN_FILTER, FILL_DEPTH, working_dir=WORKING_DIR, output_dir=output_dir, save_extra=True, overwrite=True
     )
 
     logger.success('Done! The following files were written:')
