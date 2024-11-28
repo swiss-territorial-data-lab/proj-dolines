@@ -21,7 +21,7 @@ from global_parameters import ALL_PARAMS_WATERSHEDS, AOI_TYPE
 
 logger = format_logger(logger)
 
-def main(dem_list, simplification_param, non_sedimentary_gdf, builtup_areas_gdf, mean_filter_size=7, fill_depth=0.5, working_dir='.', output_dir='outputs', overwrite=False, save_extra=False):
+def main(dem_list, non_sedimentary_gdf, builtup_areas_gdf, mean_filter_size=7, fill_depth=0.5, working_dir='.', output_dir='outputs', overwrite=False, save_extra=False):
     """
     Main function to detect depressions in a DEM.
 
@@ -29,8 +29,6 @@ def main(dem_list, simplification_param, non_sedimentary_gdf, builtup_areas_gdf,
     ----------
     dem_list : list
         List of paths to the DEM files.
-    simplification_param : float
-        Simplification parameter for the potential dolines with the Visvalingam-Whyatt algorithm.
     mean_filter_size : int, optional
         Size of the mean filter for noise removal. Defaults to 7.
     fill_depth : float, optional
@@ -135,6 +133,7 @@ def main(dem_list, simplification_param, non_sedimentary_gdf, builtup_areas_gdf,
             wtshd_band = src.read(1)
             wtshd_meta = src.meta
         watersheds_gdf = polygonize_raster(wtshd_band, meta=wtshd_meta)
+        watersheds_gdf = watersheds_gdf[watersheds_gdf.area > 7].copy()  # remove small polygons to speed up zonal stats
         
         logger.info('Step 2: get the minimal altitude on each polygon boundary...')
         # Step 2: get the minimal altitude on each polygon boundary
@@ -166,7 +165,7 @@ def main(dem_list, simplification_param, non_sedimentary_gdf, builtup_areas_gdf,
 
         potential_dolines_gdf = format_local_depressions(potential_dolines_arr, dem_name, dem_path, simplified_dem_meta, potential_dolines_gdf, non_sedimentary_gdf, builtup_areas_gdf)
 
-    simplified_pot_dolines_gdf = format_global_depressions(potential_dolines_gdf, simplification_param)
+    simplified_pot_dolines_gdf = format_global_depressions(potential_dolines_gdf, simplification_param=1.5)
 
     filepath = os.path.join(output_dir, 'potential_dolines.gpkg')
     simplified_pot_dolines_gdf.to_file(filepath)
@@ -208,7 +207,6 @@ if __name__ == '__main__':
     dem_dir = os.path.join(DEM_DIR, AOI_TYPE) if AOI_TYPE else DEM_DIR
     output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE) if AOI_TYPE else OUTPUT_DIR
 
-    VW_THRESHOLD = ALL_PARAMS_WATERSHEDS[aoi_type_key]['simplification_param']
     MEAN_FILTER = ALL_PARAMS_WATERSHEDS[aoi_type_key]['mean_filter_size']
     FILL_DEPTH = ALL_PARAMS_WATERSHEDS[aoi_type_key]['fill_depth']
 
@@ -216,11 +214,11 @@ if __name__ == '__main__':
 
     logger.info('Read data...')
     dem_list = glob(os.path.join(dem_dir, '*.tif'))
-    non_sedimentary_areas_gdf = gpd.read_file(NON_SEDIMENTARY_AREAS)
+    non_sedimentary_areas_gdf = gpd.read_parquet(NON_SEDIMENTARY_AREAS)
     builtup_areas_gdf = gpd.read_file(BUILTUP_AREAS)
 
     potential_dolines_gdf, written_files = main(
-        dem_list, VW_THRESHOLD, non_sedimentary_areas_gdf, builtup_areas_gdf, MEAN_FILTER, FILL_DEPTH, working_dir=WORKING_DIR, output_dir=output_dir, save_extra=True, overwrite=True
+        dem_list, non_sedimentary_areas_gdf, builtup_areas_gdf, MEAN_FILTER, FILL_DEPTH, working_dir=WORKING_DIR, output_dir=output_dir, save_extra=True, overwrite=True
     )
 
     logger.success('Done! The following files were written:')

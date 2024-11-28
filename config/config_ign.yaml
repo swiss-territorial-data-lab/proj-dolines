@@ -64,9 +64,8 @@ assess_results.py:
   output_dir: outputs/assessment
   dem_dir: outputs/merged_DEM_ign
   ref_data:
-    geocover: inputs/vectors/dolines.gpkg
-    tlm: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
-    ground_truth: inputs/vectors/new_gt/fake_gt.gpkg
+    merged_reference: inputs/vectors/new_gt/ref_data.gpkg
+    ground_truth: inputs/vectors/new_gt/ground_truth.gpkg
   detections:
     watersheds: outputs/dolines/dolines.gpkg
     ign: outputs/dolines/sinkholes.gpkg
@@ -81,9 +80,9 @@ optimization_ign.py:
   output_dir: outputs/optimization_ign
   tile_dir: inputs/tiles_ign
   ref_type: ground_truth
-  ref_data_tlm: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
-  ref_data_geocover: inputs/vectors/dolines.gpkg
-  ref_data_ground_truth: inputs/vectors/new_gt/fake_gt.gpkg
+  ref_data:
+    merged_reference: inputs/vectors/new_gt/ref_data.gpkg
+    ground_truth: inputs/vectors/new_gt/ground_truth.gpkg
   aoi: inputs/vectors/pilot_v2.geojson
   dem_correspondence: inputs/tiles_ign/dem_per_aoi.csv
   non_sedimentary_areas: outputs/merged_DEM_ign/possible_areas/non_sedi_areas.gpkg

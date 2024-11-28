@@ -41,12 +41,12 @@ def median_distance_between_datasets(reference_gdf, detections_gdf, rounding_dig
     _dets_gdf = detections_gdf.copy()
     
     # Get the median distance between elements of the reference data and detection dataset
-    nearest_left_join_gdf = _ref_gdf[['objectid', 'geometry']].sjoin_nearest(_dets_gdf[['doline_id', 'geometry']], how='left', distance_col='distance')
-    nearest_left_join_gdf.drop_duplicates(subset=['objectid', 'distance'], inplace=True)
-    nearest_right_join_gdf = _ref_gdf[['objectid', 'geometry']].sjoin_nearest(_dets_gdf[['doline_id', 'geometry']], how='right', distance_col='distance')
+    nearest_left_join_gdf = _ref_gdf[['id', 'geometry']].sjoin_nearest(_dets_gdf[['doline_id', 'geometry']], how='left', distance_col='distance')
+    nearest_left_join_gdf.drop_duplicates(subset=['id', 'distance'], inplace=True)
+    nearest_right_join_gdf = _ref_gdf[['id', 'geometry']].sjoin_nearest(_dets_gdf[['doline_id', 'geometry']], how='right', distance_col='distance')
     nearest_right_join_gdf.drop_duplicates(subset=['doline_id', 'distance'], inplace=True)
     nearest_join_gdf = pd.concat([nearest_left_join_gdf, nearest_right_join_gdf], ignore_index=True)
-    nearest_join_gdf.drop_duplicates(subset=['objectid', 'doline_id'], inplace=True)
+    nearest_join_gdf.drop_duplicates(subset=['id', 'doline_id'], inplace=True)
 
     return nearest_join_gdf['distance'].median().round(rounding_digits)
 
@@ -74,8 +74,6 @@ def prepare_reference_data_to_assessment(ref_path):
         assert ini_ref_data_gdf.shape[0] == ref_data_gdf.shape[0], 'Some multipart geometries were present in the reference data.'
     else:
         ref_data_gdf = ini_ref_data_gdf.copy()
-    if 'OBJECTID' in ref_data_gdf.columns:
-        ref_data_gdf.rename(columns={'OBJECTID': 'objectid'}, inplace=True)
 
     return ref_data_gdf
 
@@ -118,7 +116,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     logger.info(f'Detection method: {det_type}')
     name_suffix = f'{AOI_TYPE + "_" if AOI_TYPE else ""}{ref_data_type}_'
 
-    assert (ref_data_type.lower() in ['geocover', 'tlm', 'ground_truth']), 'Reference data type must be geocover, tlm or ground_truth.'
+    assert (ref_data_type.lower() in ['merged_reference', 'ground_truth']), 'Reference data type must be geocover, tlm or ground_truth.'
     assert (det_type.lower() in ['watersheds', 'ign', 'lidar_lib', 'stochastic_depressions']), 'Detection method must be watersheds or ign.'
 
     if _dets_gdf.loc[0, 'tile_id'].endswith('.tif'):
@@ -133,7 +131,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     ref_data_in_aoi_gdf = _ref_gdf.sjoin(_pilot_areas_gdf[['tile_id', 'geometry']], how='inner')
     dets_in_aoi_gdf = _dets_gdf[_dets_gdf.geometry.within(_pilot_areas_gdf.geometry.union_all())].copy()
 
-    tp_gdf, fp_gdf, fn_gdf, _ = get_fractional_sets(dets_in_aoi_gdf, ref_data_in_aoi_gdf[['objectid', 'label_class', 'tile_id', 'geometry']], iou_threshold=0.1)
+    tp_gdf, fp_gdf, fn_gdf, _ = get_fractional_sets(dets_in_aoi_gdf, ref_data_in_aoi_gdf[['id', 'label_class', 'tile_id', 'geometry']], iou_threshold=0.1)
     tp_gdf['tag'] = 'TP'
     fp_gdf['tag'] = 'FP'
     fp_gdf['label_class'] = 'non-doline'
@@ -168,7 +166,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         logger.info(f'- median distance between centroids for TP: {metrics_df.loc['all', "median dist for TP"]}')
     else:
         resemblance_result = 'median IoU for TP'
-        metrics_df[resemblance_result] =  0 if tp_gdf.empty else tp_gdf['IOU'].median()
+        metrics_df[resemblance_result] =  0 if tp_gdf.empty else tp_gdf['IoU'].median()
         logger.info(f'- median IoU for TP: {metrics_df.loc['all', "median IoU for TP"]}')
     
     written_files = []
@@ -176,7 +174,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         output_dir = output_dir if (det_type.lower() in output_dir) | (det_type.lower() in os.getcwd()) else output_dir + '_' + det_type
         os.makedirs(output_dir, exist_ok=True)
 
-        tagged_detections_gdf = tagged_detections_gdf[detections_gdf.columns.tolist() + ['objectid', 'label_class', resemblance_column, 'tag']].copy()
+        tagged_detections_gdf = tagged_detections_gdf[detections_gdf.columns.tolist() + ['id', 'label_class', resemblance_column, 'tag']].copy()
         if resemblance_column == 'dist_centroid':
             # Save polygons to separate file
             not_a_point = tagged_detections_gdf.geometry.geom_type!='Point'
@@ -193,10 +191,10 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
 
         group_med_dist_gdf.sort_values('distance', inplace=True)
         dist_ref_gdf = pd.merge(
-            ref_data_in_aoi_gdf[['objectid', 'tile_id', 'geometry']], group_med_dist_gdf[['objectid', 'doline_id', 'distance', 'group_id', 'group_distance']].drop_duplicates('objectid'), 
-            on='objectid'
+            ref_data_in_aoi_gdf[['id', 'tile_id', 'geometry']], group_med_dist_gdf[['id', 'doline_id', 'distance', 'group_id', 'group_distance']].drop_duplicates('id'), 
+            on='id'
         )
-        dist_det_gdf = pd.merge(dets_in_aoi_gdf, group_med_dist_gdf[['objectid', 'doline_id', 'distance', 'group_id', 'group_distance']].drop_duplicates('doline_id'), on='doline_id')
+        dist_det_gdf = pd.merge(dets_in_aoi_gdf, group_med_dist_gdf[['id', 'doline_id', 'distance', 'group_id', 'group_distance']].drop_duplicates('doline_id'), on='doline_id')
         all_med_dist_gdf = pd.concat([dist_ref_gdf, dist_det_gdf], ignore_index=True)
         filepath = os.path.join(output_dir, f'{name_suffix}grouped_results.gpkg')
         all_med_dist_gdf.to_file(filepath)
@@ -309,7 +307,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         fig, ax = plt.subplots()
         if resemblance_column == 'IoU':
             df_plot = sub_metrics_df.plot(
-                x='name', y=['precision', 'recall', 'f1', 'median IoU for TP'], kind='line', style='o', ax=ax
+                x='name', y=['precision', 'recall', 'f1', 'median IoU for TP'], kind='line', style='o', ax=ax, grid=True, legend=True,
             )
         else:
             df_plot = sub_metrics_df.plot(

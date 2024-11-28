@@ -36,13 +36,14 @@ depression_detection.py:
   output_dir: outputs/dolines
   dem_dir: outputs/merged_DEM_wtsh
   # vw_threshold: 0.06
+  non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
+  builtup_areas: inputs/vectors/restricted_siedlung_2024_2056.gpkg
 
 
 post_processing.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/dolines
   potential_dolines: outputs/dolines/potential_dolines.gpkg
-  non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
   tlm_data: inputs/vectors/side_data/clipped_tlm_subset.gpkg
   ground_cover_layer: tlm_bb_bodenbedeckung
   rivers: inputs/vectors/side_data/clipped_typisierung-fliessgewaesser_2056.gpkg
@@ -53,15 +54,14 @@ assess_results.py:
   output_dir: outputs/assessment
   dem_dir: outputs/merged_DEM_wtsh
   ref_data:
-    geocover: inputs/vectors/dolines.gpkg
-    tlm: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
-    ground_truth: inputs/vectors/new_gt/fake_gt.gpkg
+    merged_reference: inputs/vectors/new_gt/ref_data.gpkg
+    ground_truth: inputs/vectors/new_gt/ground_truth.gpkg
   detections:
     watersheds: outputs/dolines/dolines.gpkg
     ign: outputs/dolines/sinkholes.gpkg
   pilot_areas: inputs/vectors/pilot_v2.geojson
   type:
-    ref_data: ground_truth
+    ref_data: merged_reference
     dets: watersheds
 
 
@@ -70,12 +70,13 @@ optimization_watersheds.py:
   output_dir: outputs/optimization_watersheds
   tile_dir: inputs/tiles_watersheds
   ref_type: ground_truth
-  ref_data_tlm: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
-  ref_data_geocover: inputs/vectors/dolines.gpkg
-  ref_data_ground_truth: inputs/vectors/new_gt/fake_gt.gpkg
+  ref_data:
+    merged_reference: inputs/vectors/new_gt/ref_data.gpkg
+    ground_truth: inputs/vectors/new_gt/ground_truth.gpkg
   aoi: inputs/vectors/pilot_v2.geojson
   dem_correspondence: inputs/tiles_watersheds/dem_per_aoi.csv
   non_sedimentary_areas: outputs/merged_DEM_ign/possible_areas/non_sedi_areas.gpkg
+  builtup_areas: inputs/vectors/restricted_siedlung_2024_2056.gpkg
   tlm_data: inputs/vectors/side_data/clipped_tlm_subset.gpkg
   ground_cover_layer: tlm_bb_bodenbedeckung
   rivers: inputs/vectors/side_data/clipped_typisierung-fliessgewaesser_2056.gpkg

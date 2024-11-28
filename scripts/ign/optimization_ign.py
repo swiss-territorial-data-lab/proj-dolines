@@ -132,7 +132,7 @@ OUTPUT_DIR = cfg['output_dir']
 TILE_DIR = cfg['tile_dir']
 
 REF_TYPE = cfg['ref_type']
-REF_DATA = cfg[f'ref_data_{REF_TYPE.lower()}']
+REF_DATA = cfg[f'ref_data'][REF_TYPE.lower()]
 AOI = cfg['aoi']
 DEM_CORRESPONDENCE = cfg['dem_correspondence']
 NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']

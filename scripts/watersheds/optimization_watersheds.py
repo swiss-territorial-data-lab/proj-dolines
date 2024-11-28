@@ -22,7 +22,8 @@ logger = misc.format_logger(logger)
 
 # ----- Define functions -----
 
-def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, water_bodies_gdf, rivers_gdf, ref_data_type, ref_data_gdf, working_dir, slope_dir='slope', output_dir='.'):
+def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, ref_data_type, ref_data_gdf,
+              non_sedimentary_areas_gdf, builtup_areas_gdf, water_bodies_gdf, rivers_gdf, working_dir, slope_dir='slope', output_dir='.'):
     """
     Objective function to optimize for doline detection with the watershed method.
 
@@ -60,10 +61,9 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, water_bodies_gdf, 
     resolution = trial.suggest_float('resolution', 0.5, 5, step=0.5)
     # max_slope = trial.suggest_float('max_slope', 0.7, 1.5, step=0.2)
 
-    simplification_param = trial.suggest_float('simplification_param', 1.2, 4.2, step=0.3)
     mean_filter_size = trial.suggest_int('mean_filter_size', 1, 5, step=2)
     fill_depth = trial.suggest_float('fill_depth', 0.5, 5, step=0.25)
-    max_part_in_lake = trial.suggest_float('max_part_in_lake', 0.05, 0.4, step=0.05)
+    max_part_in_lake = trial.suggest_float('max_part_in_lake', 0.05, 0.35, step=0.05)
     max_part_in_river = trial.suggest_float('max_part_in_river', 0.1, 0.4, step=0.05)
     min_compactness = trial.suggest_float('min_compactness', 0.25, 0.75, step=0.05)
     min_area = trial.suggest_int('min_area', 5, 75, step=5)
@@ -71,6 +71,7 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, water_bodies_gdf, 
     min_diameter = trial.suggest_float('min_diameter', 5, 15, step=0.5)
     min_depth = trial.suggest_float('min_depth', 0.5, 1.5, step=0.1)
     max_depth = trial.suggest_int('max_depth', 60, 180, step=5)
+    max_std_elev = trial.suggest_float('max_std_elev', 0.015, 10, log=True)
 
     post_process_params = {
         'max_part_in_lake': max_part_in_lake,
@@ -80,7 +81,8 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, water_bodies_gdf, 
         'max_area': max_area,
         'min_diameter': min_diameter,
         'min_depth': min_depth,
-        'max_depth': max_depth
+        'max_depth': max_depth,
+        'max_std_elev': max_std_elev
     } 
 
     _ = merge_dem_over_aoi.main(dem_correspondence_df, aoi_gdf, dem_dir, resolution, save_extra=True, output_dir=os.path.join(output_dir, 'merged_dems'))
@@ -88,9 +90,11 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, water_bodies_gdf, 
     # possible_areas = define_possible_areas.main(slope_dir, non_sedi_areas_gdf, max_slope)
 
     dem_list = glob(os.path.join(output_dir, 'merged_dems', '*.tif'))
-    detected_depressions_gdf, _ = depression_detection.main(dem_list, simplification_param, mean_filter_size, fill_depth, working_dir=working_dir, output_dir=output_dir, overwrite=True)
+    detected_depressions_gdf, _ = depression_detection.main(dem_list, non_sedimentary_areas_gdf, builtup_areas_gdf, mean_filter_size, fill_depth, working_dir=working_dir, output_dir=output_dir, overwrite=True)
     detected_dolines_gdf, _ = post_processing.main(detected_depressions_gdf, water_bodies_gdf, rivers_gdf, output_dir=output_dir, **post_process_params)
     if detected_dolines_gdf.empty:
+        logger.info(f'Metrics:')
+        logger.info(f'- f1 score: 0')
         return 0
     detected_dolines_gdf = assess_results.prepare_dolines_to_assessment(detected_dolines_gdf)
 
@@ -130,10 +134,11 @@ OUTPUT_DIR = cfg['output_dir']
 TILE_DIR = cfg['tile_dir']
 
 REF_TYPE = cfg['ref_type']
-REF_DATA = cfg[f'ref_data_{REF_TYPE.lower()}']
+REF_DATA = cfg[f'ref_data'][REF_TYPE.lower()]
 AOI = cfg['aoi']
 DEM_CORRESPONDENCE = cfg['dem_correspondence']
 NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
+BUILTUP_AREAS = cfg['builtup_areas']
 TLM_DATA = cfg['tlm_data']
 GROUND_COVER = cfg['ground_cover_layer']
 RIVERS = cfg['rivers']
@@ -155,7 +160,8 @@ logger.info('Read data...')
 dem_correspondence_df, aoi_gdf = merge_dem_over_aoi.read_initial_data(AOI, DEM_CORRESPONDENCE)
 
 # # For the determination of possible areas
-# non_sedi_areas_gdf = gpd.read_file(NON_SEDIMENTARY_AREAS)
+non_sedi_areas_gdf = gpd.read_file(NON_SEDIMENTARY_AREAS)
+builtup_areas_gdf = gpd.read_file(BUILTUP_AREAS)
 
 # For the post-processing
 ground_cover_gdf = gpd.read_file(TLM_DATA, layer=GROUND_COVER)
@@ -172,10 +178,11 @@ study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESam
 # study = load(study_path, 'r')
 objective = partial(
     objective, 
-    dem_dir=TILE_DIR, dem_correspondence_df=dem_correspondence_df, aoi_gdf=aoi_gdf, water_bodies_gdf=water_bodies_gdf, rivers_gdf=dissolved_rivers_gdf, ref_data_type=REF_TYPE, ref_data_gdf=ref_data_gdf,
+    dem_dir=TILE_DIR, dem_correspondence_df=dem_correspondence_df, aoi_gdf=aoi_gdf, ref_data_type=REF_TYPE, ref_data_gdf=ref_data_gdf,
+    non_sedimentary_areas_gdf=non_sedi_areas_gdf, builtup_areas_gdf=builtup_areas_gdf, water_bodies_gdf=water_bodies_gdf, rivers_gdf=dissolved_rivers_gdf, 
     working_dir=WORKING_DIR, slope_dir=slope_dir, output_dir=output_dir
 )
-study.optimize(objective, n_trials=100, callbacks=[callback])
+study.optimize(objective, n_trials=25, callbacks=[callback])
 
 dump(study, study_path)
 written_files.append(study_path)

@@ -24,7 +24,7 @@ test_wbt_stochastic_depressions.py:
   iterations: 100       # 100 to 500 is generally enough
   threshold: 0.8
   non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
-  builtup_areas: inputs/vectors/siedlung_2024_2056.gpkg
+  builtup_areas: inputs/vectors/restricted_siedlung_2024_2056.gpkg
   simplification_param: 1.5
 
 
@@ -37,7 +37,7 @@ test_lidar_lib.py:
   interval: 0.25
   bool_shp: False
   non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
-  builtup_areas: inputs/vectors/siedlung_2024_2056.gpkg
+  builtup_areas: inputs/vectors/restricted_siedlung_2024_2056.gpkg
   simplification_param: 1.5
 
 
@@ -65,9 +65,8 @@ assess_results.py:
   output_dir: outputs/assessment
   dem_dir: outputs/merged_DEM_lidar_fct
   ref_data:
-    geocover: inputs/vectors/dolines.gpkg
-    tlm: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
-    ground_truth: inputs/vectors/new_gt/fake_gt.gpkg
+    merged_reference: inputs/vectors/new_gt/ref_data.gpkg
+    ground_truth: inputs/vectors/new_gt/ground_truth.gpkg
   detections:
     watersheds: outputs/dolines/dolines.gpkg
     ign: outputs/dolines/sinkholes.gpkg

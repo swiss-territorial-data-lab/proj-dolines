@@ -1,4 +1,4 @@
-AOI_TYPE = None   # Possible types: None (i.e all types), DGM (Dépression sur glace morte), Evaporites, Karst nu, Marnes sur karst, Molasse, 
+AOI_TYPE = 'Marnes sur karst'   # Possible types: None (i.e all types), DGM (Dépression sur glace morte), Evaporites, Karst nu, Marnes sur karst, Molasse, 
                             # RSVMC (Roches sédimentaires variées, à matrice calcaire)
 ALL_PARAMS_IGN = {
     # Geocover
@@ -51,7 +51,8 @@ ALL_PARAMS_IGN = {
         'min_round_compactness': 0.45,
         'thalweg_buffer': 6,
         'thalweg_threshold': 0.2,
-        'max_depth': 70
+        'max_depth': 70,
+        'max_std_elev': 7
     },
     'Karst nu': {
         'resolution': 2.5,
@@ -284,7 +285,8 @@ ALL_PARAMS_WATERSHEDS = {
         'max_area': 4500,
         'min_diameter': 8.5,
         'min_depth': 0.3,
-        'max_depth': 200
+        'max_depth': 200,
+        'max_std_elev': 7
     },
     'Karst nu': {
         'resolution': 2.5,

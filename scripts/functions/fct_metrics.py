@@ -69,10 +69,10 @@ def get_fractional_sets(dets_gdf, labels_gdf, iou_threshold=0.25):
         # Filter detections based on the distance to the centroid
         best_matches_gdf = candidates_tp_gdf.groupby(['det_id'], group_keys=False).apply(lambda g:g[g.dist_centroid==g.dist_centroid.min()])
     else: 
-        candidates_tp_gdf['IOU'] = [intersection_over_union(i, ii) for (i, ii) in zip(geom1, geom2)]
-        resemblance_column = 'IOU'
+        candidates_tp_gdf['IoU'] = [intersection_over_union(i, ii) for (i, ii) in zip(geom1, geom2)]
+        resemblance_column = 'IoU'
         # Filter detections based on IoU value
-        best_matches_gdf = candidates_tp_gdf.groupby(['det_id'], group_keys=False).apply(lambda g:g[g.IOU==g.IOU.max()])
+        best_matches_gdf = candidates_tp_gdf.groupby(['det_id'], group_keys=False).apply(lambda g:g[g.IoU==g.IoU.max()])
         
     best_matches_gdf.drop_duplicates(subset=['det_id'], inplace=True) # <- could change the results depending on which line is dropped (but rarely effective)
 
@@ -81,10 +81,10 @@ def get_fractional_sets(dets_gdf, labels_gdf, iou_threshold=0.25):
         best_matches_gdf.drop(columns=['tile_id_det'], inplace=True)
 
     # Detection, resp labels, with IOU lower than threshold value are considered as FP, resp FN, and saved as such
-    actual_matches_gdf = best_matches_gdf[best_matches_gdf['IOU'] >= iou_threshold].copy() if resemblance_column == 'IOU' else best_matches_gdf.copy()
+    actual_matches_gdf = best_matches_gdf[best_matches_gdf['IoU'] >= iou_threshold].copy() if resemblance_column == 'IoU' else best_matches_gdf.copy()
 
     # Duplicate detections of the same labels are removed too
-    ascendance = False if resemblance_column == 'IOU' else True
+    ascendance = False if resemblance_column == 'IoU' else True
     actual_matches_gdf = actual_matches_gdf.sort_values(by=[resemblance_column], ascending=ascendance).drop_duplicates(subset=['label_id', 'tile_id'])
     actual_matches_gdf[resemblance_column] = actual_matches_gdf[resemblance_column].round(3)
 
@@ -248,16 +248,16 @@ def median_group_distance(gt, dets):
     _dets_gdf.drop_duplicates(subset='geohash', inplace=True)
 
     # spatial joins
-    nearest_l_join_gdf = _gt_gdf[['objectid', 'geometry', 'geohash']].sjoin_nearest(
+    nearest_l_join_gdf = _gt_gdf[['id', 'geometry', 'geohash']].sjoin_nearest(
         _dets_gdf[['doline_id', 'geometry', 'geohash']], 
         how='left', lsuffix='gt', rsuffix='dt', distance_col='distance'
     )
-    nearest_r_join_gdf = _gt_gdf[['objectid', 'geometry', 'geohash']].sjoin_nearest(
+    nearest_r_join_gdf = _gt_gdf[['id', 'geometry', 'geohash']].sjoin_nearest(
         _dets_gdf[['doline_id', 'geometry', 'geohash']], 
         how='right', lsuffix='gt', rsuffix='dt', distance_col='distance'
     )
     nearest_join_gdf = pd.concat([nearest_l_join_gdf, nearest_r_join_gdf], ignore_index=True)
-    nearest_join_gdf.drop_duplicates(subset=['objectid', 'doline_id'], inplace=True)
+    nearest_join_gdf.drop_duplicates(subset=['id', 'doline_id'], inplace=True)
 
     # Make groups with numbers
     groups = make_groups()
@@ -272,12 +272,12 @@ def median_group_distance(gt, dets):
     for group_id in large_group_ids:
         all_dists = []
         group_gdf = nearest_join_gdf[nearest_join_gdf.group_id==group_id].copy()
-        all_gt_ids = group_gdf.loc[group_gdf.group_id==group_id, 'objectid'].tolist()
+        all_gt_ids = group_gdf.loc[group_gdf.group_id==group_id, 'id'].tolist()
         all_dt_ids = group_gdf.loc[group_gdf.group_id==group_id, 'doline_id'].tolist()
 
         for gt_id, dt_id in product(all_gt_ids, all_dt_ids):
             all_dists.append(distance(
-                group_gdf.loc[group_gdf.objectid==gt_id, 'geometry'].iloc[0], 
+                group_gdf.loc[group_gdf.id==gt_id, 'geometry'].iloc[0], 
                 group_gdf.loc[group_gdf.doline_id==dt_id, 'geometry'].iloc[0]
             ))
 

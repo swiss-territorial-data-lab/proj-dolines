@@ -40,6 +40,7 @@ def format_local_depressions(potential_dolines_arr, dem_name, dem_path, simplifi
     # Get depth
     depression_stats = zonal_stats(spatially_filtered_dolines_gdf.geometry, dem_path, affine=simplified_dem_meta['transform'], stats=['min', 'max', 'std'])
     spatially_filtered_dolines_gdf['depth'] = [x['max'] - x['min'] for x in depression_stats]
+    spatially_filtered_dolines_gdf['std'] = [x['std'] for x in depression_stats]
 
     _potential_dolines_gdf = concat([_potential_dolines_gdf, spatially_filtered_dolines_gdf[['geometry', 'corresponding_dem', 'depth', 'std']]], ignore_index=True)
 
