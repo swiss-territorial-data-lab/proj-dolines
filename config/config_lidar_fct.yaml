@@ -36,6 +36,7 @@ test_lidar_lib.py:
   min_depth: 0.3
   interval: 0.25
   bool_shp: False
+  area_limit: 50
   non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
   builtup_areas: inputs/vectors/restricted_siedlung_2024_2056.gpkg
   simplification_param: 1.5

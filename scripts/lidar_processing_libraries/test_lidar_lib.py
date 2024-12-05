@@ -16,9 +16,8 @@ from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
 
-def main(dem_list, min_size, min_depth, interval, bool_shp, simplification_param, non_sedimentary_gdf, builtup_areas_gdf, save_extra=False, overwrite=False, output_dir='outputs'):
+def main(dem_list, min_size, min_depth, interval, bool_shp, area_limit, simplification_param, non_sedimentary_gdf, builtup_areas_gdf, save_extra=False, overwrite=False, output_dir='outputs'):
 
-    written_files = []
     raw_potential_dolines_gdf = gpd.GeoDataFrame()
     for dem in dem_list:
         dem_name = os.path.basename(dem)
@@ -39,39 +38,51 @@ def main(dem_list, min_size, min_depth, interval, bool_shp, simplification_param
                                                     bool_shp)
 
         local_dolines_gdf = gpd.read_file(os.path.join(dem_output_dir, 'depressions.shp'))
+        # Dissolve dolines made of multiple detections because of pixels connected through their corner only
+        local_dolines_gdf = local_dolines_gdf.dissolve('id', as_index=False)
+
         dolines_info_df = pd.read_csv(os.path.join(dem_output_dir, 'depressions_info.csv'))
-        local_dolines_gdf = pd.merge(local_dolines_gdf[['id', 'geometry']], dolines_info_df[['id', 'level', 'region_id']], on='id')
+        local_dolines_gdf = pd.merge(local_dolines_gdf[['id', 'geometry']], dolines_info_df[['id', 'level', 'region_id', 'children_id']], on='id')
         local_dolines_gdf['corresponding_dem'] = dem_name
 
         logger.info('Keep depressions of level 1 or 2 depending on the size...')
-        # Check id for 1st level that are large enough
-        level_one_dolines_gdf = local_dolines_gdf[local_dolines_gdf['level'] == 1].copy()
-        large_dolines_gdf = level_one_dolines_gdf[level_one_dolines_gdf.area > 50].copy()
-        
-        # Check if all 1st level are eliminated for a region id
-        large_dolines_count = large_dolines_gdf.groupby('region_id').count().reset_index()
-        all_dolines_count = level_one_dolines_gdf.groupby('region_id').count().reset_index()
-        comp_dolines_count = pd.merge(
-            large_dolines_count[['region_id', 'id']], all_dolines_count['region_id'], 
-            how='right', on='region_id', suffixes=('', '_all')
+        small_level_one_gdf = local_dolines_gdf[(local_dolines_gdf.level==1) & (local_dolines_gdf.area < area_limit)].copy()
+        corr_level_two_gdf = gpd.sjoin(
+            local_dolines_gdf.loc[local_dolines_gdf.level==2, ['id', 'geometry', 'children_id']],
+            small_level_one_gdf[['id', 'geometry']],
+            lsuffix='l2', rsuffix='l1'
         )
-        lost_dolines = comp_dolines_count.loc[comp_dolines_count['id'].isna(), 'region_id'].to_list()
 
-        # Keep 1st and 2nd level for those regions
-        level_one_two_dolines_gdf = local_dolines_gdf[(local_dolines_gdf['level'].isin([1, 2])) & local_dolines_gdf['region_id'].isin(lost_dolines)].copy()
+        # Transform children list from string to list
+        children_dict = {
+            id_l2: [
+                float(number.lstrip(' ')) for number in corr_level_two_gdf.loc[corr_level_two_gdf.id_l2==id_l2, 'children_id'].iloc[0].lstrip("'[").rstrip("]'").split(':')
+            ] 
+            for id_l2 in corr_level_two_gdf.id_l2.unique().tolist()
+        }
+        # Filter ids of level 2 based on children
+        id_l2_to_keep = [
+            id_l2 for id_l2 in corr_level_two_gdf.id_l2.unique().tolist() 
+            if corr_level_two_gdf.loc[corr_level_two_gdf.id_l2==id_l2, 'id_l1'].sort_values().tolist() == children_dict[id_l2] # add id only if all children present among small dets
+        ]
+        id_l1_to_keep = corr_level_two_gdf.loc[corr_level_two_gdf.id_l2.isin(id_l2_to_keep), 'id_l1'].unique().tolist()
+        ids_to_merge = id_l1_to_keep + id_l2_to_keep
+
+        level_one_two_dolines_gdf = local_dolines_gdf[local_dolines_gdf['id'].isin(ids_to_merge)].copy()
+
         # Merge the two levels
         level_one_two_dolines_gdf = level_one_two_dolines_gdf.dissolve(
-            by='region_id', aggfunc={'id': 'first','level': 'max', 'corresponding_dem': 'first'}, as_index=False
+            by='region_id', aggfunc={'id': 'first', 'level': 'max', 'corresponding_dem': 'first'}, as_index=False
         )
 
         # Split separate dolines inside the same region
-        filtered_nested_dolines_gdf = level_one_two_dolines_gdf.explode()
+        filtered_nested_dolines_gdf = level_one_two_dolines_gdf.explode(ignore_index=True)
         filtered_nested_dolines_gdf.loc[filtered_nested_dolines_gdf.id.duplicated(keep=False), 'id'] = [
             i + filtered_nested_dolines_gdf.shape[0] for i in range(filtered_nested_dolines_gdf.id.duplicated(keep=False).sum())
         ]
 
         filtered_local_dolines_gdf = pd.concat([
-            local_dolines_gdf[~local_dolines_gdf.region_id.isin(lost_dolines) & (local_dolines_gdf['level']==1)], 
+            local_dolines_gdf[~local_dolines_gdf.id.isin(ids_to_merge) & (local_dolines_gdf['level']==1)], 
             filtered_nested_dolines_gdf
         ], ignore_index=True)
 
@@ -100,9 +111,10 @@ def main(dem_list, min_size, min_depth, interval, bool_shp, simplification_param
         potential_dolines_gdf = potential_dolines_gdf[potential_dolines_gdf.area > 1].copy()
 
     if save_extra:
-        potential_dolines_gdf.to_file(os.path.join(output_dir, 'potential_dolines.gpkg'))
+        written_file = os.path.join(output_dir, 'potential_dolines.gpkg')
+        potential_dolines_gdf.to_file(written_file)
 
-    return written_files
+    return written_file
 
 
 if __name__ == "__main__":
@@ -122,6 +134,7 @@ if __name__ == "__main__":
     MIN_DEPTH = cfg['min_depth']
     INTERVAL = cfg['interval']
     BOOL_SHP = cfg['bool_shp']
+    AREA_LIMIT = cfg['area_limit']
     
     NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
     BUILTUP_AREAS = cfg['builtup_areas']
@@ -146,12 +159,9 @@ if __name__ == "__main__":
     non_sedimentary_gdf = gpd.read_parquet(NON_SEDIMENTARY_AREAS)
     builtup_areas_gdf = gpd.read_file(BUILTUP_AREAS)
 
-    written_files = main(
-        dem_list, MIN_SIZE, MIN_DEPTH, INTERVAL, BOOL_SHP, SIMPLIFICATION_PARAM, non_sedimentary_gdf, builtup_areas_gdf, save_extra=True, overwrite=OVERWRITE, output_dir=output_dir
+    written_file = main(
+        dem_list, MIN_SIZE, MIN_DEPTH, INTERVAL, BOOL_SHP, AREA_LIMIT, SIMPLIFICATION_PARAM, non_sedimentary_gdf, builtup_areas_gdf, save_extra=True, overwrite=OVERWRITE, output_dir=output_dir
     )
 
-    logger.info('The following files were written:')
-    for file in written_files:
-        logger.info(file)
-
+    logger.info(f'The following file was written: {written_file}')
     logger.info('Done in {:.2f} seconds'.format(time() - tic))
