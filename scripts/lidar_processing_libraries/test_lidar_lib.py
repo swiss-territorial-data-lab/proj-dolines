@@ -16,7 +16,7 @@ from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
 
-def main(dem_list, min_size, min_depth, interval, bool_shp, area_limit, simplification_param, non_sedimentary_gdf, builtup_areas_gdf, save_extra=False, overwrite=False, output_dir='outputs'):
+def main(dem_list, min_size, min_depth, interval, bool_shp, area_limit, non_sedimentary_gdf, builtup_areas_gdf, save_extra=False, overwrite=False, output_dir='outputs'):
 
     raw_potential_dolines_gdf = gpd.GeoDataFrame()
     for dem in dem_list:
@@ -89,7 +89,7 @@ def main(dem_list, min_size, min_depth, interval, bool_shp, area_limit, simplifi
         if filtered_local_dolines_gdf.empty:
             continue
 
-        simplified_pot_dolines_gdf = simplify_with_vw(filtered_local_dolines_gdf, simplification_param)
+        simplified_pot_dolines_gdf = simplify_with_vw(filtered_local_dolines_gdf, simplification_param=1.5)
 
         spatially_filtered_dolines_gdf = filter_depressions_by_area_type(simplified_pot_dolines_gdf, non_sedimentary_gdf, builtup_areas_gdf)
 
@@ -137,7 +137,6 @@ if __name__ == "__main__":
     
     NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
     BUILTUP_AREAS = cfg['builtup_areas']
-    SIMPLIFICATION_PARAM = cfg['simplification_param']
 
     OVERWRITE = False
 
@@ -159,7 +158,7 @@ if __name__ == "__main__":
     builtup_areas_gdf = gpd.read_file(BUILTUP_AREAS)
 
     written_file = main(
-        dem_list, MIN_SIZE, MIN_DEPTH, INTERVAL, BOOL_SHP, AREA_LIMIT, SIMPLIFICATION_PARAM, non_sedimentary_gdf, builtup_areas_gdf, save_extra=True, overwrite=OVERWRITE, output_dir=output_dir
+        dem_list, MIN_SIZE, MIN_DEPTH, INTERVAL, BOOL_SHP, AREA_LIMIT, non_sedimentary_gdf, builtup_areas_gdf, save_extra=True, overwrite=OVERWRITE, output_dir=output_dir
     )
 
     logger.info(f'The following file was written: {written_file}')

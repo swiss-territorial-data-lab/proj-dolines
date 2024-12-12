@@ -19,7 +19,7 @@ from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
 
-def main(dem_list, autocorr_range, iterations, threshold, simplification_param, non_sedimentary_gdf, builtup_areas_gdf, 
+def main(dem_list, autocorr_range, iterations, threshold, non_sedimentary_gdf, builtup_areas_gdf, 
          save_extra=False, overwrite=False, working_dir='.', output_dir='outputs'):
 
     if not save_extra:
@@ -65,7 +65,7 @@ def main(dem_list, autocorr_range, iterations, threshold, simplification_param, 
         opened_binary_image = opening(closed_binary_image, disk(3))
 
         potential_dolines_gdf = format_local_depressions(
-            opened_binary_image, dem_name, dem_path, im_meta, potential_dolines_gdf, non_sedimentary_gdf, builtup_areas_gdf, simplification_param
+            opened_binary_image, dem_name, dem_path, im_meta, potential_dolines_gdf, non_sedimentary_gdf, builtup_areas_gdf, simplification_param=1.5
         )
 
     
@@ -95,7 +95,6 @@ if __name__ == "__main__":
     AUTOCORR_RANGE = cfg['autocorr_range']
     ITERATIONS = cfg['iterations']
     THRESHOLD = cfg['threshold']
-    SIMPLIFICATION_PARAM = cfg['simplification_param']
     NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
     BUILTUP_AREAS = cfg['builtup_areas']
 
@@ -117,7 +116,7 @@ if __name__ == "__main__":
     builtup_areas_gdf = gpd.read_file(BUILTUP_AREAS)
 
     _, written_files = main(
-        dem_list, AUTOCORR_RANGE, ITERATIONS, THRESHOLD, SIMPLIFICATION_PARAM, non_sedimentary_gdf, builtup_areas_gdf, save_extra=True, working_dir=WORKING_DIR, output_dir=output_dir
+        dem_list, AUTOCORR_RANGE, ITERATIONS, THRESHOLD, non_sedimentary_gdf, builtup_areas_gdf, save_extra=True, working_dir=WORKING_DIR, output_dir=output_dir
     )
 
     logger.info('The following files were written:')

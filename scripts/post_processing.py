@@ -169,6 +169,7 @@ if '__main__' == __name__:
     param_list = ['max_part_in_lake', 'max_part_in_river', 'min_compactness', 'min_area', 'max_area', 'min_diameter', 'min_depth', 'max_depth', 'max_std_elev']
     if 'dolines' in output_dir:
         param_dict = {k: v for k, v in ALL_PARAMS_WATERSHEDS[aoi_type_key].items() if k in param_list}
+        param_dict['max_std_elev'] = 6
     else:
         param_dict = {param_name: cfg['parameters'][param_name] for param_name in param_list}
 

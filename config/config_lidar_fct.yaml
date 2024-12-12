@@ -25,7 +25,6 @@ test_wbt_stochastic_depressions.py:
   threshold: 0.8
   non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
   builtup_areas: inputs/vectors/restricted_siedlung_2024_2056.gpkg
-  simplification_param: 1.5
 
 
 test_lidar_lib.py:
@@ -39,7 +38,6 @@ test_lidar_lib.py:
   area_limit: 50
   non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
   builtup_areas: inputs/vectors/restricted_siedlung_2024_2056.gpkg
-  simplification_param: 1.5
 
 
 post_processing.py:

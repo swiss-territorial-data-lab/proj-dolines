@@ -134,20 +134,20 @@ def main(dem_list, non_sedimentary_gdf, builtup_areas_gdf, aoi_gdf=None,
             wtshd_meta = src.meta
         watersheds_gdf = polygonize_raster(wtshd_band, meta=wtshd_meta)
 
-        # Speed up the process by considering only watersheds plausible for doline detections.
-        filtered_watershed_gdf = filter_depressions_by_area_type(watersheds_gdf, non_sedimentary_areas_gdf, builtup_areas_gdf, verbose=False)
-
         if isinstance(aoi_gdf, gpd.GeoDataFrame):
             logger.info('Control AOI coverage...')
-            unary_wtshd = filtered_watershed_gdf.union_all()
+            unary_wtshd = watersheds_gdf.union_all()
             if not unary_wtshd.contains(aoi_gdf.loc[aoi_gdf.tile_id_watersheds == dem_name.rstrip('.tif'), 'geometry'].iloc[0]):
                 logger.error(f'AOI is not completely covered with watersheds for area {dem_name.rstrip(".tif")}. Please, control the watershed raster.')
-        watersheds_gdf = watersheds_gdf[watersheds_gdf.area > 7].copy()  # remove small polygons to speed up zonal stats
+
+        # Speed up the process by considering only watersheds plausible for doline detections.
+        filtered_watershed_gdf = filter_depressions_by_area_type(watersheds_gdf, non_sedimentary_areas_gdf, builtup_areas_gdf, verbose=False)
+        filtered_watershed_gdf = filtered_watershed_gdf[filtered_watershed_gdf.area > 10].copy()  # remove small polygons to speed up zonal stats
         
         logger.info('Step 2: get the minimal altitude on each polygon boundary...')
-        min_alti_list = zonal_stats(watersheds_gdf.geometry.boundary, simplified_dem_path, affine=wtshd_meta['transform'], stats='min')
+        min_alti_list = zonal_stats(filtered_watershed_gdf.geometry.boundary, simplified_dem_path, affine=wtshd_meta['transform'], stats='min')
 
-        zonal_fill_gdf =  watersheds_gdf.copy()
+        zonal_fill_gdf =  filtered_watershed_gdf.copy()
         zonal_fill_gdf['min_alti'] = [x['min'] for x in min_alti_list]
 
         logger.info('Step 3: transform the geodataframe back to raster...')
