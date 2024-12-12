@@ -36,6 +36,10 @@ define_possible_areas.py:
   output_dir: outputs/merged_DEM/ign/possible_areas
   slope_dir: outputs/merged_DEM/ign/slope
   non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
+  builtup_areas: inputs/vectors/restricted_siedlung_2024_2056.gpkg
+  tlm_data: inputs/vectors/side_data/clipped_tlm_subset.gpkg
+  ground_cover_layer: tlm_bb_bodenbedeckung
+  rivers: inputs/vectors/side_data/clipped_typisierung-fliessgewaesser_2056.gpkg
   aoi: inputs/vectors/pilot_v2.geojson
   # max_slope: 1.5
 

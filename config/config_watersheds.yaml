@@ -75,7 +75,7 @@ optimization_watersheds.py:
     ground_truth: inputs/vectors/new_gt/ground_truth.gpkg
   aoi: inputs/vectors/pilot_v2.geojson
   dem_correspondence: inputs/tiles_watersheds/dem_per_aoi.csv
-  non_sedimentary_areas: outputs/merged_DEM/ign/possible_areas/non_sedi_areas.gpkg
+  non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
   builtup_areas: inputs/vectors/restricted_siedlung_2024_2056.gpkg
   tlm_data: inputs/vectors/side_data/clipped_tlm_subset.gpkg
   ground_cover_layer: tlm_bb_bodenbedeckung

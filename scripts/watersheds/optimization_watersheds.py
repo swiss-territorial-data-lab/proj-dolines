@@ -8,8 +8,7 @@ import geopandas as gpd
 
 import optuna
 from functools import partial
-from joblib import dump, load
-from math import floor
+from joblib import dump
 
 sys.path.insert(1, 'scripts')
 import functions.fct_misc as misc
@@ -160,7 +159,7 @@ logger.info('Read data...')
 dem_correspondence_df, aoi_gdf = merge_dem_over_aoi.read_initial_data(AOI, DEM_CORRESPONDENCE)
 
 # # For the determination of possible areas
-non_sedi_areas_gdf = gpd.read_file(NON_SEDIMENTARY_AREAS)
+non_sedi_areas_gdf = gpd.read_parquet(NON_SEDIMENTARY_AREAS)
 builtup_areas_gdf = gpd.read_file(BUILTUP_AREAS)
 
 # For the post-processing

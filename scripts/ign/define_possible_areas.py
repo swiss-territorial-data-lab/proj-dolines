@@ -7,17 +7,20 @@ from tqdm import tqdm
 
 import geopandas as gpd
 import numpy as np
+import pandas as pd
 import rasterio as rio
 from rasterio.mask import mask
 from shapely.geometry import box
 from skimage.morphology import disk, opening
 
+sys.path.insert(1, 'scripts')
 from functions.fct_misc import format_logger, get_config
 from global_parameters import ALL_PARAMS_IGN, AOI_TYPE
+from post_processing import prepare_filters
 
 logger = format_logger(logger)
 
-def main(slope_dir, non_sedi_areas_gdf, max_slope=1.1, save_extra=False, output_dir='outputs'):
+def main(slope_dir, non_sedi_areas_gdf, builtup_areas_gdf, water_bodies_gdf, rivers_gdf, max_slope=1.1, save_extra=False, output_dir='outputs'):
     """
     Main function to produce a binary raster of possible doline areas.
 
@@ -39,7 +42,6 @@ def main(slope_dir, non_sedi_areas_gdf, max_slope=1.1, save_extra=False, output_
     possible_area_dict : dict
         Dictionary with keys as the name of the DEM tiles and values as a tuple containing the binary raster of the possible doline areas and its metadata.
     """
-    _non_sedi_areas_gdf = non_sedi_areas_gdf.copy()
 
     if save_extra:
         os.makedirs(output_dir, exist_ok=True)
@@ -54,15 +56,18 @@ def main(slope_dir, non_sedi_areas_gdf, max_slope=1.1, save_extra=False, output_
         tile_name = os.path.basename(tile_path)
         new_tile_name = tile_name.replace('slope', 'possible_area')
 
-        # Mask non-sedimentary areas
+        # Merge all non suited areas
+        no_doline_areas_poly = pd.concat([non_sedi_areas_gdf.geometry, builtup_areas_gdf.geometry, water_bodies_gdf.geometry, rivers_gdf.geometry], ignore_index=True)
+
+        # Mask non suited areas
         with rio.open(tile_path) as src:
-            sedimentary_slopes, _ = mask(src, _non_sedi_areas_gdf.geometry, invert=True)
+            suited_areas, _ = mask(src, no_doline_areas_poly, invert=True)
             meta = src.meta
-            if (sedimentary_slopes==meta['nodata']).all() and not _non_sedi_areas_gdf.geometry.intersects(box(*src.bounds)).any():
-                sedimentary_slopes = src.read()
+            if (suited_areas==meta['nodata']).all() and not no_doline_areas_poly.intersects(box(*src.bounds)).any():
+                suited_areas = src.read()
 
         # Remove areas with a high slope
-        doline_areas = np.where((sedimentary_slopes!=meta['nodata']) & (sedimentary_slopes<max_slope), 1, 0)
+        doline_areas = np.where((suited_areas!=meta['nodata']) & (suited_areas<max_slope), 1, 0)
 
         # Perform opening, opposit to the original paper with half disk size
         opened_doline_areas = opening(doline_areas[0, :, :], disk(6))
@@ -91,6 +96,10 @@ if __name__ == '__main__':
     SLOPE_DIR = cfg['slope_dir']
 
     NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
+    TLM_DATA = cfg['tlm_data']
+    GROUND_COVER_LAYER = cfg['ground_cover_layer']
+    RIVERS = cfg['rivers']
+    BUILTUP_AREAS = cfg['builtup_areas']
     AOI = cfg['aoi']
 
     os.chdir(WORKING_DIR)
@@ -110,14 +119,20 @@ if __name__ == '__main__':
     logger.info('Read data...')
 
     non_sedi_areas_gdf = gpd.read_parquet(NON_SEDIMENTARY_AREAS)
+    builtup_areas_gdf = gpd.read_file(BUILTUP_AREAS)
+    rivers_gdf = gpd.read_file(RIVERS)
+    ground_cover_gdf = gpd.read_file(TLM_DATA, layer=GROUND_COVER_LAYER)
     aoi_gdf = gpd.read_file(AOI)
     aoi_gdf.to_crs(2056, inplace=True)
+
+    logger.info('Prepare additional data...')
+    dissolved_rivers_gdf, water_bodies_gdf = prepare_filters(ground_cover_gdf, rivers_gdf)
 
     logger.info('Limit non-sedimentary info to AOI...')
     aoi_gdf.loc[:, 'geometry'] = aoi_gdf.geometry.buffer(1000)
     non_sedi_areas_gdf = gpd.overlay(non_sedi_areas_gdf, aoi_gdf, keep_geom_type=True)
 
-    _ = main(slope_dir, non_sedi_areas_gdf, max_slope=MAX_SLOPE, save_extra=True, output_dir=output_dir)
+    _ = main(slope_dir, non_sedi_areas_gdf, builtup_areas_gdf, water_bodies_gdf, rivers_gdf, max_slope=MAX_SLOPE, save_extra=True, output_dir=output_dir)
 
     logger.success(f'Done! The files were written in {output_dir}.')
 
