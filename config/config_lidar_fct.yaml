@@ -1,7 +1,7 @@
 download_tiles.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: inputs/tiles_lidar_fct
-  aoi: inputs/vectors/pilot_v2.geojson
+  aoi: inputs/vectors/pilot_v3.gpkg
   buffer: 100
   overwrite: False
 
@@ -11,11 +11,11 @@ merge_dem_over_aoi.py:
   output_dir: outputs/merged_DEM/lidar_fct
   dem_dir: inputs/tiles_lidar_fct
   dem_correspondence: inputs/tiles_ign/dem_per_aoi.csv
-  aoi: inputs/vectors/pilot_v2.geojson
+  aoi: inputs/vectors/pilot_v3.gpkg
   res: 0.5
 
 
-test_wbt_stochastic_depressions.py:
+wbt_stochastic_depressions.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/stochastic_depressions
   dem_dir: outputs/merged_DEM/lidar_fct
@@ -27,7 +27,7 @@ test_wbt_stochastic_depressions.py:
   builtup_areas: inputs/vectors/restricted_siedlung_2024_2056.gpkg
 
 
-test_lidar_lib.py:
+level_set_depressions.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/lidar_lib
   dem_dir: outputs/merged_DEM/lidar_fct
@@ -71,7 +71,7 @@ assess_results.py:
     ign: outputs/dolines/sinkholes.gpkg
     lidar_lib: outputs/lidar_lib/dolines.gpkg
     stochastic_depressions: outputs/stochastic_depressions/dep_2pt5_100/dolines.gpkg
-  pilot_areas: inputs/vectors/pilot_v2.geojson
+  pilot_areas: inputs/vectors/pilot_v3.gpkg
   type:
     ref_data: ground_truth
     dets: stochastic_depressions

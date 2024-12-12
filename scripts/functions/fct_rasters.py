@@ -1,3 +1,5 @@
+import os
+
 import geopandas as gpd
 import rasterio as rio
 from shapely.geometry import Polygon, shape
@@ -74,6 +76,18 @@ def polygonize_binary_raster(binary_raster, crs=None, transform=None):
     geoms = ((shape(s), v) for s, v in shapes(image, mask, transform=transform))
     gdf = gpd.GeoDataFrame(geoms, columns=['geometry', 'number'])
     gdf.set_crs(crs=crs, inplace=True)
+
+    return gdf
+
+
+def polygonize_binary_raster_w_dem_name(polys_arr, meta, dem_name, remove_border=False):
+
+    gdf = polygonize_binary_raster(polys_arr, crs=meta['crs'], transform=meta['transform'])
+    gdf['corresponding_dem'] = dem_name
+    
+    if remove_border:
+        aoi_poly = get_raster_border(meta).buffer(-10)
+        gdf = gdf[gdf.intersects(aoi_poly)].copy()
 
     return gdf
 

@@ -15,6 +15,7 @@ wbt = whitebox.WhiteboxTools()
 
 sys.path.insert(1, 'scripts')
 from functions.fct_misc import format_local_depressions, format_logger, get_config
+from functions.fct_rasters import polygonize_binary_raster_w_dem_name
 from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
@@ -64,8 +65,13 @@ def main(dem_list, autocorr_range, iterations, threshold, non_sedimentary_gdf, b
         closed_binary_image = closing(binary_image, disk(5))
         opened_binary_image = opening(closed_binary_image, disk(3))
 
+        logger.info('Polygonize depressions...')
+        depressions_gdf = polygonize_binary_raster_w_dem_name(opened_binary_image, im_meta, dem_name)
+        if depressions_gdf.empty:
+            continue
+
         potential_dolines_gdf = format_local_depressions(
-            opened_binary_image, dem_name, dem_path, im_meta, potential_dolines_gdf, non_sedimentary_gdf, builtup_areas_gdf, simplification_param=1.5
+            dem_path, depressions_gdf, non_sedimentary_gdf, builtup_areas_gdf, simplification_param=1.5, simplified_dem_meta=im_meta
         )
 
     

@@ -1,7 +1,7 @@
 download_tiles.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: inputs/tiles_ign
-  aoi: inputs/vectors/pilot_v2.geojson
+  aoi: inputs/vectors/pilot_v3.gpkg
   buffer: 500
   overwrite: False
 
@@ -11,7 +11,7 @@ merge_dem_over_aoi.py:
   output_dir: outputs/merged_DEM/ign
   dem_dir: inputs/tiles_ign
   dem_correspondence: inputs/tiles_ign/dem_per_aoi.csv
-  aoi: inputs/vectors/pilot_v2.geojson
+  aoi: inputs/vectors/pilot_v3.gpkg
   # res: 3
 
 
@@ -20,12 +20,12 @@ gt_analysis.py:
   output_dir: outputs/GT_analysis
   dem_dir: outputs/merged_DEM/ign
   slope_dir: outputs/merged_DEM/ign/slope
-  aoi: inputs/vectors/pilot_v2.geojson
+  aoi: inputs/vectors/pilot_v3.gpkg
   dolines: inputs/vectors/dolines.gpkg
   ref_type: geocover
 
 
-get_slope.py:
+determine_slope.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/merged_DEM/ign/slope
   dem_dir: outputs/merged_DEM/ign
@@ -40,7 +40,7 @@ define_possible_areas.py:
   tlm_data: inputs/vectors/side_data/clipped_tlm_subset.gpkg
   ground_cover_layer: tlm_bb_bodenbedeckung
   rivers: inputs/vectors/side_data/clipped_typisierung-fliessgewaesser_2056.gpkg
-  aoi: inputs/vectors/pilot_v2.geojson
+  aoi: inputs/vectors/pilot_v3.gpkg
   # max_slope: 1.5
 
 
@@ -72,7 +72,7 @@ assess_results.py:
     ground_truth: inputs/vectors/new_gt/ground_truth.gpkg
   detections:
     ign: outputs/ign/sinkholes.gpkg
-  pilot_areas: inputs/vectors/pilot_v2.geojson
+  pilot_areas: inputs/vectors/pilot_v3.gpkg
   type:
     ref_data: ground_truth
     dets: ign
@@ -86,7 +86,7 @@ optimization_ign.py:
   ref_data:
     merged_reference: inputs/vectors/new_gt/ref_data.gpkg
     ground_truth: inputs/vectors/new_gt/ground_truth.gpkg
-  aoi: inputs/vectors/pilot_v2.geojson
+  aoi: inputs/vectors/pilot_v3.gpkg
   dem_correspondence: inputs/tiles_ign/dem_per_aoi.csv
   non_sedimentary_areas: outputs/merged_DEM/ign/possible_areas/non_sedi_areas.gpkg
 
@@ -94,7 +94,7 @@ optimization_ign.py:
 merge_dolines.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data/outputs/ign
   output_dir: .
-  aoi: ../../inputs/vectors/pilot_v2.geojson
+  aoi: ../../inputs/vectors/pilot_v3.gpkg
   dgm: DGM/sinkholes.gpkg
   evaporites: Evaporites/dolines.gpkg
   karst_nu: Karst nu/sinkholes.gpkg

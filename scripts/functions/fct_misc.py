@@ -25,28 +25,17 @@ def filter_depressions_by_area_type(depressions_gdf, non_sedimentary_gdf, builtu
     sedimentary_depressions_gdf = overlay(depressions_gdf, non_sedimentary_gdf, how='difference', keep_geom_type=True).explode()
     if verbose:
         logger.info(f'Filter depressions on built-up areas...')
-    potential_dolines_gdf = overlay(sedimentary_depressions_gdf, builtup_areas_gdf, how='difference', keep_geom_type=True).explode()
+    depressions_gdf = overlay(sedimentary_depressions_gdf, builtup_areas_gdf, how='difference', keep_geom_type=True).explode()
 
-    return potential_dolines_gdf
+    return depressions_gdf
 
 
-def format_local_depressions(potential_dolines_arr, dem_name, dem_path, simplified_dem_meta, potential_dolines_gdf, non_sedimentary_gdf, builtup_areas_gdf,
-                             simplification_param, remove_border=False):
-    _potential_dolines_gdf = potential_dolines_gdf.copy()
-
-    logger.info('Polygonize potential dolines...')
-    local_depression_gdf = polygonize_binary_raster(potential_dolines_arr, crs=simplified_dem_meta['crs'], transform=simplified_dem_meta['transform'])
-
-    local_depression_gdf['corresponding_dem'] = dem_name
-
-    if local_depression_gdf.empty:
-        return potential_dolines_gdf
+def format_local_depressions(dem, depressions_gdf, non_sedimentary_gdf, builtup_areas_gdf,
+                             simplification_param, simplified_dem_meta=None):
+    _depressions_gdf = depressions_gdf.copy()
     
-    if remove_border:
-        aoi_poly = get_raster_border(simplified_dem_meta).buffer(-10)
-        local_depression_gdf = local_depression_gdf[local_depression_gdf.intersects(aoi_poly)].copy()
-    
-    simplified_depressions_gdf = simplify_with_vw(local_depression_gdf, simplification_param)
+    logger.info('Format and filter depressions...')
+    simplified_depressions_gdf = simplify_with_vw(_depressions_gdf, simplification_param)
 
     spatially_filtered_dolines_gdf = filter_depressions_by_area_type(simplified_depressions_gdf, non_sedimentary_gdf, builtup_areas_gdf)
 
@@ -57,16 +46,19 @@ def format_local_depressions(potential_dolines_arr, dem_name, dem_path, simplifi
     logger.info('Remove tiny tiny things to speed up the zonal stats...')
     spatially_filtered_dolines_gdf = spatially_filtered_dolines_gdf[spatially_filtered_dolines_gdf.area > 7].copy()
 
-    # Get depth
-    depression_stats = zonal_stats(spatially_filtered_dolines_gdf.geometry, dem_path, affine=simplified_dem_meta['transform'], stats=['min', 'max', 'std'])
+    logger.info('Get zonal stats of depth and elevation...')
+    if isinstance(dem, str):
+        depression_stats = zonal_stats(spatially_filtered_dolines_gdf.geometry, dem, stats=['min', 'max', 'std'])
+    else:
+        depression_stats = zonal_stats(spatially_filtered_dolines_gdf.geometry, dem, affine=simplified_dem_meta['transform'], stats=['min', 'max', 'std'])
     spatially_filtered_dolines_gdf['depth'] = [x['max'] - x['min'] if x['max'] else 0 for x in depression_stats]
     spatially_filtered_dolines_gdf['std_elev'] = [x['std'] if x['std'] else 0 for x in depression_stats]
 
-    _potential_dolines_gdf = concat([_potential_dolines_gdf, spatially_filtered_dolines_gdf[
+    _depressions_gdf = concat([_depressions_gdf, spatially_filtered_dolines_gdf[
         ['geometry', 'corresponding_dem', 'depth', 'std_elev', 'diameter', 'compactness']
     ]], ignore_index=True)
 
-    return _potential_dolines_gdf
+    return _depressions_gdf
 
 
 def format_logger(logger):

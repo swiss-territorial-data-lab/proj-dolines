@@ -16,7 +16,7 @@ wbt = whitebox.WhiteboxTools()
 
 sys.path.insert(1, 'scripts')
 from functions.fct_misc import filter_depressions_by_area_type, format_local_depressions, format_logger, get_config
-from functions.fct_rasters import polygonize_raster
+from functions.fct_rasters import polygonize_binary_raster_w_dem_name, polygonize_raster
 from global_parameters import ALL_PARAMS_WATERSHEDS, AOI_TYPE
 
 logger = format_logger(logger)
@@ -168,11 +168,16 @@ def main(dem_list, non_sedimentary_gdf, builtup_areas_gdf, aoi_gdf=None,
             nodata_value_dem,
             zonal_fill_arr - simplified_dem_arr
         )
-        potential_dolines_arr = np.where(difference_arr > 0, 1, 0)
+        depressions_arr = np.where(difference_arr > 0, 1, 0)
+
+        logger.info('Polygonize depressions...')
+        depressions_gdf = polygonize_binary_raster_w_dem_name(depressions_arr, simplified_dem_meta, dem_name, remove_border=True)
+        if depressions_gdf.empty:
+            continue
 
         potential_dolines_gdf = format_local_depressions(
-            potential_dolines_arr, dem_name, dem_path, simplified_dem_meta, potential_dolines_gdf, non_sedimentary_gdf, builtup_areas_gdf, 
-            simplification_param=1.5, remove_border=True
+            dem_path, depressions_gdf, non_sedimentary_gdf, builtup_areas_gdf, 
+            simplification_param=1.5, simplified_dem_meta=simplified_dem_meta
         )
 
     filepath = os.path.join(output_dir, 'potential_dolines.gpkg')

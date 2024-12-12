@@ -12,7 +12,7 @@ from joblib import dump, load
 sys.path.insert(1, 'scripts')
 import functions.fct_misc as misc
 import functions.fct_optimization as opti
-import assess_results, define_possible_areas, doline_detection, get_slope, merge_dem_over_aoi
+import assess_results, define_possible_areas, doline_detection, determine_slope, merge_dem_over_aoi
 from global_parameters import AOI_TYPE
 
 logger = misc.format_logger(logger)
@@ -88,7 +88,7 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf
 
     merged_tiles = merge_dem_over_aoi.main(dem_correspondence_df, aoi_gdf, dem_dir, resolution)
     slope_dir = os.path.join(output_dir, 'slope')
-    get_slope.main(merged_tiles, output_dir=slope_dir)
+    determine_slope.main(merged_tiles, output_dir=slope_dir)
     possible_areas = define_possible_areas.main(slope_dir, non_sedi_areas_gdf, max_slope)
 
     detected_dolines_gdf, _ = doline_detection.main(merged_tiles, possible_areas, output_dir=output_dir, **dict_params)
@@ -195,7 +195,7 @@ if study.best_value !=0:
     logger.info('Produce results for the best parameters')
     merged_tiles = merge_dem_over_aoi.main(dem_correspondence_df, aoi_gdf, TILE_DIR, resolution=study.best_params['resolution'],
                                            save_extra=True, output_dir=os.path.join(output_dir, 'merged_tiles'))
-    get_slope.main(merged_tiles, slope_dir)
+    determine_slope.main(merged_tiles, slope_dir)
     possible_areas = define_possible_areas.main(slope_dir, non_sedi_areas_gdf, study.best_params['max_slope'])
 
     dict_params = {key: value for key, value in study.best_params.items() if key not in ['max_slope', 'resolution']}
