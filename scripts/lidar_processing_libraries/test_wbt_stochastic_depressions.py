@@ -64,10 +64,12 @@ def main(dem_list, autocorr_range, iterations, threshold, simplification_param, 
         closed_binary_image = closing(binary_image, disk(5))
         opened_binary_image = opening(closed_binary_image, disk(3))
 
-        potential_dolines_gdf = format_local_depressions(opened_binary_image, dem_name, dem_path, im_meta, potential_dolines_gdf, non_sedimentary_gdf, builtup_areas_gdf)
+        potential_dolines_gdf = format_local_depressions(
+            opened_binary_image, dem_name, dem_path, im_meta, potential_dolines_gdf, non_sedimentary_gdf, builtup_areas_gdf, simplification_param
+        )
 
     
-    potential_dolines_gdf = format_global_depressions(potential_dolines_gdf, simplification_param)
+    potential_dolines_gdf = format_global_depressions(potential_dolines_gdf)
 
     if save_extra:
         filepath = os.path.join(working_dir, output_dir, 'potential_dolines.gpkg')

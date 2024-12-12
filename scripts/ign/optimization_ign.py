@@ -59,8 +59,10 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf
     limit_compactness = trial.suggest_float('limit_compactness', 0.1, 0.4, step=0.05)
     min_voronoi_area = trial.suggest_int('min_voronoi_area', 25000, 100000, step=5000)
     min_merged_area = trial.suggest_int('min_merged_area', 25000, 250000, step=25000)
+    min_long_area = trial.suggest_int('min_long_area', 20, 700, step=20)
     max_long_area = trial.suggest_int('max_long_area', 500, 3500, step=500)
     min_long_compactness = trial.suggest_float('min_long_compactness', 0.025, 0.3, step=0.025)
+    min_round_area = trial.suggest_int('min_round_area', 20, 700, step=20)
     min_round_compactness = trial.suggest_float('min_round_compactness', 0.2, 0.71, step=0.03)
     thalweg_buffer = trial.suggest_float('thalweg_buffer', 1, 8, step=0.5)
     thalweg_threshold = trial.suggest_float('thalweg_threshold', 0.2, 1.2, step=0.1)
@@ -74,8 +76,10 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf
         'limit_compactness': limit_compactness,
         'min_voronoi_area': min_voronoi_area,
         'min_merged_area': min_merged_area,
+        'min_long_area': min_long_area,
         'max_long_area': max_long_area,
         'min_long_compactness': min_long_compactness,
+        'min_round_area': min_round_area,
         'min_round_compactness': min_round_compactness,
         'thalweg_buffer': thalweg_buffer,
         'thalweg_threshold': thalweg_threshold,

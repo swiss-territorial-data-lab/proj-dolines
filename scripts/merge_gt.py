@@ -29,6 +29,7 @@ TLM = REF_DATA['tlm']
 NE = REF_DATA['ne']
 
 CHASSERAL = GT['chasseral']
+PT_GT = GT['point_gt']
 
 POINTS = cfg['points']
 
@@ -37,7 +38,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # ----- Data processing -----
 
-logger.info('Read data')
+logger.info('Read data...')
 aoi_gdf = gpd.read_file(AOI)
 geocover_gdf = gpd.read_file(GEOCOVER)
 geocover_gdf = geocover_gdf.explode(ignore_index=True)
@@ -45,12 +46,14 @@ tlm_gdf = gpd.read_file(TLM)
 ne_gdf = gpd.read_file(NE)
 ne_gdf = ne_gdf.explode(ignore_index=True)
 chasseral_gdf = gpd.read_file(CHASSERAL)
+point_gt_gdf = gpd.read_file(PT_GT)
 
-for gdf in [geocover_gdf, tlm_gdf, ne_gdf, chasseral_gdf]:
+for gdf in [geocover_gdf, tlm_gdf, ne_gdf, chasseral_gdf, point_gt_gdf]:
     gdf['id'] = gdf.index
     gdf.to_crs(2056, inplace=True)
     gdf.drop(columns=gdf.columns.difference(['id', 'geometry', 'OBJECTID', 'objectid', 'ID_DOL']), inplace=True)
 
+logger.info('Merge reference data...')
 geocover_vs_ne = gpd.sjoin(geocover_gdf, ne_gdf, how='left', lsuffix='geocover', rsuffix='ne')
 first_ref_data_gdf = pd.concat([
     geocover_gdf[geocover_gdf.id.isin(geocover_vs_ne.loc[geocover_vs_ne['id_ne'].isnull(), 'id_geocover'])],
@@ -71,10 +74,14 @@ ref_data_gdf.to_file(filepath)
 written_files = [filepath]
 
 if POINTS:
+    logger.info('Merge available ground truth...')
     ref_data_gdf.loc[:, 'geometry'] = ref_data_gdf.centroid
-    filtered_ref_data_gdf = gpd.overlay(ref_data_gdf, aoi_gdf[aoi_gdf.name=='Chasseral (NE)'], how='difference')
+    filtered_ref_data_gdf = gpd.overlay(ref_data_gdf, aoi_gdf.loc[aoi_gdf.name.isin(['Les Verrières (NE)', 'Sissach (BL)']), ['geometry']])
 
-    ground_truth_gdf = pd.concat([chasseral_gdf.rename(columns={'objectid': 'id_gt'}), filtered_ref_data_gdf], ignore_index=True)
+    ground_truth_gdf = pd.concat(
+        [chasseral_gdf.rename(columns={'objectid': 'id_gt_chasseral'}), point_gt_gdf.rename(columns={'objectid': 'id_pt_gt'}), filtered_ref_data_gdf], 
+        ignore_index=True
+    )
 
     ground_truth_gdf.loc[:, 'id'] = ground_truth_gdf.index
     filepath = os.path.join(OUTPUT_DIR, 'ground_truth.gpkg')

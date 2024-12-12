@@ -90,7 +90,7 @@ def main(potential_dolines_gdf, water_bodies_gdf, dissolved_rivers_gdf,
         & (potential_dolines_gdf.depth < max_depth)
     ].reset_index(drop=True)
 
-    duplicate_ids =  dolines_gdf.doline_id.duplicated()
+    duplicate_ids = dolines_gdf.doline_id.duplicated()
     if duplicate_ids.any():
         logger.info('Duplicated ids because of the overlay with non-sedimentary areas.')
         dolines_gdf.loc[duplicate_ids, 'doline_id'] = dolines_gdf.loc[duplicate_ids, 'doline_id'] + dolines_gdf.doline_id.max()

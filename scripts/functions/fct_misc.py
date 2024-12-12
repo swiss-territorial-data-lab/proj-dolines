@@ -18,7 +18,20 @@ sys.path.insert(1, 'scripts')
 from functions.fct_rasters import polygonize_binary_raster
 
 
-def format_local_depressions(potential_dolines_arr, dem_name, dem_path, simplified_dem_meta, potential_dolines_gdf, non_sedimentary_gdf, builtup_areas_gdf):
+def filter_depressions_by_area_type(depressions_gdf, non_sedimentary_gdf, builtup_areas_gdf, verbose=True):
+
+    if verbose:
+        logger.info('Filter non sedimentary depressions...')
+    sedimentary_depressions_gdf = overlay(depressions_gdf, non_sedimentary_gdf, how='difference', keep_geom_type=True).explode()
+    if verbose:
+        logger.info(f'Filter depressions on built-up areas...')
+    potential_dolines_gdf = overlay(sedimentary_depressions_gdf, builtup_areas_gdf, how='difference', keep_geom_type=True).explode()
+
+    return potential_dolines_gdf
+
+
+def format_local_depressions(potential_dolines_arr, dem_name, dem_path, simplified_dem_meta, potential_dolines_gdf, non_sedimentary_gdf, builtup_areas_gdf,
+                             simplification_param):
     _potential_dolines_gdf = potential_dolines_gdf.copy()
 
     logger.info('Polygonize potential dolines...')
@@ -28,14 +41,13 @@ def format_local_depressions(potential_dolines_arr, dem_name, dem_path, simplifi
 
     if local_depression_gdf.empty:
         return potential_dolines_gdf
+    
+    simplified_depressions_gdf = simplify_with_vw(local_depression_gdf, simplification_param)
 
-    logger.info('Filter non sedimentary dolines...')
-    sedimentary_potential_dolines_gdf = overlay(local_depression_gdf, non_sedimentary_gdf, how='difference').explode()
-    logger.info(f'Filter dolines on built-up areas...')
-    spatially_filtered_dolines_gdf = overlay(sedimentary_potential_dolines_gdf, builtup_areas_gdf, how='difference').explode()
+    spatially_filtered_dolines_gdf = filter_depressions_by_area_type(simplified_depressions_gdf, non_sedimentary_gdf, builtup_areas_gdf)
     
     logger.info('Remove tiny tiny things to speed up the zonal stats...')
-    spatially_filtered_dolines_gdf = spatially_filtered_dolines_gdf[spatially_filtered_dolines_gdf.area > 10].copy()
+    spatially_filtered_dolines_gdf = spatially_filtered_dolines_gdf[spatially_filtered_dolines_gdf.area > 7].copy()
 
     # Get depth
     depression_stats = zonal_stats(spatially_filtered_dolines_gdf.geometry, dem_path, affine=simplified_dem_meta['transform'], stats=['min', 'max', 'std'])
@@ -71,16 +83,15 @@ def format_logger(logger):
     return logger
 
 
-def format_global_depressions(depressions_gdf, simplification_param):
+def format_global_depressions(depressions_gdf):
     _depression_gdf = depressions_gdf.copy()
     _depression_gdf.rename(columns={'std': 'std_elev'}, inplace=True)
-    simplified_pot_dolines_gdf = simplify_with_vw(_depression_gdf, simplification_param)
 
-    simplified_pot_dolines_gdf['diameter'] = simplified_pot_dolines_gdf.minimum_bounding_radius()*2
+    _depression_gdf['diameter'] = _depression_gdf.minimum_bounding_radius()*2
     # compute Schwartzberg compactness, the ratio of the perimeter to the circumference of the circle whose area is equal to the polygon area
-    simplified_pot_dolines_gdf['compactness'] = 2*np.pi*np.sqrt(simplified_pot_dolines_gdf.area/np.pi)/simplified_pot_dolines_gdf.length
+    _depression_gdf['compactness'] = 2*np.pi*np.sqrt(_depression_gdf.area/np.pi)/_depression_gdf.length
 
-    return simplified_pot_dolines_gdf
+    return _depression_gdf
 
 
 def geohash(row):

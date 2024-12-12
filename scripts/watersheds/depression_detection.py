@@ -15,7 +15,7 @@ import whitebox
 wbt = whitebox.WhiteboxTools()
 
 sys.path.insert(1, 'scripts')
-from functions.fct_misc import format_global_depressions, format_local_depressions, format_logger, get_config, simplify_with_vw
+from functions.fct_misc import filter_depressions_by_area_type, format_global_depressions, format_local_depressions, format_logger, get_config
 from functions.fct_rasters import polygonize_raster
 from global_parameters import ALL_PARAMS_WATERSHEDS, AOI_TYPE
 
@@ -133,9 +133,13 @@ def main(dem_list, non_sedimentary_gdf, builtup_areas_gdf, aoi_gdf=None,
             wtshd_band = src.read(1)
             wtshd_meta = src.meta
         watersheds_gdf = polygonize_raster(wtshd_band, meta=wtshd_meta)
+
+        # Speed up the process by considering only watersheds plausible for doline detections.
+        filtered_watershed_gdf = filter_depressions_by_area_type(watersheds_gdf, non_sedimentary_areas_gdf, builtup_areas_gdf, verbose=False)
+
         if isinstance(aoi_gdf, gpd.GeoDataFrame):
             logger.info('Control AOI coverage...')
-            unary_wtshd = watersheds_gdf.union_all()
+            unary_wtshd = filtered_watershed_gdf.union_all()
             if not unary_wtshd.contains(aoi_gdf.loc[aoi_gdf.tile_id_watersheds == dem_name.rstrip('.tif'), 'geometry'].iloc[0]):
                 logger.error(f'AOI is not completely covered with watersheds for area {dem_name.rstrip(".tif")}. Please, control the watershed raster.')
         watersheds_gdf = watersheds_gdf[watersheds_gdf.area > 7].copy()  # remove small polygons to speed up zonal stats
@@ -166,9 +170,11 @@ def main(dem_list, non_sedimentary_gdf, builtup_areas_gdf, aoi_gdf=None,
         )
         potential_dolines_arr = np.where(difference_arr > 0, 1, 0)
 
-        potential_dolines_gdf = format_local_depressions(potential_dolines_arr, dem_name, dem_path, simplified_dem_meta, potential_dolines_gdf, non_sedimentary_gdf, builtup_areas_gdf)
+        potential_dolines_gdf = format_local_depressions(
+            potential_dolines_arr, dem_name, dem_path, simplified_dem_meta, potential_dolines_gdf, non_sedimentary_gdf, builtup_areas_gdf, simplification_param=1.5
+        )
 
-    simplified_pot_dolines_gdf = format_global_depressions(potential_dolines_gdf, simplification_param=1.5)
+    simplified_pot_dolines_gdf = format_global_depressions(potential_dolines_gdf)
 
     filepath = os.path.join(output_dir, 'potential_dolines.gpkg')
     simplified_pot_dolines_gdf.to_file(filepath)

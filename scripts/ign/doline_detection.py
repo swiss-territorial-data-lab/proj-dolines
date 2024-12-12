@@ -25,8 +25,8 @@ logger.info('Starting...')
 
 def main(dem_dict, fitted_area_dict,
          gaussian_kernel, gaussian_sigma, dem_diff_thrsld, min_area, limit_compactness,
-         min_voronoi_area, min_merged_area, max_long_area, min_long_compactness, min_round_compactness,
-         thalweg_buffer, thalweg_threshold, max_depth, min_alti_diff=-5,
+         min_voronoi_area, min_merged_area, min_long_area, max_long_area, min_long_compactness, min_round_area, min_round_compactness,
+         thalweg_buffer, thalweg_threshold, max_depth,
          save_extra=False, output_dir='outputs'):
     """
     Main function to detect dolines.
@@ -51,20 +51,22 @@ def main(dem_dict, fitted_area_dict,
         Minimum area for the voronoi polygons.
     min_merged_area : float
         Minimum area for the merged voronoi polygons.
+    min_long_area : float
+        Minimum area for the long depressions.
     max_long_area : float
         Maximum area for the long depressions.
     min_long_compactness : float
         Minimum compactness for the long depressions.
+    min_round_area : float
+        Minimum area for the round depressions outside dense zones.
     min_round_compactness : float
-        Minimum compactness for the round depressions.
+        Minimum compactness for the round depressions outside dense zones.
     thalweg_buffer : float
         Buffer size for the thalwegs.
     thalweg_threshold : float
         Threshold value for the thalwegs.
     max_depth : float
         Maximum depth for the dolines.
-    min_alti_diff : float, optional
-        Minimum difference between the lowest point of the sinkhole and its buffer outline. Defaults to -5.
     save_extra : bool, optional
         Whether to save the intermediate results. Defaults to False.
     output_dir : str, optional
@@ -157,8 +159,8 @@ def main(dem_dict, fitted_area_dict,
     # Only keep long depression that are within the large dense area
     long_sinkholes_gdf = sinkholes_in_dense_area_gdf[
         (sinkholes_in_dense_area_gdf['type']=='long')
+        & (sinkholes_in_dense_area_gdf.area > min_long_area)
         & (sinkholes_in_dense_area_gdf.area < max_long_area)
-        # here we supressed a filter for area under 700 m2 and changed the compactness from 0.11 to 0.25
         & (sinkholes_in_dense_area_gdf.compactness > min_long_compactness)
         # & filtered_sinkholes_gdf.geometry.within(large_dense_areas_union)
     ].copy()
@@ -171,8 +173,8 @@ def main(dem_dict, fitted_area_dict,
             )
             |(
                 ~filtered_sinkholes_gdf.index.isin(sinkholes_in_dense_area_gdf.index.tolist())
+                & (filtered_sinkholes_gdf.area > min_round_area)
                 & (filtered_sinkholes_gdf.compactness > min_round_compactness)
-                # here we supressed a filter for area under 1000 m2
             )
         )
     ].copy()
@@ -225,7 +227,6 @@ def main(dem_dict, fitted_area_dict,
         # Remove sinkholes that are too deep or in steep areas
         alti_gdf['depth'] = alti_gdf['max_sinkhole'] - alti_gdf['min_sinkhole']
         too_deep_steep_ids = alti_gdf.loc[alti_gdf['depth'] > max_depth, 'doline_id']
-        # too_deep_steep_ids = alti_gdf.loc[(alti_gdf['depth'] > max_depth) | (alti_gdf['alti_diff'] < min_alti_diff), 'doline_id']
         sinkholes_gdf = sinkholes_gdf[~sinkholes_gdf.doline_id.isin(too_deep_steep_ids)].copy()
 
     cleaned_sinkholes_gdf = sinkholes_gdf[['doline_id', 'type', 'compactness', 'alti_diff', 'corresponding_dem', 'geometry']]
@@ -298,7 +299,7 @@ if __name__ == '__main__':
         logger.critical('No DEM files found.')
         sys.exit(1)
 
-    dolines_gdf, written_files = main(dem_dict, potential_area_dict, save_extra=True, output_dir=output_dir, **param_dict)
+    dolines_gdf, written_files = main(dem_dict, potential_area_dict, min_long_area=20, min_round_area=10, save_extra=True, output_dir=output_dir, **param_dict)
 
     logger.success('Done! The following files were written:')
     for file in written_files:

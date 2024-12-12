@@ -11,7 +11,7 @@ from rasterstats import zonal_stats
 import lidar
 
 sys.path.insert(1, 'scripts')
-from functions.fct_misc import format_logger, format_global_depressions, get_config
+from functions.fct_misc import filter_depressions_by_area_type, format_logger, format_global_depressions, get_config, simplify_with_vw
 from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
@@ -89,10 +89,9 @@ def main(dem_list, min_size, min_depth, interval, bool_shp, area_limit, simplifi
         if filtered_local_dolines_gdf.empty:
             continue
 
-        logger.info('Filter non sedimentary dolines...')
-        sedimentary_potential_dolines_gdf = gpd.overlay(filtered_local_dolines_gdf, non_sedimentary_gdf, how='difference').explode()
-        logger.info(f'Filter dolines on built-up areas...')
-        spatially_filtered_dolines_gdf = gpd.overlay(sedimentary_potential_dolines_gdf, builtup_areas_gdf, how='difference').explode()
+        simplified_pot_dolines_gdf = simplify_with_vw(filtered_local_dolines_gdf, simplification_param)
+
+        spatially_filtered_dolines_gdf = filter_depressions_by_area_type(simplified_pot_dolines_gdf, non_sedimentary_gdf, builtup_areas_gdf)
 
         logger.info('Remove tiny tiny things to speed up the zonal stats...')
         spatially_filtered_dolines_gdf = spatially_filtered_dolines_gdf[spatially_filtered_dolines_gdf.area > 10].copy()
@@ -104,7 +103,7 @@ def main(dem_list, min_size, min_depth, interval, bool_shp, area_limit, simplifi
 
         raw_potential_dolines_gdf = pd.concat([raw_potential_dolines_gdf, spatially_filtered_dolines_gdf[['geometry', 'corresponding_dem', 'depth', 'std']]], ignore_index=True)
 
-    potential_dolines_gdf = format_global_depressions(raw_potential_dolines_gdf, simplification_param)
+    potential_dolines_gdf = format_global_depressions(raw_potential_dolines_gdf)
 
     if (potential_dolines_gdf.geometry.geom_type == 'MultiPolygon').any():
         potential_dolines_gdf = potential_dolines_gdf.explode(index_parts=False)
