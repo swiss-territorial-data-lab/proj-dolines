@@ -15,7 +15,7 @@ import whitebox
 wbt = whitebox.WhiteboxTools()
 
 sys.path.insert(1, 'scripts')
-from functions.fct_misc import filter_depressions_by_area_type, format_global_depressions, format_local_depressions, format_logger, get_config
+from functions.fct_misc import filter_depressions_by_area_type, format_local_depressions, format_logger, get_config
 from functions.fct_rasters import polygonize_raster
 from global_parameters import ALL_PARAMS_WATERSHEDS, AOI_TYPE
 
@@ -142,7 +142,7 @@ def main(dem_list, non_sedimentary_gdf, builtup_areas_gdf, aoi_gdf=None,
 
         # Speed up the process by considering only watersheds plausible for doline detections.
         filtered_watershed_gdf = filter_depressions_by_area_type(watersheds_gdf, non_sedimentary_areas_gdf, builtup_areas_gdf, verbose=False)
-        filtered_watershed_gdf = filtered_watershed_gdf[filtered_watershed_gdf.area > 10].copy()  # remove small polygons to speed up zonal stats
+        filtered_watershed_gdf = filtered_watershed_gdf[filtered_watershed_gdf.area > 5].copy()  # remove small polygons to speed up zonal stats
         
         logger.info('Step 2: get the minimal altitude on each polygon boundary...')
         min_alti_list = zonal_stats(filtered_watershed_gdf.geometry.boundary, simplified_dem_path, affine=wtshd_meta['transform'], stats='min')
@@ -171,13 +171,12 @@ def main(dem_list, non_sedimentary_gdf, builtup_areas_gdf, aoi_gdf=None,
         potential_dolines_arr = np.where(difference_arr > 0, 1, 0)
 
         potential_dolines_gdf = format_local_depressions(
-            potential_dolines_arr, dem_name, dem_path, simplified_dem_meta, potential_dolines_gdf, non_sedimentary_gdf, builtup_areas_gdf, simplification_param=1.5
+            potential_dolines_arr, dem_name, dem_path, simplified_dem_meta, potential_dolines_gdf, non_sedimentary_gdf, builtup_areas_gdf, 
+            simplification_param=1.5, remove_border=True
         )
 
-    simplified_pot_dolines_gdf = format_global_depressions(potential_dolines_gdf)
-
     filepath = os.path.join(output_dir, 'potential_dolines.gpkg')
-    simplified_pot_dolines_gdf.to_file(filepath)
+    potential_dolines_gdf.to_file(filepath)
     written_files.append(filepath)
 
     if save_extra:
@@ -187,7 +186,7 @@ def main(dem_list, non_sedimentary_gdf, builtup_areas_gdf, aoi_gdf=None,
         with rio.open(os.path.join(dem_processing_dir, f'difference_{dem_name}'), 'w+', **simplified_dem_meta) as out:
             out.write_band(1, difference_arr)
 
-    return simplified_pot_dolines_gdf, written_files
+    return potential_dolines_gdf, written_files
 
 
 if __name__ == '__main__':

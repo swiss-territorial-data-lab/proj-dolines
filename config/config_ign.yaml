@@ -8,7 +8,7 @@ download_tiles.py:
 
 merge_dem_over_aoi.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/merged_DEM_ign
+  output_dir: outputs/merged_DEM/ign
   dem_dir: inputs/tiles_ign
   dem_correspondence: inputs/tiles_ign/dem_per_aoi.csv
   aoi: inputs/vectors/pilot_v2.geojson
@@ -18,8 +18,8 @@ merge_dem_over_aoi.py:
 gt_analysis.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/GT_analysis
-  dem_dir: outputs/merged_DEM_ign
-  slope_dir: outputs/merged_DEM_ign/slope
+  dem_dir: outputs/merged_DEM/ign
+  slope_dir: outputs/merged_DEM/ign/slope
   aoi: inputs/vectors/pilot_v2.geojson
   dolines: inputs/vectors/dolines.gpkg
   ref_type: geocover
@@ -27,14 +27,14 @@ gt_analysis.py:
 
 get_slope.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/merged_DEM_ign/slope
-  dem_dir: outputs/merged_DEM_ign
+  output_dir: outputs/merged_DEM/ign/slope
+  dem_dir: outputs/merged_DEM/ign
 
 
 define_possible_areas.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/merged_DEM_ign/possible_areas
-  slope_dir: outputs/merged_DEM_ign/slope
+  output_dir: outputs/merged_DEM/ign/possible_areas
+  slope_dir: outputs/merged_DEM/ign/slope
   non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
   aoi: inputs/vectors/pilot_v2.geojson
   # max_slope: 1.5
@@ -42,33 +42,32 @@ define_possible_areas.py:
 
 treatment_mask.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/treatment_mask
-  dem_dir: outputs/merged_DEM_ign
+  output_dir: outputs/dolines/ign/treatment_mask
+  dem_dir: outputs/merged_DEM/ign
 
 
 doline_detection.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/dolines
-  dem_dir: outputs/merged_DEM_ign
+  output_dir: outputs/dolines/ign
+  dem_dir: outputs/merged_DEM/ign
 
 
 doline_detection_original.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/dolines/full_IGN_params
-  dem_dir: outputs/merged_DEM_ign_5m
+  output_dir: outputs/dolines/ign/full_IGN_params
+  dem_dir: outputs/merged_DEM/ign_5m
   mask_dir: outputs/treatment_mask
 
 
 assess_results.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/assessment
-  dem_dir: outputs/merged_DEM_ign
+  dem_dir: outputs/merged_DEM/ign
   ref_data:
     merged_reference: inputs/vectors/new_gt/ref_data.gpkg
     ground_truth: inputs/vectors/new_gt/ground_truth.gpkg
   detections:
-    watersheds: outputs/dolines/dolines.gpkg
-    ign: outputs/dolines/sinkholes.gpkg
+    ign: outputs/ign/sinkholes.gpkg
   pilot_areas: inputs/vectors/pilot_v2.geojson
   type:
     ref_data: ground_truth
@@ -77,7 +76,7 @@ assess_results.py:
   
 optimization_ign.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/optimization_ign
+  output_dir: outputs/optimization/ign
   tile_dir: inputs/tiles_ign
   ref_type: ground_truth
   ref_data:
@@ -85,11 +84,11 @@ optimization_ign.py:
     ground_truth: inputs/vectors/new_gt/ground_truth.gpkg
   aoi: inputs/vectors/pilot_v2.geojson
   dem_correspondence: inputs/tiles_ign/dem_per_aoi.csv
-  non_sedimentary_areas: outputs/merged_DEM_ign/possible_areas/non_sedi_areas.gpkg
+  non_sedimentary_areas: outputs/merged_DEM/ign/possible_areas/non_sedi_areas.gpkg
 
 
 merge_dolines.py:
-  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data/outputs/dolines
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data/outputs/ign
   output_dir: .
   aoi: ../../inputs/vectors/pilot_v2.geojson
   dgm: DGM/sinkholes.gpkg

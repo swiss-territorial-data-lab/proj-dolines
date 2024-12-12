@@ -11,14 +11,14 @@ from rasterstats import zonal_stats
 import lidar
 
 sys.path.insert(1, 'scripts')
-from functions.fct_misc import filter_depressions_by_area_type, format_logger, format_global_depressions, get_config, simplify_with_vw
+from functions.fct_misc import filter_depressions_by_area_type, format_logger, get_config, simplify_with_vw
 from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
 
 def main(dem_list, min_size, min_depth, interval, bool_shp, area_limit, non_sedimentary_gdf, builtup_areas_gdf, save_extra=False, overwrite=False, output_dir='outputs'):
 
-    raw_potential_dolines_gdf = gpd.GeoDataFrame()
+    potential_dolines_gdf = gpd.GeoDataFrame()
     for dem in dem_list:
         dem_name = os.path.basename(dem)
         dem_output_dir = os.path.join(output_dir, dem_name.rstrip('.tif'))
@@ -101,9 +101,7 @@ def main(dem_list, min_size, min_depth, interval, bool_shp, area_limit, non_sedi
         spatially_filtered_dolines_gdf['depth'] = [x['max'] - x['min'] for x in depression_stats]
         spatially_filtered_dolines_gdf['std'] = [x['std'] for x in depression_stats]
 
-        raw_potential_dolines_gdf = pd.concat([raw_potential_dolines_gdf, spatially_filtered_dolines_gdf[['geometry', 'corresponding_dem', 'depth', 'std']]], ignore_index=True)
-
-    potential_dolines_gdf = format_global_depressions(raw_potential_dolines_gdf)
+        potential_dolines_gdf = pd.concat([potential_dolines_gdf, spatially_filtered_dolines_gdf[['geometry', 'corresponding_dem', 'depth', 'std']]], ignore_index=True)
 
     if (potential_dolines_gdf.geometry.geom_type == 'MultiPolygon').any():
         potential_dolines_gdf = potential_dolines_gdf.explode(index_parts=False)

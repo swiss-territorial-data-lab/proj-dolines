@@ -1,7 +1,39 @@
 import geopandas as gpd
 import rasterio as rio
-from shapely.geometry import shape
+from shapely.geometry import Polygon, shape
 from rasterio.features import shapes
+
+
+
+def get_raster_border(raster_meta):
+    """
+    Get the raster metadata and output the raster border as a georeferenced polygon.
+
+    Args:
+        file_path (str): Path to the raster file.
+
+    Returns:
+        A shapely polygon representing the raster border.
+    """
+    # Get the raster dimensions
+    width = raster_meta['width']
+    height = raster_meta['height']
+    transform = raster_meta['transform']
+
+    # Calculate the coordinates of the raster border
+    # Top-left corner
+    x1, y1 = transform * (0, 0)
+    # Top-right corner
+    x2, y2 = transform * (width, 0)
+    # Bottom-right corner
+    x3, y3 = transform * (width, height)
+    # Bottom-left corner
+    x4, y4 = transform * (0, height)
+
+    # Create a Polygon representing the raster border
+    border_polygon = Polygon([(x1, y1), (x2, y2), (x3, y3), (x4, y4)])
+    
+    return border_polygon
 
 
 def polygonize_binary_raster(binary_raster, crs=None, transform=None):

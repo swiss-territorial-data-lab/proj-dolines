@@ -14,7 +14,7 @@ import whitebox
 wbt = whitebox.WhiteboxTools()
 
 sys.path.insert(1, 'scripts')
-from functions.fct_misc import format_local_depressions, format_logger, format_global_depressions, get_config
+from functions.fct_misc import format_local_depressions, format_logger, get_config
 from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
@@ -69,8 +69,6 @@ def main(dem_list, autocorr_range, iterations, threshold, non_sedimentary_gdf, b
         )
 
     
-    potential_dolines_gdf = format_global_depressions(potential_dolines_gdf)
-
     if save_extra:
         filepath = os.path.join(working_dir, output_dir, 'potential_dolines.gpkg')
         potential_dolines_gdf.to_file(filepath)

@@ -171,7 +171,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     
     written_files = []
     if save_extra:
-        output_dir = output_dir if (det_type.lower() in output_dir) | (det_type.lower() in os.getcwd()) else output_dir + '_' + det_type
+        output_dir = output_dir if (det_type.lower() in output_dir) | (det_type.lower() in os.getcwd()) else os.path.join(output_dir, det_type)
         os.makedirs(output_dir, exist_ok=True)
 
         tagged_detections_gdf = tagged_detections_gdf[detections_gdf.columns.tolist() + ['id', 'label_class', resemblance_column, 'tag']].copy()
