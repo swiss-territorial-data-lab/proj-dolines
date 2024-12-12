@@ -159,7 +159,7 @@ logger.info('Read data...')
 dem_correspondence_df, aoi_gdf = merge_dem_over_aoi.read_initial_data(AOI, DEM_CORRESPONDENCE)
 
 # # For the determination of possible areas
-non_sedi_areas_gdf = gpd.read_parquet(NON_SEDIMENTARY_AREAS)
+non_sedi_areas_gdf = gpd.read_file(NON_SEDIMENTARY_AREAS)
 builtup_areas_gdf = gpd.read_file(BUILTUP_AREAS)
 
 # For the post-processing
@@ -181,7 +181,7 @@ objective = partial(
     non_sedimentary_areas_gdf=non_sedi_areas_gdf, builtup_areas_gdf=builtup_areas_gdf, water_bodies_gdf=water_bodies_gdf, rivers_gdf=dissolved_rivers_gdf, 
     working_dir=WORKING_DIR, slope_dir=slope_dir, output_dir=output_dir
 )
-study.optimize(objective, n_trials=25, callbacks=[callback])
+study.optimize(objective, n_trials=100, callbacks=[callback])
 
 dump(study, study_path)
 written_files.append(study_path)

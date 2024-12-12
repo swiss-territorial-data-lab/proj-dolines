@@ -21,7 +21,7 @@ from global_parameters import ALL_PARAMS_WATERSHEDS, AOI_TYPE
 
 logger = format_logger(logger)
 
-def main(dem_list, non_sedimentary_gdf, builtup_areas_gdf, aoi_gdf=None, 
+def main(dem_list, non_sedimentary_areas_gdf, builtup_areas_gdf, aoi_gdf=None, 
          mean_filter_size=7, fill_depth=0.5, working_dir='.', output_dir='outputs', overwrite=False, save_extra=False):
     """
     Main function to detect depressions in a DEM.
@@ -176,7 +176,7 @@ def main(dem_list, non_sedimentary_gdf, builtup_areas_gdf, aoi_gdf=None,
             continue
 
         potential_dolines_gdf = format_local_depressions(
-            dem_path, depressions_gdf, non_sedimentary_gdf, builtup_areas_gdf, 
+            dem_path, depressions_gdf, non_sedimentary_areas_gdf, builtup_areas_gdf, 
             simplification_param=1.5, simplified_dem_meta=simplified_dem_meta
         )
 

@@ -61,7 +61,7 @@ assess_results.py:
     watersheds: outputs/dolines/wtshd/dolines.gpkg
   pilot_areas: inputs/vectors/pilot_v3.gpkg
   type:
-    ref_data: merged_reference
+    ref_data: ground_truth
     dets: watersheds
 
 

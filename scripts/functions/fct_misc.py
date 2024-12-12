@@ -195,11 +195,12 @@ def simplify_with_vw(gdf, simplification_param):
         The function uses a fallback simplification parameter of half the original value
         if the original value results in a polygon with less than 3 vertices.
     """
+    logger.info('Simplifying features...')
     _gdf = gdf.reset_index()
 
     failed_transform = 0
     mapped_objects = mapping(_gdf)
-    for feature in tqdm(mapped_objects['features'], "Simplifying features"):
+    for feature in mapped_objects['features']:
         coords = feature['geometry']['coordinates'][0]
         simplified_coords = vw.Simplifier(coords).simplify(threshold=simplification_param)
         if len(simplified_coords) >= 3:

@@ -12,7 +12,7 @@ from joblib import dump, load
 sys.path.insert(1, 'scripts')
 import functions.fct_misc as misc
 import functions.fct_optimization as opti
-import assess_results, define_possible_areas, doline_detection, determine_slope, merge_dem_over_aoi
+import assess_results, define_possible_areas, doline_detection, determine_slope, merge_dem_over_aoi, post_processing
 from global_parameters import AOI_TYPE
 
 logger = misc.format_logger(logger)
@@ -89,7 +89,7 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf
     merged_tiles = merge_dem_over_aoi.main(dem_correspondence_df, aoi_gdf, dem_dir, resolution)
     slope_dir = os.path.join(output_dir, 'slope')
     determine_slope.main(merged_tiles, output_dir=slope_dir)
-    possible_areas = define_possible_areas.main(slope_dir, non_sedi_areas_gdf, max_slope)
+    possible_areas = define_possible_areas.main(slope_dir, non_sedi_areas_gdf, builtup_areas_gdf, water_bodies_gdf, rivers_gdf, max_slope)
 
     detected_dolines_gdf, _ = doline_detection.main(merged_tiles, possible_areas, output_dir=output_dir, **dict_params)
     if detected_dolines_gdf.empty:
@@ -140,6 +140,10 @@ REF_DATA = cfg[f'ref_data'][REF_TYPE.lower()]
 AOI = cfg['aoi']
 DEM_CORRESPONDENCE = cfg['dem_correspondence']
 NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
+TLM_DATA = cfg['tlm_data']
+GROUND_COVER_LAYER = cfg['ground_cover_layer']
+RIVERS = cfg['rivers']
+BUILTUP_AREAS = cfg['builtup_areas']
 
 logger.warning(f'The reference data of {REF_TYPE} will be used.')
 # logger.warning(f'Then the {"f1 score" if REF_TYPE.lower() == "geocover" else "recall"} will be used as the metric.')
@@ -159,6 +163,9 @@ dem_correspondence_df, aoi_gdf = merge_dem_over_aoi.read_initial_data(AOI, DEM_C
 
 # For the determination of possible areas
 non_sedi_areas_gdf = gpd.read_file(NON_SEDIMENTARY_AREAS)
+builtup_areas_gdf = gpd.read_file(BUILTUP_AREAS)
+rivers_gdf = gpd.read_file(RIVERS)
+ground_cover_gdf = gpd.read_file(TLM_DATA, layer=GROUND_COVER_LAYER)
 
 # For the assessment
 ref_data_gdf = gpd.read_file(REF_DATA)
@@ -166,6 +173,9 @@ ref_data_gdf.to_crs(2056, inplace=True)
 ref_data_gdf['label_class'] = 'doline'
 if 'OBJECTID' in ref_data_gdf.columns:
     ref_data_gdf.rename(columns={'OBJECTID': 'objectid'}, inplace=True)
+
+logger.info('Prepare additional data...')
+dissolved_rivers_gdf, water_bodies_gdf = post_processing.prepare_filters(ground_cover_gdf, rivers_gdf)
 
 slope_dir = os.path.join(output_dir, 'slope')
 study_path = os.path.join(output_dir, 'study.pkl')

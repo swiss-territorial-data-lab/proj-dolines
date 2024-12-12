@@ -8,8 +8,7 @@ from tqdm import tqdm
 import numpy as np
 import rasterio as rio
 
-from math import ceil, floor
-
+sys.path.insert(1, 'scripts')
 from functions.fct_misc import format_logger, get_config
 from global_parameters import AOI_TYPE
 

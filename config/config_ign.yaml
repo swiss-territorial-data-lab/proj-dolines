@@ -89,6 +89,10 @@ optimization_ign.py:
   aoi: inputs/vectors/pilot_v3.gpkg
   dem_correspondence: inputs/tiles_ign/dem_per_aoi.csv
   non_sedimentary_areas: outputs/merged_DEM/ign/possible_areas/non_sedi_areas.gpkg
+  builtup_areas: inputs/vectors/restricted_siedlung_2024_2056.gpkg
+  tlm_data: inputs/vectors/side_data/clipped_tlm_subset.gpkg
+  ground_cover_layer: tlm_bb_bodenbedeckung
+  rivers: inputs/vectors/side_data/clipped_typisierung-fliessgewaesser_2056.gpkg
 
 
 merge_dolines.py:
