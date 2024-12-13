@@ -8,7 +8,7 @@ import geopandas as gpd
 
 import optuna
 from functools import partial
-from joblib import dump
+from joblib import dump, load
 
 sys.path.insert(1, 'scripts')
 import functions.fct_misc as misc
@@ -64,13 +64,13 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, ref_data_type, ref
     fill_depth = trial.suggest_float('fill_depth', 0.5, 5, step=0.25)
     max_part_in_lake = trial.suggest_float('max_part_in_lake', 0.05, 0.35, step=0.05)
     max_part_in_river = trial.suggest_float('max_part_in_river', 0.1, 0.4, step=0.05)
-    min_compactness = trial.suggest_float('min_compactness', 0.25, 0.75, step=0.05)
+    min_compactness = trial.suggest_float('min_compactness', 0.15, 0.6, step=0.05)
     min_area = trial.suggest_int('min_area', 5, 75, step=5)
     max_area = trial.suggest_int('max_area', 1500, 7500, step=500)
     min_diameter = trial.suggest_float('min_diameter', 5, 15, step=0.5)
-    min_depth = trial.suggest_float('min_depth', 0.5, 1.5, step=0.1)
+    min_depth = trial.suggest_float('min_depth', 1, 3, step=0.2)
     max_depth = trial.suggest_int('max_depth', 60, 180, step=5)
-    max_std_elev = trial.suggest_float('max_std_elev', 0.015, 10, log=True)
+    max_std_elev = trial.suggest_float('max_std_elev', 0.02, 20, log=True)
 
     post_process_params = {
         'max_part_in_lake': max_part_in_lake,
@@ -134,6 +134,9 @@ TILE_DIR = cfg['tile_dir']
 
 REF_TYPE = cfg['ref_type']
 REF_DATA = cfg[f'ref_data'][REF_TYPE.lower()]
+NEW_STUDY = cfg['study_param']['new_study']
+OPTIMIZE = cfg['study_param']['optimize']
+ITERATIONS = cfg['study_param']['iterations']
 AOI = cfg['aoi']
 DEM_CORRESPONDENCE = cfg['dem_correspondence']
 NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
@@ -173,18 +176,21 @@ ref_data_gdf = assess_results.prepare_reference_data_to_assessment(REF_DATA)
 slope_dir = os.path.join(output_dir, 'slope')
 study_path = os.path.join(output_dir, 'study.pkl')
 
-study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESampler(), study_name='Optimization of the watershed parameters')
-# study = load(study_path, 'r')
-objective = partial(
-    objective, 
-    dem_dir=TILE_DIR, dem_correspondence_df=dem_correspondence_df, aoi_gdf=aoi_gdf, ref_data_type=REF_TYPE, ref_data_gdf=ref_data_gdf,
-    non_sedimentary_areas_gdf=non_sedi_areas_gdf, builtup_areas_gdf=builtup_areas_gdf, water_bodies_gdf=water_bodies_gdf, rivers_gdf=dissolved_rivers_gdf, 
-    working_dir=WORKING_DIR, slope_dir=slope_dir, output_dir=output_dir
-)
-study.optimize(objective, n_trials=100, callbacks=[callback])
+if NEW_STUDY:
+    study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESampler(), study_name='Optimization of the watershed parameters')
+else:
+    study = load(study_path, 'r')
+if OPTIMIZE:
+    objective = partial(
+        objective, 
+        dem_dir=TILE_DIR, dem_correspondence_df=dem_correspondence_df, aoi_gdf=aoi_gdf, ref_data_type=REF_TYPE, ref_data_gdf=ref_data_gdf,
+        non_sedimentary_areas_gdf=non_sedi_areas_gdf, builtup_areas_gdf=builtup_areas_gdf, water_bodies_gdf=water_bodies_gdf, rivers_gdf=dissolved_rivers_gdf, 
+        working_dir=WORKING_DIR, slope_dir=slope_dir, output_dir=output_dir
+    )
+    study.optimize(objective, n_trials=ITERATIONS, callbacks=[callback])
 
-dump(study, study_path)
-written_files.append(study_path)
+    dump(study, study_path)
+    written_files.append(study_path)
 
 if study.best_value !=0:
     logger.info('Save the best parameters')
@@ -203,12 +209,12 @@ if study.best_value !=0:
 
     dem_list = glob(os.path.join(output_dir, 'merged_dems', '*.tif'))
     detected_depressions_gdf, depression_files = depression_detection.main(
-        dem_list, study.best_params['simplification_param'], study.best_params['mean_filter_size'], study.best_params['fill_depth'], 
+        dem_list, non_sedi_areas_gdf, builtup_areas_gdf, study.best_params['mean_filter_size'], study.best_params['fill_depth'], 
         working_dir=WORKING_DIR, output_dir=output_dir, overwrite=True
     )
     written_files.extend(depression_files)
     best_pp_param = {key: value for key, value in study.best_params.items() if key in [
-        'max_part_in_lake', 'max_part_in_river', 'min_compactness', 'min_area', 'max_area', 'min_diameter', 'min_depth', 'max_depth'
+        'max_part_in_lake', 'max_part_in_river', 'min_compactness', 'min_area', 'max_area', 'min_diameter', 'min_depth', 'max_depth', 'max_std_elev'
     ]}
     detected_dolines_gdf, _ = post_processing.main(detected_depressions_gdf, water_bodies_gdf, dissolved_rivers_gdf, output_dir=output_dir, **best_pp_param)
     # del possible_areas, merged_tiles

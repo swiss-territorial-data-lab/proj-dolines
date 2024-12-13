@@ -73,6 +73,10 @@ optimization_watersheds.py:
   ref_data:
     merged_reference: inputs/vectors/new_gt/ref_data.gpkg
     ground_truth: inputs/vectors/new_gt/ground_truth.gpkg
+  study_param:
+    new_study: True
+    optimize: True
+    iterations: 100
   aoi: inputs/vectors/pilot_v3.gpkg
   dem_correspondence: inputs/tiles_watersheds/dem_per_aoi.csv
   non_sedimentary_areas: outputs/merged_DEM/ign/possible_areas/non_sedi_areas.gpkg
