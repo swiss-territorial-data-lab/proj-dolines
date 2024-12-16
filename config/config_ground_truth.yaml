@@ -5,7 +5,7 @@ merge_gt.py:
     ref_data:
         geocover: inputs/vectors/dolines_hors_bati.gpkg
         tlm: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
-        ne: inputs/vectors/NE/dolines_NE.geojson
+        expert_assessment: inputs/vectors/new_gt/new_dolines.gpkg
     gt:
         chasseral: inputs/vectors/new_gt/chasseral_cleaned_up.shp
         point_gt: inputs/vectors/new_gt/new_dolines.gpkg

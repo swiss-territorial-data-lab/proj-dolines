@@ -27,6 +27,7 @@ GT = cfg['gt']
 GEOCOVER = REF_DATA['geocover']
 TLM = REF_DATA['tlm']
 NE = REF_DATA['ne']
+EXPERT_DATA = REF_DATA['expert_assessment']
 
 CHASSERAL = GT['chasseral']
 PT_GT = GT['point_gt']
@@ -43,27 +44,43 @@ aoi_gdf = gpd.read_file(AOI)
 geocover_gdf = gpd.read_file(GEOCOVER)
 geocover_gdf = geocover_gdf.explode(ignore_index=True)
 tlm_gdf = gpd.read_file(TLM)
-ne_gdf = gpd.read_file(NE)
-ne_gdf = ne_gdf.explode(ignore_index=True)
+expert_data_gdf = gpd.read_file(EXPERT_DATA, layer="dolines_plg")
 chasseral_gdf = gpd.read_file(CHASSERAL)
-point_gt_gdf = gpd.read_file(PT_GT)
+chasseral_gdf['id_auto_poly'] = chasseral_gdf.index
+point_gt_gdf = gpd.read_file(PT_GT, layer="dolines_pnt")
 
-for gdf in [geocover_gdf, tlm_gdf, ne_gdf, chasseral_gdf, point_gt_gdf]:
+logger.info('Format data...')
+for gdf in [geocover_gdf, tlm_gdf, expert_data_gdf, chasseral_gdf, point_gt_gdf]:
     gdf['id'] = gdf.index
     gdf.to_crs(2056, inplace=True)
-    gdf.drop(columns=gdf.columns.difference(['id', 'geometry', 'OBJECTID', 'objectid', 'ID_DOL']), inplace=True)
+    gdf.drop(columns=gdf.columns.difference(['id', 'geometry', 'OBJECTID', 'objectid', 'ID_DOL', 'id_auto_poly']), inplace=True)
+
+if POINTS:
+    logger.info('Merge ground truth...')
+
+    ground_truth_gdf = pd.concat(
+        [chasseral_gdf.rename(columns={'objectid': 'id_gt_chasseral'}), point_gt_gdf.rename(columns={'objectid': 'id_pt_gt'})], 
+        ignore_index=True
+    )
+    ground_truth_gdf.loc[:, 'id'] = ground_truth_gdf.index
+    filepath = os.path.join(OUTPUT_DIR, 'ground_truth.gpkg')
+    ground_truth_gdf.to_file(filepath)
+    written_files = [filepath]
+
+restricted_geocover_gdf = gpd.overlay(geocover_gdf, aoi_gdf.loc[aoi_gdf.name.isin(['Chasseral (BE)', 'Gryon (VD)', 'Piz Curtinatsch (GR)'])])
+restricted_geocover_gdf = restricted_geocover_gdf[restricted_geocover_gdf.intersects(ground_truth_gdf.geometry.union_all())]
 
 logger.info('Merge reference data...')
-geocover_vs_ne = gpd.sjoin(geocover_gdf, ne_gdf, how='left', lsuffix='geocover', rsuffix='ne')
+geocover_vs_ne = gpd.sjoin(restricted_geocover_gdf, expert_data_gdf, how='left', lsuffix='geocover', rsuffix='auto')
 first_ref_data_gdf = pd.concat([
-    geocover_gdf[geocover_gdf.id.isin(geocover_vs_ne.loc[geocover_vs_ne['id_ne'].isnull(), 'id_geocover'])],
-    ne_gdf
+    restricted_geocover_gdf[restricted_geocover_gdf.id.isin(geocover_vs_ne.loc[geocover_vs_ne['id_auto'].isnull(), 'id_geocover'])],
+    expert_data_gdf
 ], ignore_index=True)
 first_ref_data_gdf.loc[:, 'id'] = first_ref_data_gdf.index
 
-first_ref_vs_tlm = gpd.sjoin(first_ref_data_gdf, tlm_gdf, how='left', lsuffix='ref1', rsuffix='tlm')
+first_ref_vs_automated_expert = gpd.sjoin(first_ref_data_gdf, tlm_gdf, how='left', lsuffix='ref1', rsuffix='tlm')
 ref_data_gdf = pd.concat([
-    first_ref_data_gdf[first_ref_data_gdf.id.isin(first_ref_vs_tlm.loc[first_ref_vs_tlm['id_tlm'].isnull(), 'id_ref1'])],
+    first_ref_data_gdf[first_ref_data_gdf.id.isin(first_ref_vs_automated_expert.loc[first_ref_vs_automated_expert['id_tlm'].isnull(), 'id_ref1'])],
     tlm_gdf
 ], ignore_index=True)
 
@@ -71,22 +88,7 @@ ref_data_gdf.loc[:, 'id'] = ref_data_gdf.index
 ref_data_gdf.rename(columns={'objectid': 'id_geocover'}, inplace=True)
 filepath = os.path.join(OUTPUT_DIR, 'ref_data.gpkg')
 ref_data_gdf.to_file(filepath)
-written_files = [filepath]
-
-if POINTS:
-    logger.info('Merge available ground truth...')
-    ref_data_gdf.loc[:, 'geometry'] = ref_data_gdf.centroid
-    filtered_ref_data_gdf = gpd.overlay(ref_data_gdf, aoi_gdf.loc[aoi_gdf.name.isin(['Les Verrières (NE)', 'Sissach (BL)', 'Schwarzsee (FR)']), ['geometry']])
-
-    ground_truth_gdf = pd.concat(
-        [chasseral_gdf.rename(columns={'objectid': 'id_gt_chasseral'}), point_gt_gdf.rename(columns={'objectid': 'id_pt_gt'}), filtered_ref_data_gdf], 
-        ignore_index=True
-    )
-
-    ground_truth_gdf.loc[:, 'id'] = ground_truth_gdf.index
-    filepath = os.path.join(OUTPUT_DIR, 'ground_truth.gpkg')
-    ground_truth_gdf.to_file(filepath)
-    written_files.append(filepath)
+written_files.append(filepath)
 
 logger.success(f'Done! The following files were written:')
 for file in written_files:
