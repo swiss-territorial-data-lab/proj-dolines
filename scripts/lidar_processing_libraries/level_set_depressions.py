@@ -18,6 +18,7 @@ logger = format_logger(logger)
 
 def main(dem_list, min_size, min_depth, interval, bool_shp, area_limit, non_sedimentary_gdf, builtup_areas_gdf, save_extra=False, overwrite=False, output_dir='outputs'):
 
+    written_file = []
     potential_dolines_gdf = gpd.GeoDataFrame()
     for dem in dem_list:
         dem_name = os.path.basename(dem)
@@ -30,7 +31,7 @@ def main(dem_list, min_size, min_depth, interval, bool_shp, area_limit, non_sedi
             out_dem = os.path.join(dem_output_dir, "median_dem.tif")
             smoothed_dem = lidar.MedianFilter(dem, kernel_size=3, out_file=out_dem)
             sink_path = lidar.ExtractSinks(smoothed_dem, min_size, dem_output_dir)
-            dep_id_path, dep_level_path = lidar.DelineateDepressions(sink_path,
+            _, _ = lidar.DelineateDepressions(sink_path,
                                                     min_size,
                                                     min_depth,
                                                     interval,
@@ -99,7 +100,7 @@ def main(dem_list, min_size, min_depth, interval, bool_shp, area_limit, non_sedi
         written_file = os.path.join(output_dir, 'potential_dolines.gpkg')
         potential_dolines_gdf.to_file(written_file)
 
-    return written_file
+    return potential_dolines_gdf, written_file
 
 
 if __name__ == "__main__":

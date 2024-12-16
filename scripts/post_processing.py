@@ -57,6 +57,7 @@ def main(potential_dolines_gdf, water_bodies_gdf, dissolved_rivers_gdf,
     logger.info('Filter potential dolines in lakes...')
 
     potential_dolines_gdf['doline_id'] = potential_dolines_gdf.index
+    potential_dolines_gdf.drop(columns=['id'], inplace=True)
 
     depressions_in_lakes_gdf = gpd.sjoin(potential_dolines_gdf, water_bodies_gdf, how='left', predicate='intersects')
     depressions_in_lakes_gdf['part_in_lake'] =  round(

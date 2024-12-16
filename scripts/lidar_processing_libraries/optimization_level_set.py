@@ -13,11 +13,10 @@ from joblib import dump, load
 sys.path.insert(1, 'scripts')
 import functions.fct_misc as misc
 import functions.fct_optimization as opti
-import assess_results, depression_detection, merge_dem_over_aoi, post_processing
+import assess_results, level_set_depressions, merge_dem_over_aoi, post_processing
 from global_parameters import AOI_TYPE
 
 logger = misc.format_logger(logger)
-
 
 # ----- Define functions -----
 
@@ -59,8 +58,10 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, ref_data_type, ref
 
     resolution = trial.suggest_float('resolution', 0.5, 2.5, step=0.5)
 
-    mean_filter_size = trial.suggest_int('mean_filter_size', 1, 5, step=2)
-    fill_depth = trial.suggest_float('fill_depth', 0.5, 5, step=0.25)
+    min_size = trial.suggest_int('min_size', 10, 50, step=2)
+    min_depth_dep = trial.suggest_int('min_depth_dep', 1, 20, step=1)
+    interval = trial.suggest_float('interval', 0.3, 1, step=0.05)
+    area_limit = trial.suggest_int('area_limit', 20, 100, step=5)
     max_part_in_lake = trial.suggest_float('max_part_in_lake', 0.05, 0.35, step=0.05)
     max_part_in_river = trial.suggest_float('max_part_in_river', 0.1, 0.4, step=0.05)
     min_compactness = trial.suggest_float('min_compactness', 0.15, 0.6, step=0.05)
@@ -70,6 +71,14 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, ref_data_type, ref
     min_depth = trial.suggest_float('min_depth', 1, 3, step=0.2)
     max_depth = trial.suggest_int('max_depth', 60, 180, step=5)
     max_std_elev = trial.suggest_float('max_std_elev', 0.02, 20, log=True)
+
+    level_set_params = {
+        'min_size': min_size,
+        'min_depth': min_depth_dep,
+        'interval': interval,
+        'area_limit': area_limit,
+        'bool_shp': False
+    }
 
     post_process_params = {
         'max_part_in_lake': max_part_in_lake,
@@ -81,12 +90,14 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, ref_data_type, ref
         'min_depth': min_depth,
         'max_depth': max_depth,
         'max_std_elev': max_std_elev
-    } 
+    }
 
     _ = merge_dem_over_aoi.main(dem_correspondence_df, aoi_gdf, dem_dir, resolution, save_extra=True, output_dir=os.path.join(output_dir, 'merged_dems'))
 
     dem_list = glob(os.path.join(output_dir, 'merged_dems', '*.tif'))
-    detected_depressions_gdf, _ = depression_detection.main(dem_list, non_sedimentary_areas_gdf, builtup_areas_gdf, mean_filter_size, fill_depth, working_dir=working_dir, output_dir=output_dir, overwrite=True)
+    detected_depressions_gdf, _ = level_set_depressions.main(
+        dem_list, non_sedimentary_gdf=non_sedimentary_areas_gdf, builtup_areas_gdf=builtup_areas_gdf, output_dir=output_dir, overwrite=True, **level_set_params
+    )
     detected_dolines_gdf, _ = post_processing.main(detected_depressions_gdf, water_bodies_gdf, rivers_gdf, output_dir=output_dir, **post_process_params)
     if detected_dolines_gdf.empty:
         logger.info(f'Metrics:')
@@ -115,7 +126,6 @@ def callback(study, trial):
     if (trial.number%5) == 0:
         study_path=os.path.join(output_dir, 'study.pkl')
         dump(study, study_path)
-
 
 # ----- Main -----
 
@@ -205,11 +215,11 @@ if study.best_value !=0:
     # possible_areas = define_possible_areas.main(study.best_params['max_slope'])
 
     dem_list = glob(os.path.join(output_dir, 'merged_dems', '*.tif'))
-    detected_depressions_gdf, depression_files = depression_detection.main(
-        dem_list, non_sedi_areas_gdf, builtup_areas_gdf, study.best_params['mean_filter_size'], study.best_params['fill_depth'], 
-        working_dir=WORKING_DIR, output_dir=output_dir, overwrite=True
+    detected_depressions_gdf, depression_files = level_set_depressions.main(
+        dem_list, study.best_params['min_size'], study.best_params['min_depth'], study.best_params['interval'], False, study.best_params['area_limit'], non_sedi_areas_gdf, builtup_areas_gdf,
+        output_dir=output_dir, overwrite=True
     )
-    written_files.extend(depression_files)
+    written_files.extend([depression_files])
     best_pp_param = {key: value for key, value in study.best_params.items() if key in [
         'max_part_in_lake', 'max_part_in_river', 'min_compactness', 'min_area', 'max_area', 'min_diameter', 'min_depth', 'max_depth', 'max_std_elev'
     ]}
@@ -217,7 +227,7 @@ if study.best_value !=0:
     # del possible_areas, merged_tiles
 
     detected_dolines_gdf = assess_results.prepare_dolines_to_assessment(detected_dolines_gdf)
-    metric, assessment_files = assess_results.main(REF_TYPE, ref_data_gdf, detected_dolines_gdf, aoi_gdf, det_type='watersheds', 
+    metric, assessment_files = assess_results.main(REF_TYPE, ref_data_gdf, detected_dolines_gdf, aoi_gdf, det_type='level-set', 
                                                    dem_dir=os.path.join(output_dir, 'merged_dems'), save_extra=True, output_dir=output_dir)
     written_files.extend(assessment_files)
 

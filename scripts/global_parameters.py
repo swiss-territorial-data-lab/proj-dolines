@@ -1,4 +1,4 @@
-AOI_TYPE = 'RSVMC'   # Possible types: None (i.e all types), DGM (Dépression sur glace morte), Evaporites, Karst nu, Marnes sur karst, Molasse, 
+AOI_TYPE = 'Evaporites'   # Possible types: None (i.e all types), DGM (Dépression sur glace morte), Evaporites, Karst nu, Marnes sur karst, Molasse, 
                             # RSVMC (Roches sédimentaires variées, à matrice calcaire)
 ALL_PARAMS_IGN = {
     'All types': {

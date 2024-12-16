@@ -76,7 +76,7 @@ written_files = [filepath]
 if POINTS:
     logger.info('Merge available ground truth...')
     ref_data_gdf.loc[:, 'geometry'] = ref_data_gdf.centroid
-    filtered_ref_data_gdf = gpd.overlay(ref_data_gdf, aoi_gdf.loc[aoi_gdf.name.isin(['Les Verrières (NE)', 'Sissach (BL)']), ['geometry']])
+    filtered_ref_data_gdf = gpd.overlay(ref_data_gdf, aoi_gdf.loc[aoi_gdf.name.isin(['Les Verrières (NE)', 'Sissach (BL)', 'Schwarzsee (FR)']), ['geometry']])
 
     ground_truth_gdf = pd.concat(
         [chasseral_gdf.rename(columns={'objectid': 'id_gt_chasseral'}), point_gt_gdf.rename(columns={'objectid': 'id_pt_gt'}), filtered_ref_data_gdf], 

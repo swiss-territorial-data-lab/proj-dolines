@@ -93,7 +93,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     pilot_areas_gdf : GeoDataFrame
         GeoDataFrame of the pilot areas.
     det_type : str
-        Type of detection method, either 'watersheds' or 'ign'.
+        Type of detection method, either 'watersheds', 'ign', 'leve-set' or 'stochastic depressions'.
     dem_dir : str, optional
         Directory of the DEM files (default: 'outputs').
     save_extra : bool, optional
@@ -117,7 +117,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     name_suffix = f'{AOI_TYPE + "_" if AOI_TYPE else ""}{ref_data_type}_'
 
     assert (ref_data_type.lower() in ['merged_reference', 'ground_truth']), 'Reference data type must be geocover, tlm or ground_truth.'
-    assert (det_type.lower() in ['watersheds', 'ign', 'lidar_lib', 'stochastic_depressions']), 'Detection method must be watersheds or ign.'
+    assert (det_type.lower() in ['watersheds', 'ign', 'lidar-set', 'stochastic depressions']), 'Detection method must be watersheds, level-set, stochastic depressions, or ign.'
 
     if _dets_gdf.loc[0, 'tile_id'].endswith('.tif'):
         _dets_gdf.loc[:, 'tile_id'] = _dets_gdf.loc[:, 'tile_id'].str.rstrip('.tif')
@@ -233,7 +233,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
                 results_in_area_gdf[~results_in_area_gdf.doline_id.isna()]
             ))
 
-            med_group_dist, _ = median_group_distance(ref_data_in_aoi_gdf[ref_data_in_aoi_gdf.tile_id == area_name],results_in_area_gdf[~results_in_area_gdf.doline_id.isna()])
+            med_group_dist, _ = median_group_distance(ref_data_in_aoi_gdf[ref_data_in_aoi_gdf.tile_id == area_name], results_in_area_gdf[~results_in_area_gdf.doline_id.isna()])
             metrics_per_area_dict['median_group_distance'].append(med_group_dist)
 
         metrics_per_area_df = pd.DataFrame.from_dict(
