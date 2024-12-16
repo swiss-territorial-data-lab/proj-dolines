@@ -30,9 +30,10 @@ def filter_depressions_by_area_type(depressions_gdf, non_sedimentary_gdf, builtu
     return depressions_gdf
 
 
-def format_local_depressions(dem, depressions_gdf, non_sedimentary_gdf, builtup_areas_gdf,
+def format_local_depressions(dem, depressions_gdf, non_sedimentary_gdf, builtup_areas_gdf, potential_dolines_gdf,
                              simplification_param, simplified_dem_meta=None):
     _depressions_gdf = depressions_gdf.copy()
+    _potential_dolines_gdf = potential_dolines_gdf.copy()
     
     logger.info('Format and filter depressions...')
     simplified_depressions_gdf = simplify_with_vw(_depressions_gdf, simplification_param)
@@ -54,11 +55,11 @@ def format_local_depressions(dem, depressions_gdf, non_sedimentary_gdf, builtup_
     spatially_filtered_dolines_gdf['depth'] = [x['max'] - x['min'] if x['max'] else 0 for x in depression_stats]
     spatially_filtered_dolines_gdf['std_elev'] = [x['std'] if x['std'] else 0 for x in depression_stats]
 
-    _depressions_gdf = concat([_depressions_gdf, spatially_filtered_dolines_gdf[
+    _potential_dolines_gdf = concat([_potential_dolines_gdf, spatially_filtered_dolines_gdf[
         ['geometry', 'corresponding_dem', 'depth', 'std_elev', 'diameter', 'compactness']
     ]], ignore_index=True)
 
-    return _depressions_gdf
+    return _potential_dolines_gdf
 
 
 def format_logger(logger):
@@ -214,7 +215,8 @@ def simplify_with_vw(gdf, simplification_param):
             
         failed_transform += 1
 
-    logger.warning(f'Simplification failed for {failed_transform} out of {len(mapped_objects["features"])} features')
+    if failed_transform:
+        logger.warning(f'Simplification failed for {failed_transform} out of {len(mapped_objects["features"])} features')
 
     simplified_gdf = GeoDataFrame.from_features(mapped_objects, crs='EPSG:2056')
     simplified_gdf.loc[simplified_gdf.is_valid==False, 'geometry'] = \

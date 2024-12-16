@@ -6,7 +6,6 @@ from time import time
 
 import geopandas as gpd
 import pandas as pd
-from rasterstats import zonal_stats
 
 import lidar
 
@@ -15,6 +14,7 @@ from functions.fct_misc import format_local_depressions, format_logger, get_conf
 from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
+
 
 def main(dem_list, min_size, min_depth, interval, bool_shp, area_limit, non_sedimentary_gdf, builtup_areas_gdf, save_extra=False, overwrite=False, output_dir='outputs'):
 
@@ -90,7 +90,7 @@ def main(dem_list, min_size, min_depth, interval, bool_shp, area_limit, non_sedi
         if filtered_local_dolines_gdf.empty:
             continue
 
-        potential_dolines_gdf = format_local_depressions(dem, filtered_local_dolines_gdf, non_sedimentary_gdf, builtup_areas_gdf, simplification_param=1.5)
+        potential_dolines_gdf = format_local_depressions(dem, filtered_local_dolines_gdf, non_sedimentary_gdf, builtup_areas_gdf, potential_dolines_gdf, simplification_param=1.5)
 
     if (potential_dolines_gdf.geometry.geom_type == 'MultiPolygon').any():
         potential_dolines_gdf = potential_dolines_gdf.explode(index_parts=False)
@@ -144,7 +144,7 @@ if __name__ == "__main__":
     non_sedimentary_gdf = gpd.read_parquet(NON_SEDIMENTARY_AREAS)
     builtup_areas_gdf = gpd.read_file(BUILTUP_AREAS)
 
-    written_file = main(
+    _, written_file = main(
         dem_list, MIN_SIZE, MIN_DEPTH, INTERVAL, BOOL_SHP, AREA_LIMIT, non_sedimentary_gdf, builtup_areas_gdf, save_extra=True, overwrite=OVERWRITE, output_dir=output_dir
     )
 
