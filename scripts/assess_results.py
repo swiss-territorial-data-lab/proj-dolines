@@ -1,54 +1,18 @@
 import os
 from loguru import logger
 from time import time
-from tqdm import tqdm
 
 import geopandas as gpd
 import pandas as pd
-import rasterio as rio
-from rasterio.mask import mask
 
 import matplotlib.pyplot as plt
-from skimage.metrics import hausdorff_distance
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
 
-from functions.fct_metrics import get_fractional_sets, median_group_distance
+from functions.fct_metrics import get_fractional_sets
 from functions.fct_misc import format_logger, get_config
 from global_parameters import AOI_TYPE
 
 logger = format_logger(logger)
-
-
-def median_distance_between_datasets(reference_gdf, detections_gdf, rounding_digits=2):
-    """
-    Calculate the median distance between all pairs of closest elements in the reference data and detections.
-
-    Parameters
-    ----------
-    reference_gdf : GeoDataFrame
-        GeoDataFrame of the reference data
-    detections_gdf : GeoDataFrame
-        GeoDataFrame of the detections
-    rounding_digits : int, optional
-        Number of decimal places to round the output to (default: 2)
-
-    Returns
-    -------
-    median_distance : float
-        Median distance between all pairs of closest elements in the reference data and detections
-    """
-    _ref_gdf = reference_gdf.copy()
-    _dets_gdf = detections_gdf.copy()
-    
-    # Get the median distance between elements of the reference data and detection dataset
-    nearest_left_join_gdf = _ref_gdf[['id', 'geometry']].sjoin_nearest(_dets_gdf[['doline_id', 'geometry']], how='left', distance_col='distance')
-    nearest_left_join_gdf.drop_duplicates(subset=['id', 'distance'], inplace=True)
-    nearest_right_join_gdf = _ref_gdf[['id', 'geometry']].sjoin_nearest(_dets_gdf[['doline_id', 'geometry']], how='right', distance_col='distance')
-    nearest_right_join_gdf.drop_duplicates(subset=['doline_id', 'distance'], inplace=True)
-    nearest_join_gdf = pd.concat([nearest_left_join_gdf, nearest_right_join_gdf], ignore_index=True)
-    nearest_join_gdf.drop_duplicates(subset=['id', 'doline_id'], inplace=True)
-
-    return nearest_join_gdf['distance'].median().round(rounding_digits)
 
 
 def prepare_dolines_to_assessment(dolines_gdf):
@@ -117,7 +81,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     name_suffix = f'{AOI_TYPE + "_" if AOI_TYPE else ""}{ref_data_type}_'
 
     assert (ref_data_type.lower() in ['merged_reference', 'ground_truth']), 'Reference data type must be geocover, tlm or ground_truth.'
-    assert (det_type.lower() in ['watersheds', 'ign', 'lidar-set', 'stochastic depressions']), 'Detection method must be watersheds, level-set, stochastic depressions, or ign.'
+    assert (det_type.lower() in ['watersheds', 'ign', 'level-set', 'stochastic depressions']), 'Detection method must be watersheds, level-set, stochastic depressions, or ign.'
 
     if _dets_gdf.loc[0, 'tile_id'].endswith('.tif'):
         _dets_gdf.loc[:, 'tile_id'] = _dets_gdf.loc[:, 'tile_id'].str.rstrip('.tif')
@@ -151,9 +115,6 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         'recall': recall_score(tagged_detections_gdf['label_class'], tagged_detections_gdf['det_class'], pos_label='doline'),
         'f1': f1_score(tagged_detections_gdf['label_class'], tagged_detections_gdf['det_class'], pos_label='doline'),
     }
-
-    metrics_dict['median_distance'] = median_distance_between_datasets(ref_data_in_aoi_gdf, dets_in_aoi_gdf)
-    metrics_dict['median_group_distance'], group_med_dist_gdf = median_group_distance(ref_data_in_aoi_gdf, dets_in_aoi_gdf)
 
     metrics_df = pd.DataFrame.from_dict(metrics_dict, orient='index', columns=['all']).transpose().round(3)
 
@@ -189,17 +150,6 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         tagged_detections_gdf.to_file(filepath)
         written_files.append(filepath)
 
-        group_med_dist_gdf.sort_values('distance', inplace=True)
-        dist_ref_gdf = pd.merge(
-            ref_data_in_aoi_gdf[['id', 'tile_id', 'geometry']], group_med_dist_gdf[['id', 'doline_id', 'distance', 'group_id', 'group_distance']].drop_duplicates('id'), 
-            on='id'
-        )
-        dist_det_gdf = pd.merge(dets_in_aoi_gdf, group_med_dist_gdf[['id', 'doline_id', 'distance', 'group_id', 'group_distance']].drop_duplicates('doline_id'), on='doline_id')
-        all_med_dist_gdf = pd.concat([dist_ref_gdf, dist_det_gdf], ignore_index=True)
-        filepath = os.path.join(output_dir, f'{name_suffix}grouped_results.gpkg')
-        all_med_dist_gdf.to_file(filepath)
-        written_files.append(filepath)
-
         confusion_matrix_df = pd.DataFrame(confusion_matrix(
             tagged_detections_gdf['label_class'], tagged_detections_gdf['det_class']
         )).rename(columns={0: 'doline', 1: 'non-doline'}, index={0: 'doline', 1: 'non-doline'})
@@ -214,7 +164,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
             logger.error('Tile ids not corresponding between labels and detections')
         metrics_per_area_dict = {
             'nbr labels': [], 'nbr detections': [],
-            'precision': [], 'recall': [], 'f1': [], resemblance_result: [], 'median_distance': [], 'median_group_distance': []
+            'precision': [], 'recall': [], 'f1': [], resemblance_result: []
         }
         for area_name in pilot_areas:
             results_in_area_gdf = tagged_detections_gdf[tagged_detections_gdf.tile_id == area_name].copy()
@@ -228,61 +178,11 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
             metrics_per_area_dict['recall'].append(recall_score(results_in_area_gdf.label_class, results_in_area_gdf.det_class, pos_label='doline', zero_division=0))
             metrics_per_area_dict['f1'].append(f1_score(results_in_area_gdf.label_class, results_in_area_gdf.det_class, pos_label='doline'))
             metrics_per_area_dict[resemblance_result].append(results_in_area_gdf.loc[results_in_area_gdf.tag=='TP', resemblance_column].median())
-            metrics_per_area_dict['median_distance'].append(median_distance_between_datasets(
-                ref_data_in_aoi_gdf[ref_data_in_aoi_gdf.tile_id == area_name],
-                results_in_area_gdf[~results_in_area_gdf.doline_id.isna()]
-            ))
-
-            med_group_dist, _ = median_group_distance(ref_data_in_aoi_gdf[ref_data_in_aoi_gdf.tile_id == area_name], results_in_area_gdf[~results_in_area_gdf.doline_id.isna()])
-            metrics_per_area_dict['median_group_distance'].append(med_group_dist)
 
         metrics_per_area_df = pd.DataFrame.from_dict(
             metrics_per_area_dict, orient='index', columns=pilot_areas
         ).transpose().round(3)
         metrics_df = pd.concat([metrics_df, metrics_per_area_df])
-
-        if False:
-            similarity_dict = {'hausdorff distance': []}
-            # similarity_dir = os.path.join(output_dir, 'similarity_rasters')
-            # os.makedirs(similarity_dir, exist_ok=True)
-            for area in tqdm(_pilot_areas_gdf.itertuples(), desc='Compare image shapes', total=_pilot_areas_gdf.shape[0]):
-                area_dolines_gdf = dets_in_aoi_gdf[dets_in_aoi_gdf.tile_id == area.tile_id].copy()
-                area_ref_data_gdf = ref_data_in_aoi_gdf[ref_data_in_aoi_gdf.tile_id == area.tile_id].copy()
-
-                if area_ref_data_gdf.empty or area_dolines_gdf.empty:
-                    logger.warning(f'No label or data for the area {area.name}.')
-                    similarity_dict['hausdorff distance'].append(0)
-                    continue
-                
-                with rio.open(os.path.join(dem_dir, area.tile_id)) as src:
-                    meta = src.meta
-
-                    # Mask DEM with the dolines
-                    ref_image, _ = mask(src, area_ref_data_gdf.geometry)
-                    det_image, _ = mask(src, area_dolines_gdf.geometry)
-
-                    # Determine hausdorff distance
-                    area_pixel_doline_gdf = area_dolines_gdf.copy()
-                    area_pixel_doline_gdf.loc[:, 'geometry'] = area_pixel_doline_gdf.geometry.centroid.buffer(meta['transform'][0], cap_style=3)
-                    area_pixel_ref_gdf = _ref_gdf.copy()
-                    area_pixel_ref_gdf.loc[:, 'geometry'] = area_pixel_ref_gdf.geometry.centroid.buffer(meta['transform'][0], cap_style=3)
-
-                    ref_image, _ = mask(src, area_pixel_ref_gdf.geometry, nodata=0)  # Set nodata to 0, because the hausdorff distance works with non-zero pixels
-                    ref_image[ref_image>0] = 1
-                    det_image, _ = mask(src, area_pixel_doline_gdf.geometry, nodata=0)
-                    det_image[det_image>0] = 1
-
-                    similarity_dict['hausdorff distance'].append(hausdorff_distance(ref_image, det_image, method='modified'))
-                
-                # meta.update({'height': binary_ref_image.shape[1], 'width': binary_ref_image.shape[2], 'transform': meta['transform']})
-                # with rio.open(os.path.join(similarity_dir, 'ref_' + area_tile_id), 'w', **meta) as dst:
-                #     dst.write(binary_ref_image)
-                
-                # with rio.open(os.path.join(similarity_dir, 'det_' + area_tile_id), 'w', **meta) as dst:
-                #     dst.write(binary_det_image)
-
-            similarity_df = pd.DataFrame.from_dict(similarity_dict, orient='index', columns=pilot_areas).transpose().round(3)
-            metrics_df = pd.concat([metrics_df, similarity_df], axis=1)
 
         metrics_df = metrics_df.reset_index().rename(columns={'index': 'tile_id'})
         metrics_df = pd.merge(
@@ -334,35 +234,6 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
             filepath = os.path.join(graphs_dir, f'{name_suffix}median_dist_for_TP.jpg')
             fig.savefig(filepath, bbox_inches='tight')
             written_files.append(filepath)
-
-        # Make a graph f1 vs median distance
-        fig, ax = plt.subplots()
-        df_plot = sub_metrics_df.plot(
-            x='f1', y='median_distance', kind='scatter', ax=ax,
-            title='F1 vs median distance between labels and detections', xlabel='F1', ylabel='Median distance', **fixed_params
-        )
-
-        for row in sub_metrics_df.itertuples():
-            ax.annotate(row.name, (row.f1, row.median_distance))
-
-        filepath = os.path.join(graphs_dir, f'{name_suffix}f1_vs_median_distance.jpg')
-        fig.savefig(filepath, bbox_inches='tight')
-        written_files.append(filepath)
-
-        # Make a graph f1 vs median distance
-        fig, ax = plt.subplots()
-        df_plot = sub_metrics_df.plot(
-            x='f1', y='median_group_distance', kind='scatter', ax=ax,
-            title='F1 vs median distance between labels and detections', xlabel='F1', ylabel='Median group distance', **fixed_params
-        )
-        ax.set_ylim(ymin=0)
-
-        for row in sub_metrics_df.itertuples():
-            ax.annotate(row.name, (row.f1, row.median_group_distance))
-
-        filepath = os.path.join(graphs_dir, f'{name_suffix}f1_vs_median_group_distance.jpg')
-        fig.savefig(filepath, bbox_inches='tight')
-        written_files.append(filepath)
 
     return metric, written_files
 
