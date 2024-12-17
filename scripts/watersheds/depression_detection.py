@@ -118,7 +118,7 @@ def main(dem_list, simplification_param, mean_filter_size=7, fill_depth=0.5, wor
             pour_points_gdf.loc[:, 'geometry'] = pour_points_gdf.geometry.centroid
             pour_points_gdf.loc[:, 'number'] = np.arange(1, len(pour_points_gdf) + 1)
 
-            filepath = os.path.join(pour_points_dir, f'pour_points_{dem_name.rstrip('.tif')}.shp')
+            filepath = os.path.join(pour_points_dir, f"pour_points_{dem_name.rstrip('.tif')}.shp")
             pour_points_gdf.to_file(filepath)
             written_files.append(filepath)
 
@@ -128,7 +128,7 @@ def main(dem_list, simplification_param, mean_filter_size=7, fill_depth=0.5, wor
                 output=watershed_path,
             )
 
-        logger.info(f'Perform zonal fill for area {dem_name.rstrip('.tif')}...')
+        logger.info(f"Perform zonal fill for area {dem_name.rstrip('.tif')}...")
         # Implement zonal fill
         logger.info('Step 1: polygonize the watershed...')
         # Step 1: polygonize the watershed
@@ -142,6 +142,8 @@ def main(dem_list, simplification_param, mean_filter_size=7, fill_depth=0.5, wor
         min_alti_list = zonal_stats(watersheds_gdf.geometry.boundary, simplified_dem_path, affine=wtshd_meta['transform'], stats='min')
 
         zonal_fill_gdf =  watersheds_gdf.copy()
+        del watersheds_gdf
+        
         zonal_fill_gdf['min_alti'] = [x['min'] for x in min_alti_list]
 
         logger.info('Step 3: transform the geodataframe back to raster...')
@@ -236,6 +238,6 @@ if __name__ == '__main__':
     for file in written_files:
         logger.success(file)
 
-    logger.success(f'In addition, the rasters for the different steps were saved in the folder {os.path.join(output_dir, 'dem_processing')}')
+    logger.success(f"In addition, the rasters for the different steps were saved in the folder {os.path.join(output_dir, 'dem_processing')}")
 
     logger.info(f'Done in {time() - tic:0.2f} seconds')

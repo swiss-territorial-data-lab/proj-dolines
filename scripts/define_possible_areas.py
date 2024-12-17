@@ -39,7 +39,6 @@ def main(slope_dir, non_sedi_areas_gdf, max_slope=1.1, save_extra=False, output_
     possible_area_dict : dict
         Dictionary with keys as the name of the DEM tiles and values as a tuple containing the binary raster of the possible doline areas and its metadata.
     """
-    _non_sedi_areas_gdf = non_sedi_areas_gdf.copy()
 
     if save_extra:
         os.makedirs(output_dir, exist_ok=True)
@@ -56,11 +55,11 @@ def main(slope_dir, non_sedi_areas_gdf, max_slope=1.1, save_extra=False, output_
 
         # Mask non-sedimentary areas
         with rio.open(tile_path) as src:
-            sedimentary_slopes, _ = mask(src, _non_sedi_areas_gdf.geometry, invert=True)
             meta = src.meta
-            if (sedimentary_slopes==meta['nodata']).all() and not _non_sedi_areas_gdf.geometry.intersects(box(*src.bounds)).any():
+            if not non_sedi_areas_gdf.geometry.intersects(box(*src.bounds)).any():
                 sedimentary_slopes = src.read()
-
+            else:
+                sedimentary_slopes, _ = mask(src, non_sedi_areas_gdf.geometry, invert=True)
         # Remove areas with a high slope
         doline_areas = np.where((sedimentary_slopes!=meta['nodata']) & (sedimentary_slopes<max_slope), 1, 0)
 
@@ -92,6 +91,8 @@ if __name__ == '__main__':
 
     NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
     AOI = cfg['aoi']
+    
+    EPSG = 2056
 
     os.chdir(WORKING_DIR)
 
@@ -111,7 +112,7 @@ if __name__ == '__main__':
 
     non_sedi_areas_gdf = gpd.read_parquet(NON_SEDIMENTARY_AREAS)
     aoi_gdf = gpd.read_file(AOI)
-    aoi_gdf.to_crs(2056, inplace=True)
+    aoi_gdf.to_crs(EPSG, inplace=True)
 
     logger.info('Limit non-sedimentary info to AOI...')
     aoi_gdf.loc[:, 'geometry'] = aoi_gdf.geometry.buffer(1000)

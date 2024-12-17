@@ -37,15 +37,15 @@ The results were compared alternatively with the dolines in the products [GeoCov
 
 The following metrics were used to assess the results:
 
-* f1 score: harmonic mean between the precision and the recall.
+* F1 score: harmonic mean between the precision and the recall.
     * precision: part of the detections that are correct
     * recall: part of the reference data that is detected
 * IoU of the TP: intersection over union (IoU) of the true positive (TP), _i.e._ of the matching pairs of detections and reference objects.
 * mdist: median of the shortest distance between each reference object and a detection.
 
-## IGN
+## IGN's method
 
-This method was used by the IGN to generalize the contour lines generation in karstic plateaus for topographic maps. It is described in Touya et al. (2019). Here we perform step 2 of the procedure, which consists of delimiting the plateau zones and detecting the dolines within them.
+This method was used by the IGN to generalize the contour lines generation in karstic plateaus for topographic maps. It is described in Touya et al. (2019). Here we perform Step 2 of the procedure, which consists of delimiting the plateau zones and detecting the dolines within them.
 
 <!-- Ajouter la description des scripts -->
 
@@ -69,14 +69,14 @@ python scripts/ign/optimization_ign.py config/config_ign.yaml
 After the optimization, the following metrics were obtained:
 
 
-| **Reference data** | **f1 score** | **IoU for TP** | **mdist**           |
+| **Reference data** | **F1 score** | **IoU for TP** | **mdist**           |
 |--------------------|:------------:|:--------------:|:-------------------:|
 | _GeoCover_         |              |                |                     |
 | _TLM_              |              |                |                     |
 
 _Table 1: metrics for each type of reference data with the IGN's method._
 
-## Watersheds
+## Watershed method
 
 The detection of dolines through the detections of sinks in a watershed was first proposed by Obu & Podobnikar (2013). We use here the version with pre-processed DEM as presented by Telbisz et al. (2016) and used by Čonč et al. (2022).
 
@@ -100,7 +100,7 @@ python scripts/ign/optimization_ign.py config/config_ign.yaml
 After the optimization, the following metrics were obtained:
 
 
-| **Reference data** | **f1 score** | **IoU for TP** | **mdist**           |
+| **Reference data** | **F1 score** | **IoU for TP** | **mdist**           |
 |--------------------|:------------:|:--------------:|:-------------------:|
 | _GeoCover_         |              |                |                     |
 | _TLM_              |              |                |                     |

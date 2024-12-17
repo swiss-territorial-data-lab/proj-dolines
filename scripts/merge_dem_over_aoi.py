@@ -75,11 +75,11 @@ def main(dem_correspondence_pd, aoi_gdf, dem_dir, resolution, save_extra=False, 
     return dem_dict
 
 
-def read_initial_data(aoi_path, dem_correspondence_csv):
+def read_initial_data(aoi_path, dem_correspondence_csv, EPSG):
     dem_correspondence_pd = pd.read_csv(dem_correspondence_csv)
 
     aoi_gdf = gpd.read_file(aoi_path)
-    aoi_gdf = aoi_gdf.to_crs(2056)
+    aoi_gdf = aoi_gdf.to_crs(EPSG)
 
     if AOI_TYPE:
         logger.warning(f'Working only on the areas of type {AOI_TYPE}')
@@ -96,7 +96,7 @@ if __name__ == '__main__':
 
     # Argument and parameter specification
     parser = ArgumentParser(description="This script merges the DEM files over the AOI.")
-    parser.add_argument('config_file', type=str, help='Framework configuration file')
+    parser.add_argument('-config_file', type=str, help='Framework configuration file', default="config/config_watersheds.yaml")
     args = parser.parse_args()
 
     logger.info(f"Using {args.config_file} as config file.")
@@ -111,6 +111,8 @@ if __name__ == '__main__':
     DEM_DIR = cfg['dem_dir']
     DEM_CORRESPONDENCE = cfg['dem_correspondence']
     AOI = cfg['aoi']
+    
+    EPSG = 2056
 
     if AOI_TYPE:
         output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE)
@@ -133,7 +135,7 @@ if __name__ == '__main__':
      # ----- Data processing -----
 
     logger.info('Read AOI data')
-    dem_correspondence_pd, aoi_gdf = read_initial_data(AOI, DEM_CORRESPONDENCE)
+    dem_correspondence_pd, aoi_gdf = read_initial_data(AOI, DEM_CORRESPONDENCE, EPSG)
 
 
     _ = main(dem_correspondence_pd, aoi_gdf, DEM_DIR, RES, save_extra=True, output_dir=output_dir)
