@@ -6,7 +6,7 @@ import geopandas as gpd
 import pandas as pd
 
 import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
+from sklearn.metrics import confusion_matrix, f1_score, fbeta_score, precision_score, recall_score
 
 from functions.fct_metrics import get_fractional_sets
 from functions.fct_misc import format_logger, get_config
@@ -42,7 +42,7 @@ def prepare_reference_data_to_assessment(ref_path):
     return ref_data_gdf
 
 
-def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type, dem_dir='outputs', save_extra=False, output_dir='outputs'):
+def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type, save_extra=False, output_dir='outputs'):
     """
     Main function to assess the quality of the doline detection model.
 
@@ -58,8 +58,6 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         GeoDataFrame of the pilot areas.
     det_type : str
         Type of detection method, either 'watersheds', 'ign', 'leve-set' or 'stochastic depressions'.
-    dem_dir : str, optional
-        Directory of the DEM files (default: 'outputs').
     save_extra : bool, optional
         Whether to save global and fine-grained metrics (default: False).
     output_dir : str, optional
@@ -105,15 +103,16 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     tagged_detections_gdf = pd.concat([tp_gdf, fp_gdf, fn_gdf], ignore_index=True)
 
     logger.info('Calculate metrics on all dets...')
-    metric_fct = f1_score # if ref_data_type == 'geocover' else recall_score
+    metric_fct = fbeta_score # if ref_data_type == 'geocover' else recall_score
     resemblance_column = 'dist_centroid' if (ref_data_in_aoi_gdf.geometry.geom_type == 'Point').any() else 'IoU'
-    metric = metric_fct(tagged_detections_gdf['label_class'], tagged_detections_gdf['det_class'], pos_label='doline')
+    metric = metric_fct(tagged_detections_gdf['label_class'], tagged_detections_gdf['det_class'], beta=2, pos_label='doline')
     metrics_dict = {
         'nbr labels': tagged_detections_gdf[tagged_detections_gdf.label_class == 'doline'].shape[0],
         'nbr detections': tagged_detections_gdf[tagged_detections_gdf.det_class == 'doline'].shape[0],
         'precision': precision_score(tagged_detections_gdf.label_class, tagged_detections_gdf.det_class, pos_label='doline'),
         'recall': recall_score(tagged_detections_gdf['label_class'], tagged_detections_gdf['det_class'], pos_label='doline'),
         'f1': f1_score(tagged_detections_gdf['label_class'], tagged_detections_gdf['det_class'], pos_label='doline'),
+        'f2': fbeta_score(tagged_detections_gdf['label_class'], tagged_detections_gdf['det_class'], beta=2, pos_label='doline'),
     }
 
     metrics_df = pd.DataFrame.from_dict(metrics_dict, orient='index', columns=['all']).transpose().round(3)
@@ -132,7 +131,8 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     
     written_files = []
     if save_extra:
-        output_dir = output_dir if (det_type.lower() in output_dir) | (det_type.lower() in os.getcwd()) else os.path.join(output_dir, det_type)
+        output_dir = output_dir if (det_type.lower().replace('-', '_') in output_dir) | (det_type.lower().replace('-', '_') in os.getcwd())\
+              else os.path.join(output_dir, det_type.replace('-', '_'))
         os.makedirs(output_dir, exist_ok=True)
 
         tagged_detections_gdf = tagged_detections_gdf[detections_gdf.columns.tolist() + ['id', 'label_class', resemblance_column, 'tag']].copy()
@@ -164,7 +164,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
             logger.error('Tile ids not corresponding between labels and detections')
         metrics_per_area_dict = {
             'nbr labels': [], 'nbr detections': [],
-            'precision': [], 'recall': [], 'f1': [], resemblance_result: []
+            'precision': [], 'recall': [], 'f1': [], 'f2': [], resemblance_result: []
         }
         for area_name in pilot_areas:
             results_in_area_gdf = tagged_detections_gdf[tagged_detections_gdf.tile_id == area_name].copy()
@@ -177,6 +177,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
             metrics_per_area_dict['precision'].append(precision_score(results_in_area_gdf.label_class, results_in_area_gdf.det_class, pos_label='doline', zero_division=0))
             metrics_per_area_dict['recall'].append(recall_score(results_in_area_gdf.label_class, results_in_area_gdf.det_class, pos_label='doline', zero_division=0))
             metrics_per_area_dict['f1'].append(f1_score(results_in_area_gdf.label_class, results_in_area_gdf.det_class, pos_label='doline'))
+            metrics_per_area_dict['f2'].append(fbeta_score(results_in_area_gdf.label_class, results_in_area_gdf.det_class, beta=2, pos_label='doline'))
             metrics_per_area_dict[resemblance_result].append(results_in_area_gdf.loc[results_in_area_gdf.tag=='TP', resemblance_column].median())
 
         metrics_per_area_df = pd.DataFrame.from_dict(
@@ -260,7 +261,6 @@ if __name__ == '__main__':
 
     if AOI_TYPE:
         logger.warning(f'Working only on the areas of type {AOI_TYPE}')
-    dem_dir = os.path.join(DEM_DIR, AOI_TYPE) if AOI_TYPE else DEM_DIR
     det_path = os.path.join(os.path.dirname(DETECTIONS), AOI_TYPE, os.path.basename(DETECTIONS)) if AOI_TYPE else DETECTIONS
 
      # ----- Processing -----
@@ -277,7 +277,7 @@ if __name__ == '__main__':
     if AOI_TYPE:
         pilot_areas_gdf = pilot_areas_gdf[pilot_areas_gdf['Type'] == AOI_TYPE]
 
-    _, written_files = main(REF_DATA_TYPE, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type=DET_TYPE, dem_dir=dem_dir, save_extra=True, output_dir=OUTPUT_DIR)
+    _, written_files = main(REF_DATA_TYPE, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type=DET_TYPE, save_extra=True, output_dir=OUTPUT_DIR)
 
     logger.success('Done! The following files were written:')
     for file in written_files:

@@ -52,21 +52,21 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf
     resolution = trial.suggest_float('resolution', 0.5, 4.5, step=0.25)
     max_slope = trial.suggest_float('max_slope', 1.6, 3.6, step=0.2)
 
-    gaussian_kernel = trial.suggest_int('gaussian_kernel', 15, 35, step=2)
-    gaussian_sigma = trial.suggest_float('gaussian_sigma', 5, 9, step=0.5)
+    gaussian_kernel = trial.suggest_int('gaussian_kernel', 19, 45, step=2)
+    gaussian_sigma = trial.suggest_float('gaussian_sigma', 5, 10, step=0.5)
     dem_diff_thrsld = trial.suggest_float('dem_diff_thrsld', 0.5, 2.3, step=0.1)
-    min_area = trial.suggest_int('min_area', 20, 70, step=5)
-    limit_compactness = trial.suggest_float('limit_compactness', 0.1, 0.4, step=0.05)
+    min_area = trial.suggest_int('min_area', 15, 70, step=5)
+    limit_compactness = trial.suggest_float('limit_compactness', 0.2, 0.4, step=0.05)
     min_voronoi_area = trial.suggest_int('min_voronoi_area', 30000, 125000, step=5000)
     min_merged_area = trial.suggest_int('min_merged_area', 10000, 200000, step=10000)
     min_long_area = trial.suggest_int('min_long_area', 20, 700, step=20)
-    max_long_area = trial.suggest_int('max_long_area', 500, 3500, step=500)
-    min_long_compactness = trial.suggest_float('min_long_compactness', 0.025, 0.3, step=0.025)
+    max_long_area = trial.suggest_int('max_long_area', 750, 3250, step=250)
+    min_long_compactness = trial.suggest_float('min_long_compactness', 0.19, 0.4, step=0.03)
     min_round_area = trial.suggest_int('min_round_area', 20, 700, step=20)
-    min_round_compactness = trial.suggest_float('min_round_compactness', 0.2, 0.71, step=0.03)
-    thalweg_buffer = trial.suggest_float('thalweg_buffer', 1, 8, step=0.5)
-    thalweg_threshold = trial.suggest_float('thalweg_threshold', 0.2, 1.25, step=0.1)
-    max_depth = trial.suggest_int('max_depth', 75, 160, step=5)
+    min_round_compactness = trial.suggest_float('min_round_compactness', 0.2, 0.74, step=0.03)
+    thalweg_buffer = trial.suggest_float('thalweg_buffer', 0.5, 6, step=0.5)
+    thalweg_threshold = trial.suggest_float('thalweg_threshold', 0.5, 2, step=0.1)
+    max_depth = trial.suggest_int('max_depth', 50, 175, step=5)
 
     dict_params = {
         'gaussian_kernel': gaussian_kernel,
@@ -137,6 +137,9 @@ TILE_DIR = cfg['tile_dir']
 
 REF_TYPE = cfg['ref_type']
 REF_DATA = cfg[f'ref_data'][REF_TYPE.lower()]
+NEW_STUDY = cfg['study_param']['new_study']
+OPTIMIZE = cfg['study_param']['optimize']
+ITERATIONS = cfg['study_param']['iterations']
 AOI = cfg['aoi']
 DEM_CORRESPONDENCE = cfg['dem_correspondence']
 NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
@@ -180,21 +183,25 @@ dissolved_rivers_gdf, water_bodies_gdf = post_processing.prepare_filters(ground_
 slope_dir = os.path.join(output_dir, 'slope')
 study_path = os.path.join(output_dir, 'study.pkl')
 
-study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESampler(), study_name='Optimization of the IGN parameters')
-# study = load(study_path, 'r')
-objective = partial(
-    objective, 
-    dem_dir=TILE_DIR, dem_correspondence_df=dem_correspondence_df, aoi_gdf=aoi_gdf, non_sedi_areas_gdf=non_sedi_areas_gdf, ref_data_type=REF_TYPE, ref_data_gdf=ref_data_gdf, 
-    output_dir=output_dir
-)
-study.optimize(objective, n_trials=100, callbacks=[callback])
+if NEW_STUDY:
+    study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESampler(), study_name='Optimization of the IGN parameters')
+else:
+    with open(study_path) as f:
+        study = load(f, 'r')
+if OPTIMIZE:
+    objective = partial(
+        objective, 
+        dem_dir=TILE_DIR, dem_correspondence_df=dem_correspondence_df, aoi_gdf=aoi_gdf, non_sedi_areas_gdf=non_sedi_areas_gdf, ref_data_type=REF_TYPE, ref_data_gdf=ref_data_gdf, 
+        output_dir=output_dir
+    )
+    study.optimize(objective, n_trials=ITERATIONS, callbacks=[callback])
 
-dump(study, study_path)
+    dump(study, study_path)
 written_files.append(study_path)
 
 if study.best_value !=0:
     logger.info('Save the best parameters')
-    targets = {0: 'f1 score'}
+    targets = {0: 'f2 score'}
     written_files.append(opti.save_best_parameters(study, targets, output_dir=output_dir))
 
     logger.info('Plot results...')
@@ -216,7 +223,7 @@ if study.best_value !=0:
 
     detected_dolines_gdf = assess_results.prepare_dolines_to_assessment(detected_dolines_gdf)
     metric, assessment_files = assess_results.main(REF_TYPE, ref_data_gdf, detected_dolines_gdf, aoi_gdf, det_type='ign', 
-                                                   dem_dir=os.path.join(output_dir, 'merged_tiles'), save_extra=True, output_dir=output_dir)
+                                                   save_extra=True, output_dir=output_dir)
     written_files.extend(assessment_files)
 
 print()
