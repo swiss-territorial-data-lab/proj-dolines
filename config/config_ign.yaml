@@ -71,7 +71,7 @@ assess_results.py:
     merged_reference: inputs/vectors/new_gt/ref_data.gpkg
     ground_truth: inputs/vectors/new_gt/ground_truth.gpkg
   detections:
-    ign: outputs/ign/sinkholes.gpkg
+    ign: outputs/dolines/ign/sinkholes.gpkg
   pilot_areas: inputs/vectors/pilot_v3.gpkg
   type:
     ref_data: ground_truth
@@ -86,6 +86,10 @@ optimization_ign.py:
   ref_data:
     merged_reference: inputs/vectors/new_gt/ref_data.gpkg
     ground_truth: inputs/vectors/new_gt/ground_truth.gpkg
+  study_param:
+    new_study: True
+    optimize: True
+    iterations: 100
   aoi: inputs/vectors/pilot_v3.gpkg
   dem_correspondence: inputs/tiles_ign/dem_per_aoi.csv
   non_sedimentary_areas: outputs/merged_DEM/ign/possible_areas/non_sedi_areas.gpkg

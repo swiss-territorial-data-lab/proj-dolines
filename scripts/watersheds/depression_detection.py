@@ -176,7 +176,7 @@ def main(dem_list, non_sedimentary_areas_gdf, builtup_areas_gdf, aoi_gdf=None,
             continue
 
         potential_dolines_gdf = format_local_depressions(
-            dem_path, depressions_gdf, non_sedimentary_areas_gdf, builtup_areas_gdf, 
+            dem_path, depressions_gdf, non_sedimentary_areas_gdf, builtup_areas_gdf, potential_dolines_gdf,
             simplification_param=1.5, simplified_dem_meta=simplified_dem_meta
         )
 

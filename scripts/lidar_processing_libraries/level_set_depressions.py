@@ -1,5 +1,7 @@
 import os
 import sys
+os.environ['GDAL_DATA'] = os.path.join(f'{os.sep}'.join(sys.executable.split(os.sep)[:-1]), 'Library', 'share', 'gdal')     # Avoid a warning
+
 from glob import glob
 from loguru import logger
 from time import time
@@ -100,7 +102,7 @@ def main(dem_list, min_size, min_depth, interval, bool_shp, area_limit, non_sedi
         written_file = os.path.join(output_dir, 'potential_dolines.gpkg')
         potential_dolines_gdf.to_file(written_file)
 
-    return potential_dolines_gdf, written_file
+    return potential_dolines_gdf, [written_file]
 
 
 if __name__ == "__main__":

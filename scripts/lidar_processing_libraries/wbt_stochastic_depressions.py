@@ -71,7 +71,7 @@ def main(dem_list, autocorr_range, iterations, threshold, non_sedimentary_gdf, b
             continue
 
         potential_dolines_gdf = format_local_depressions(
-            dem_path, depressions_gdf, non_sedimentary_gdf, builtup_areas_gdf, simplification_param=1.5, simplified_dem_meta=im_meta
+            dem_path, depressions_gdf, non_sedimentary_gdf, builtup_areas_gdf, potential_dolines_gdf, simplification_param=1.5, simplified_dem_meta=im_meta
         )
 
     
