@@ -27,6 +27,7 @@ click==8.1.7
     #   fiona
     #   rasterio
     #   rasterstats
+    #   whitebox
 click-plugins==1.1.1
     # via
     #   fiona
@@ -94,6 +95,7 @@ numpy==2.0.0
     #   shapely
     #   snuggs
     #   tifffile
+    #   visvalingamwyatt
 opencv-python==4.10.0.84
     # via -r requirements.in
 optuna==3.6.1
@@ -184,6 +186,10 @@ typing-extensions==4.12.2
     #   sqlalchemy
 tzdata==2024.1
     # via pandas
+visvalingamwyatt==0.3.0
+    # via -r requirements.in
+whitebox==2.3.5
+    # via -r requirements.in
 win32-setctime==1.1.0
     # via loguru
 

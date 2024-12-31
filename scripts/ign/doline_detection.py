@@ -38,35 +38,35 @@ def main(dem_dict, fitted_area_dict,
     fitted_area_dict : dict
         Dictionary with keys as the name of the DEM tiles and values as a tuple containing the polygon of the binary raster of possible doline areas and its metadata.
     gaussian_kernel : int
-        Kernel size for the Gaussian filter.
+        Kernel size [px] for the Gaussian filter.
     gaussian_sigma : int
-        Sigma value for the Gaussian filter.
+        Sigma value [px] for the Gaussian filter.
     dem_diff_thrsld : float
-        Threshold value for the difference between the original and smoothed DEM.
+        Threshold value [m] for the difference between the original and smoothed DEM.
     min_area : float
-        Minimum area for the detected dolines.
+        Minimum area [m2] for the detected dolines.
     limit_compactness : float
-        Limit value between long and round dolines.
+        Limit value [-] between long and round dolines.
     min_voronoi_area : float
-        Minimum area for the voronoi polygons.
+        Minimum area [m2] for the voronoi polygons.
     min_merged_area : float
-        Minimum area for the merged voronoi polygons.
+        Minimum area [m2] for the merged voronoi polygons.
     min_long_area : float
-        Minimum area for the long depressions.
+        Minimum area [m2] for the long depressions.
     max_long_area : float
-        Maximum area for the long depressions.
+        Maximum area [m2] for the long depressions.
     min_long_compactness : float
-        Minimum compactness for the long depressions.
+        Minimum compactness [-] for the long depressions.
     min_round_area : float
-        Minimum area for the round depressions outside dense zones.
+        Minimum area [m2] for the round depressions outside dense zones.
     min_round_compactness : float
-        Minimum compactness for the round depressions outside dense zones.
+        Minimum compactness [-] for the round depressions outside dense zones.
     thalweg_buffer : float
-        Buffer size for the thalwegs.
+        Buffer size [m] for the thalwegs.
     thalweg_threshold : float
-        Threshold value for the thalwegs.
+        Maximum difference [m] between the buffer outline and the depression outline for it to be considered a thalwegs and not a doline.
     max_depth : float
-        Maximum depth for the dolines.
+        Maximum depth [m] for the dolines.
     save_extra : bool, optional
         Whether to save the intermediate results. Defaults to False.
     output_dir : str, optional
