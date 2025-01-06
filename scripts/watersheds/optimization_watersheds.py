@@ -177,7 +177,8 @@ study_path = os.path.join(output_dir, 'study.pkl')
 if NEW_STUDY:
     study = optuna.create_study(direction='maximize', sampler=optuna.samplers.TPESampler(), study_name='Optimization of the watershed parameters')
 else:
-    study = load(study_path, 'r')
+    with open(study_path, 'rb') as f:
+        study = load(f, 'r')
 if OPTIMIZE:
     objective = partial(
         objective, 
