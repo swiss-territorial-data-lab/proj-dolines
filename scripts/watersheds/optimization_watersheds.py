@@ -60,9 +60,9 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, ref_data_type, ref
     resolution = trial.suggest_float('resolution', 0.5, 2.5, step=0.5)
 
     mean_filter_size = trial.suggest_int('mean_filter_size', 1, 11, step=2)
-    fill_depth = trial.suggest_float('fill_depth', 0.5, 5, step=0.25)
+    fill_depth = trial.suggest_float('fill_depth', 0.5, 2, step=0.25)
     max_part_in_lake = trial.suggest_float('max_part_in_lake', 0.05, 0.35, step=0.05)
-    max_part_in_river = trial.suggest_float('max_part_in_river', 0.1, 0.35, step=0.05)
+    max_part_in_river = trial.suggest_float('max_part_in_river', 0.05, 0.35, step=0.05)
     min_compactness = trial.suggest_float('min_compactness', 0.2, 0.6, step=0.05)
     min_area = trial.suggest_int('min_area', 10, 75, step=5)
     max_area = trial.suggest_int('max_area', 1500, 3250, step=250)
@@ -87,7 +87,9 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, ref_data_type, ref
     _ = merge_dem_over_aoi.main(dem_correspondence_df, aoi_gdf, dem_dir, resolution, save_extra=True, output_dir=os.path.join(output_dir, 'merged_dems'))
 
     dem_list = glob(os.path.join(output_dir, 'merged_dems', '*.tif'))
-    detected_depressions_gdf, _ = depression_detection.main(dem_list, non_sedimentary_areas_gdf, builtup_areas_gdf, mean_filter_size, fill_depth, working_dir=working_dir, output_dir=output_dir, overwrite=True)
+    detected_depressions_gdf, _ = depression_detection.main(
+        dem_list, non_sedimentary_areas_gdf, builtup_areas_gdf, mean_filter_size=mean_filter_size, fill_depth=fill_depth, working_dir=working_dir, output_dir=output_dir, overwrite=True
+    )
     detected_dolines_gdf, _ = post_processing.main(detected_depressions_gdf, water_bodies_gdf, rivers_gdf, output_dir=output_dir, **post_process_params)
     if detected_dolines_gdf.empty:
         logger.info(f'Metrics:')
@@ -131,7 +133,7 @@ OUTPUT_DIR = cfg['output_dir']
 TILE_DIR = cfg['tile_dir']
 
 REF_TYPE = cfg['ref_type']
-REF_DATA = cfg[f'ref_data'][REF_TYPE.lower()]
+REF_DATA = cfg['ref_data'][REF_TYPE.lower()]
 NEW_STUDY = cfg['study_param']['new_study']
 OPTIMIZE = cfg['study_param']['optimize']
 ITERATIONS = cfg['study_param']['iterations']
