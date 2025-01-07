@@ -137,6 +137,8 @@ AOI = cfg['aoi']
 DEM_CORRESPONDENCE = cfg['dem_correspondence']
 NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
 
+EPSG = 2056
+
 logger.warning(f'The reference data of {REF_TYPE} will be used.')
 # logger.warning(f'Then the {"f1 score" if REF_TYPE.lower() == "geocover" else "recall"} will be used as the metric.')
 
@@ -158,7 +160,7 @@ non_sedi_areas_gdf = gpd.read_file(NON_SEDIMENTARY_AREAS)
 
 # For the assessment
 ref_data_gdf = gpd.read_file(REF_DATA)
-ref_data_gdf.to_crs(2056, inplace=True)
+ref_data_gdf.to_crs(EPSG, inplace=True)
 ref_data_gdf['label_class'] = 'doline'
 if 'OBJECTID' in ref_data_gdf.columns:
     ref_data_gdf.rename(columns={'OBJECTID': 'objectid'}, inplace=True)

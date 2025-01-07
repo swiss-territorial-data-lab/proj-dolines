@@ -34,6 +34,8 @@ AOI = cfg['aoi']
 OVERWRITE = cfg['overwrite']
 BUFFER = cfg['buffer']
 
+EPSG = 2056
+
 os.chdir(WORKING_DIR)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 written_files = []
@@ -42,7 +44,7 @@ written_files = []
 
 logger.info('Read AOI data')
 aoi_gdf = gpd.read_file(AOI)
-aoi_gdf = aoi_gdf.to_crs(2056)
+aoi_gdf = aoi_gdf.to_crs(EPSG)
 aoi_gdf.loc[:, 'geometry'] = aoi_gdf.geometry.buffer(BUFFER)
 
 aoi_gdf['origin'] = [misc.get_bbox_origin(bbox_geom) for bbox_geom in aoi_gdf.geometry]
@@ -63,7 +65,7 @@ for aoi in tqdm(aoi_gdf.itertuples(), desc="Download tiles", total=aoi_gdf.shape
 
     for x in range(min_x, max_x):
         for y in range(min_y, max_y):
-            tile_location = str(x)[:4] + '-' + str(y)[:4]
+            tile_location = str(x) + '-' + str(y)
             tile_name = f'swissalti3d_{year}_' + tile_location + '.tif'
             outpath = os.path.join(OUTPUT_DIR, tile_name)
             dem_per_aoi_dict[aoi.name].append(tile_name)

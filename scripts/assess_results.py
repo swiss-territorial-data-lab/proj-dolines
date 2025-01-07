@@ -62,12 +62,12 @@ def prepare_dolines_to_assessment(dolines_gdf):
     return prepared_dolines_gdf
 
 
-def prepare_reference_data_to_assessment(ref_path):
+def prepare_reference_data_to_assessment(ref_path, EPSG):
     """
     Ensure the stability of the reference data format and add a 'label_class' column.
     """
     ini_ref_data_gdf = gpd.read_file(ref_path)
-    ini_ref_data_gdf.to_crs(2056, inplace=True)
+    ini_ref_data_gdf.to_crs(EPSG, inplace=True)
     ini_ref_data_gdf['label_class'] = 'doline'
     if (ini_ref_data_gdf.geometry.geom_type == 'MultiPolygon').any():
         ref_data_gdf = ini_ref_data_gdf.explode(index_parts=False)
@@ -143,9 +143,9 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     resemblance_column = 'dist_centroid' if (ref_data_in_aoi_gdf.geometry.geom_type == 'Point').any() else 'IoU'
     metric = metric_fct(tagged_detections_gdf['label_class'], tagged_detections_gdf['det_class'], pos_label='doline')
     metrics_dict = {
-        'nbr labels': tagged_detections_gdf[tagged_detections_gdf.label_class == 'doline'].shape[0],
-        'nbr detections': tagged_detections_gdf[tagged_detections_gdf.det_class == 'doline'].shape[0],
-        'precision': precision_score(tagged_detections_gdf.label_class, tagged_detections_gdf.det_class, pos_label='doline'),
+        'nbr labels': tagged_detections_gdf[tagged_detections_gdf['label_class'] == 'doline'].shape[0],
+        'nbr detections': tagged_detections_gdf[tagged_detections_gdf['det_class'] == 'doline'].shape[0],
+        'precision': precision_score(tagged_detections_gdf['label_class'], tagged_detections_gdf['det_class'], pos_label='doline'),
         'recall': recall_score(tagged_detections_gdf['label_class'], tagged_detections_gdf['det_class'], pos_label='doline'),
         'f1': f1_score(tagged_detections_gdf['label_class'], tagged_detections_gdf['det_class'], pos_label='doline'),
     }
@@ -156,16 +156,16 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     metrics_df = pd.DataFrame.from_dict(metrics_dict, orient='index', columns=['all']).transpose().round(3)
 
     logger.info(f'Metrics:')
-    logger.info(f'- f1 score: {metrics_df.loc['all', "f1"]}')
+    logger.info(f"- f1 score: {metrics_df.loc['all', 'f1']}")
 
     if resemblance_column == 'dist_centroid':
         resemblance_result = 'median dist for TP'
         metrics_df[resemblance_result] = 0 if tp_gdf.empty else tp_gdf['dist_centroid'].median()
-        logger.info(f'- median distance between centroids for TP: {metrics_df.loc['all', "median dist for TP"]}')
+        logger.info(f"- median distance between centroids for TP: {metrics_df.loc['all', 'median dist for TP']}")
     else:
         resemblance_result = 'median IoU for TP'
         metrics_df[resemblance_result] =  0 if tp_gdf.empty else tp_gdf['IOU'].median()
-        logger.info(f'- median IoU for TP: {metrics_df.loc['all', "median IoU for TP"]}')
+        logger.info(f"- median IoU for TP: {metrics_df.loc['all', 'median IoU for TP']}")
     
     written_files = []
     if save_extra:
@@ -311,8 +311,9 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
                 x='name', y=['precision', 'recall', 'f1'], kind='line', style='o', ax=ax,  grid=True, legend=True,
             )
         ax.set(
-            title='Metrics per zone', xlabel='Zone name', ylabel='Metric value', xticks=range(sub_metrics_df.shape[0]), ylim=(0,1),
+            title='Metrics per zone', xlabel='Zone name', ylabel='Metric value', xticks=range(sub_metrics_df.shape[0]), xticklabels=sub_metrics_df.name, ylim=(0,1),
         )
+        ax.tick_params(labelrotation=90)
         fig.set_size_inches(1.5*sub_metrics_df.shape[0], 5)
 
         filepath = os.path.join(graphs_dir, f'{name_suffix}metrics_per_zone.jpg')
@@ -327,7 +328,10 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
                 title='Median distance between labels and detections for TP', xlabel='Zone name', ylabel='Median distance',
                 figsize=(1.5*sub_metrics_df.shape[0], 5), **fixed_params
             )
-
+            ax.set(
+            title='Metrics per zone', xlabel='Zone name', ylabel='Metric value', xticks=range(sub_metrics_df.shape[0]), xticklabels=sub_metrics_df.name,
+            )
+            ax.tick_params(labelrotation=90)
             filepath = os.path.join(graphs_dir, f'{name_suffix}median_dist_for_TP.jpg')
             fig.savefig(filepath, bbox_inches='tight')
             written_files.append(filepath)
@@ -352,7 +356,6 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
             x='f1', y='median_group_distance', kind='scatter', ax=ax,
             title='F1 vs median distance between labels and detections', xlabel='F1', ylabel='Median group distance', **fixed_params
         )
-        ax.set_ylim(ymin=0)
 
         for row in sub_metrics_df.itertuples():
             ax.annotate(row.name, (row.f1, row.median_group_distance))
@@ -381,6 +384,8 @@ if __name__ == '__main__':
     DETECTIONS = cfg[f'detections'][DET_TYPE.lower()]
 
     PILOT_AREAS = cfg['pilot_areas']
+    
+    EPSG = 2056
 
     os.chdir(WORKING_DIR)
 
@@ -393,13 +398,13 @@ if __name__ == '__main__':
 
     logger.info('Read data...')
 
-    ref_data_gdf = prepare_reference_data_to_assessment(REF_DATA)
+    ref_data_gdf = prepare_reference_data_to_assessment(REF_DATA, EPSG)
 
     detections_gdf = gpd.read_file(det_path)
     detections_gdf = prepare_dolines_to_assessment(detections_gdf)
 
     pilot_areas_gdf = gpd.read_file(PILOT_AREAS)
-    pilot_areas_gdf.to_crs(2056, inplace=True)
+    pilot_areas_gdf.to_crs(EPSG, inplace=True)
     if AOI_TYPE:
         pilot_areas_gdf = pilot_areas_gdf[pilot_areas_gdf['Type'] == AOI_TYPE]
 

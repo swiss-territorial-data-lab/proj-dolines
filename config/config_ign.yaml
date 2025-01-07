@@ -15,6 +15,12 @@ merge_dem_over_aoi.py:
   # res: 3
 
 
+get_slope.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: outputs/merged_DEM_ign/slope
+  dem_dir: outputs/merged_DEM_ign
+
+
 gt_analysis.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/GT_analysis
@@ -23,12 +29,6 @@ gt_analysis.py:
   aoi: inputs/vectors/pilot_v2.geojson
   dolines: inputs/vectors/dolines.gpkg
   ref_type: geocover
-
-
-get_slope.py:
-  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/merged_DEM_ign/slope
-  dem_dir: outputs/merged_DEM_ign
 
 
 define_possible_areas.py:

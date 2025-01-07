@@ -31,6 +31,8 @@ OUTPUT_DIR = cfg['output_dir']
 DEM_DIR = cfg['dem_dir']
 MASK_DIR = cfg['mask_dir']
 
+EPSG = 2056
+
 os.chdir(WORKING_DIR)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 diff_dir = os.path.join(DEM_DIR, 'diff_smoothed_dem')
@@ -105,7 +107,7 @@ voronoi_result_polys = center_geoms.voronoi_polygons()
 
 # Find area with a high density of round depressions based on the area of vornoi polygons
 dissolved_vornoi_polys = voronoi_result_polys[voronoi_result_polys.area < 60000].union_all('coverage')
-dissolved_vornoi_polys_gs = gpd.GeoSeries([geom for geom in dissolved_vornoi_polys.geoms], crs='epsg:2056')
+dissolved_vornoi_polys_gs = gpd.GeoSeries([geom for geom in dissolved_vornoi_polys.geoms], crs=('epsg:'+str(EPSG)))
 assert dissolved_vornoi_polys_gs.is_valid.all(), 'Dissolved voronoi polygons are not all valid.'
 
 # Only keep large dense area and a buffer around
@@ -170,7 +172,7 @@ for dem_tile in tqdm(sinkholes_gdf.corresponding_dem.unique(), desc="Get lowest 
         'min_buffer_line': [x['min'] for x in buffer_lowest_alti],
         'geometry': sinkholes_on_tiles_gdf.geometry
     }
-    alti_gdf = gpd.GeoDataFrame(alti_dict, crs=2056)
+    alti_gdf = gpd.GeoDataFrame(alti_dict, crs=EPSG)
 
     # Detect and mark thalwegs
     alti_gdf['alti_diff'] = alti_gdf['min_buffer_line'] - alti_gdf['min_sinkhole']
