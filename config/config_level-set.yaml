@@ -12,17 +12,12 @@ merge_dem_over_aoi.py:
   dem_dir: inputs/tiles_lidar_fct
   dem_correspondence: inputs/tiles_ign/dem_per_aoi.csv
   aoi: inputs/vectors/pilot_v3.gpkg
-  res: 0.5
 
 
-wbt_stochastic_depressions.py:
+level_set_depressions.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/stochastic_depressions
+  output_dir: outputs/lidar_lib
   dem_dir: outputs/merged_DEM/lidar_fct
-  # rmse: 0.5             # 0.3 or 0.5 if alti < 2000 m, else 1 to 3 m. The function docs recommand a value between 0.15 and 0.3 for LiDAR data or the vertical accuracy
-  autocorr_range: 10    # 3 to 15 times the resolution. Test for 3, 5 and 8 times the resolution.
-  iterations: 100       # 100 to 500 is generally enough
-  threshold: 0.8
   non_sedimentary_areas: inputs/vectors/non_sedimentary.parquet
   builtup_areas: inputs/vectors/restricted_siedlung_2024_2056.gpkg
 
@@ -34,28 +29,39 @@ post_processing.py:
   tlm_data: inputs/vectors/side_data/clipped_tlm_subset.gpkg
   ground_cover_layer: tlm_bb_bodenbedeckung
   rivers: inputs/vectors/side_data/clipped_typisierung-fliessgewaesser_2056.gpkg
-  parameters:
-    max_part_in_lake: 0.2
-    max_part_in_river: 0.2
-    min_compactness: 0.55
-    min_area: 25
-    max_area: 8000
-    min_diameter: 4
-    min_depth: 0.3
-    max_depth: 200
-    max_std_elev: 7
 
 
 assess_results.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/assessment
-  dem_dir: outputs/merged_DEM/lidar_fct
   ref_data:
     merged_reference: inputs/vectors/new_gt/ref_data.gpkg
     ground_truth: inputs/vectors/new_gt/ground_truth.gpkg
   detections:
+    level-set: outputs/lidar_lib/dolines.gpkg
     stochastic_depressions: outputs/stochastic_depressions/dep_2pt5_100/dolines.gpkg
   pilot_areas: inputs/vectors/pilot_v3.gpkg
   type:
     ref_data: ground_truth
-    dets: stochastic depressions
+    dets: level-set
+
+
+optimization_level_set.py:
+  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
+  output_dir: outputs/optimization/level_set/ground_truth/RSVMC_f2_1_best
+  tile_dir: inputs/tiles_lidar_fct
+  ref_type: ground_truth
+  ref_data:
+    merged_reference: inputs/vectors/new_gt/ref_data.gpkg
+    ground_truth: inputs/vectors/new_gt/ground_truth.gpkg
+  study_param:
+    new_study: True
+    optimize: True
+    iterations: 100
+  aoi: inputs/vectors/pilot_v3.gpkg
+  dem_correspondence: inputs/tiles_lidar_fct/dem_per_aoi.csv
+  non_sedimentary_areas: outputs/merged_DEM/ign/possible_areas/non_sedi_areas.gpkg
+  builtup_areas: inputs/vectors/restricted_siedlung_2024_2056.gpkg
+  tlm_data: inputs/vectors/side_data/clipped_tlm_subset.gpkg
+  ground_cover_layer: tlm_bb_bodenbedeckung
+  rivers: inputs/vectors/side_data/clipped_typisierung-fliessgewaesser_2056.gpkg

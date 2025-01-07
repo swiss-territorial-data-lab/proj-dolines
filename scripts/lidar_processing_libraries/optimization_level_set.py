@@ -74,7 +74,7 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, ref_data_type, ref
 
     level_set_params = {
         'min_size': min_size,
-        'min_depth': min_depth_dep,
+        'min_depth_dep': min_depth_dep,
         'interval': interval,
         'area_limit': area_limit,
         'bool_shp': False
