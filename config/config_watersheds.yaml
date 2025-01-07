@@ -14,22 +14,6 @@ merge_dem_over_aoi.py:
   aoi: inputs/vectors/pilot_v3.gpkg
 
 
-get_slope.py:
-  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/merged_DEM/wtsh/slope
-  dem_dir: outputs/merged_DEM/wtsh
-
-
-gt_analysis.py:
-  working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/GT_analysis
-  dem_dir: outputs/merged_DEM/wtsh
-  slope_dir: outputs/merged_DEM/wtsh/slope
-  aoi: inputs/vectors/pilot_v3.gpkg
-  dolines: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
-  ref_type: tlm
-
-
 depression_detection.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/dolines/wtshd

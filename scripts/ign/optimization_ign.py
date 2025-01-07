@@ -57,7 +57,7 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf
     dem_diff_thrsld = trial.suggest_float('dem_diff_thrsld', 0.5, 2.3, step=0.1)
     min_area = trial.suggest_int('min_area', 15, 70, step=5)
     limit_compactness = trial.suggest_float('limit_compactness', 0.2, 0.4, step=0.05)
-    min_voronoi_area = trial.suggest_int('min_voronoi_area', 30000, 125000, step=5000)
+    max_voronoi_area = trial.suggest_int('max_voronoi_area', 30000, 125000, step=5000)
     min_merged_area = trial.suggest_int('min_merged_area', 10000, 200000, step=10000)
     min_long_area = trial.suggest_int('min_long_area', 20, 700, step=20)
     max_long_area = trial.suggest_int('max_long_area', 750, 3250, step=250)
@@ -74,7 +74,7 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf
         'dem_diff_thrsld': dem_diff_thrsld,
         'min_area': min_area,
         'limit_compactness': limit_compactness,
-        'min_voronoi_area': min_voronoi_area,
+        'max_voronoi_area': max_voronoi_area,
         'min_merged_area': min_merged_area,
         'min_long_area': min_long_area,
         'max_long_area': max_long_area,

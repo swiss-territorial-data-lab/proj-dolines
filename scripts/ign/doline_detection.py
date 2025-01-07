@@ -25,7 +25,7 @@ logger.info('Starting...')
 
 def main(dem_dict, fitted_area_dict,
          gaussian_kernel, gaussian_sigma, dem_diff_thrsld, min_area, limit_compactness,
-         min_voronoi_area, min_merged_area, min_long_area, max_long_area, min_long_compactness, min_round_area, min_round_compactness,
+         max_voronoi_area, min_merged_area, min_long_area, max_long_area, min_long_compactness, min_round_area, min_round_compactness,
          thalweg_buffer, thalweg_threshold, max_depth,
          save_extra=False, output_dir='outputs'):
     """
@@ -47,8 +47,8 @@ def main(dem_dict, fitted_area_dict,
         Minimum area [m2] for the detected dolines.
     limit_compactness : float
         Limit value [-] between long and round dolines.
-    min_voronoi_area : float
-        Minimum area [m2] for the voronoi polygons.
+    max_voronoi_area : float
+        Maximum area [m2] for the voronoi polygons.
     min_merged_area : float
         Minimum area [m2] for the merged voronoi polygons.
     min_long_area : float
@@ -137,7 +137,7 @@ def main(dem_dict, fitted_area_dict,
     voronoi_result_polys = center_geoms.voronoi_polygons()
 
     # Find area with a high density of round depressions based on the area of vornoi polygons
-    dissolved_vornoi_polys = voronoi_result_polys[voronoi_result_polys.area < min_voronoi_area].union_all('coverage')
+    dissolved_vornoi_polys = voronoi_result_polys[voronoi_result_polys.area < max_voronoi_area].union_all('coverage')
     if dissolved_vornoi_polys.is_empty:
         sinkholes_in_dense_area_gdf = gpd.GeoDataFrame(columns=filtered_sinkholes_gdf.columns)
     else:
@@ -299,7 +299,7 @@ if __name__ == '__main__':
         logger.critical('No DEM files found.')
         sys.exit(1)
 
-    dolines_gdf, written_files = main(dem_dict, potential_area_dict, min_long_area=20, min_round_area=10, save_extra=True, output_dir=output_dir, **param_dict)
+    dolines_gdf, written_files = main(dem_dict, potential_area_dict, save_extra=True, output_dir=output_dir, **param_dict)
 
     logger.success('Done! The following files were written:')
     for file in written_files:

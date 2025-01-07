@@ -30,6 +30,12 @@ def main(dem_list, non_sedimentary_areas_gdf, builtup_areas_gdf, aoi_gdf=None,
     ----------
     dem_list : list
         List of paths to the DEM files.
+    non_sedimentary_areas_gdf : geopandas.GeoDataFrame
+        GeoDataFrame with the non-sedimentary areas.
+    builtup_areas_gdf : geopandas.GeoDataFrame
+        GeoDataFrame with the built-up areas.
+    aoi_gdf : geopandas.GeoDataFrame, optional
+        GeoDataFrame with the area of interest to check it is properly covered with watersheds. Defaults to None.
     mean_filter_size : int, optional
         Size of the mean filter for noise removal. Defaults to 7.
     fill_depth : float, optional
@@ -45,7 +51,7 @@ def main(dem_list, non_sedimentary_areas_gdf, builtup_areas_gdf, aoi_gdf=None,
 
     Returns
     -------
-    simplified_pot_dolines_gdf : geopandas.GeoDataFrame
+    potential_dolines_gdf : geopandas.GeoDataFrame
         GeoDataFrame with the potential dolines.
     written_files : list
         List of paths to the written files.

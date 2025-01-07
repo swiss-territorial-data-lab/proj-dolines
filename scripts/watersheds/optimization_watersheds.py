@@ -60,7 +60,7 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, ref_data_type, ref
     resolution = trial.suggest_float('resolution', 0.5, 2.5, step=0.5)
 
     mean_filter_size = trial.suggest_int('mean_filter_size', 1, 11, step=2)
-    fill_depth = trial.suggest_float('fill_depth', 0.5, 2, step=0.25)
+    fill_depth = trial.suggest_float('fill_depth', 0.5, 1.5, step=0.25)
     max_part_in_lake = trial.suggest_float('max_part_in_lake', 0.05, 0.35, step=0.05)
     max_part_in_river = trial.suggest_float('max_part_in_river', 0.05, 0.35, step=0.05)
     min_compactness = trial.suggest_float('min_compactness', 0.2, 0.6, step=0.05)
@@ -208,7 +208,7 @@ if study.best_value !=0:
 
     dem_list = glob(os.path.join(output_dir, 'merged_dems', '*.tif'))
     detected_depressions_gdf, depression_files = depression_detection.main(
-        dem_list, non_sedi_areas_gdf, builtup_areas_gdf, study.best_params['mean_filter_size'], study.best_params['fill_depth'], 
+        dem_list, non_sedi_areas_gdf, builtup_areas_gdf, aoi_gdf, study.best_params['mean_filter_size'], study.best_params['fill_depth'], 
         working_dir=WORKING_DIR, output_dir=output_dir, overwrite=True
     )
     written_files.extend(depression_files)
