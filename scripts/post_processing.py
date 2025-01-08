@@ -1,13 +1,15 @@
 import os
 import sys
+from argparse import ArgumentParser
 from loguru import logger
 from time import time
+from yaml import FullLoader, load
 
 import geopandas as gpd
 
 sys.path.insert(1, 'scripts')
 from functions.fct_misc import format_logger, get_config
-from global_parameters import ALL_PARAMS_WATERSHEDS, AOI_TYPE
+from global_parameters import ALL_PARAMS_LEVEL_SET, ALL_PARAMS_WATERSHEDS, AOI_TYPE
 
 logger = format_logger(logger)
 
@@ -129,7 +131,7 @@ def prepare_filters(ground_cover_gdf, rivers_gdf):
         ~_rivers_gdf.CODE.isin([12111, 12121, 12131, 33111, 33121, 33131, 43111, 43121, 43131, 53131])
         & (_rivers_gdf.BIOGEO!='Mittelland')
     ].copy()
-    _rivers_gdf.loc[:, 'geometry'] = _rivers_gdf.geometry.buffer(1)
+    _rivers_gdf.loc[:, 'geometry'] = _rivers_gdf.geometry.buffer(3)
     dissolved_rivers_gdf = _rivers_gdf.dissolve(by='BIOGEO').explode()
     dissolved_rivers_gdf['buff_river_geom'] = dissolved_rivers_gdf.geometry
 
@@ -146,7 +148,17 @@ if '__main__' == __name__:
 
     # ----- Get parameters -----
 
-    cfg = get_config(config_key=os.path.basename(__file__), desc="This script processes the detected depressions to improve the doline detection.")
+    # Argument and parameter specification
+    parser = ArgumentParser(description="This script processes the detected depressions to improve the doline detection")
+    parser.add_argument('config_file', type=str, help='Framework configuration file')
+    args = parser.parse_args()
+
+    logger.info(f"Using {args.config_file} as config file.")
+
+    with open(args.config_file) as fp:
+        cfg = load(fp, Loader=FullLoader)[os.path.basename(__file__)]
+
+    METHOD_TYPE = args.config_file.split('_')[-1].split('.')[0].upper()
 
     WORKING_DIR = cfg['working_dir']
     OUTPUT_DIR = cfg['output_dir']
@@ -168,9 +180,10 @@ if '__main__' == __name__:
     output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE) if AOI_TYPE else OUTPUT_DIR
 
     param_list = ['max_part_in_lake', 'max_part_in_river', 'min_compactness', 'min_area', 'max_area', 'min_diameter', 'min_depth', 'max_depth', 'max_std_elev']
-    if 'dolines' in output_dir:
-        param_dict = {k: v for k, v in ALL_PARAMS_WATERSHEDS[aoi_type_key].items() if k in param_list}
-        param_dict['max_std_elev'] = 6
+    if METHOD_TYPE == 'WATERSHEDS':
+        param_dict = {param_name: ALL_PARAMS_WATERSHEDS[aoi_type_key][param_name] for param_name in param_list}
+    elif METHOD_TYPE == 'LEVEL-SET':
+        param_dict = {param_name: ALL_PARAMS_LEVEL_SET[aoi_type_key][param_name] for param_name in param_list}
     else:
         param_dict = {param_name: cfg['parameters'][param_name] for param_name in param_list}
 

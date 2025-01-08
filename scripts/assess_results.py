@@ -89,8 +89,8 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
 
     logger.info('Match detections with reference data...')        # TODO: Associate dem name to ref data
     tile_id = f'tile_id_{det_type}' if det_type in ['watersheds', 'ign'] else 'tile_id'
-    _pilot_areas_gdf['tile_id'] = _pilot_areas_gdf[tile_id]
-    ref_data_in_aoi_gdf = _ref_gdf.sjoin(_pilot_areas_gdf[['tile_id', 'geometry']], how='inner')
+    _pilot_areas_gdf.loc[:, 'tile_id'] = _pilot_areas_gdf[tile_id]
+    ref_data_in_aoi_gdf = _ref_gdf[['id', 'label_class', 'geometry']].sjoin(_pilot_areas_gdf[['tile_id', 'geometry']], how='inner')
     dets_in_aoi_gdf = _dets_gdf[_dets_gdf.geometry.within(_pilot_areas_gdf.geometry.union_all())].copy()
 
     tp_gdf, fp_gdf, fn_gdf, _ = get_fractional_sets(dets_in_aoi_gdf, ref_data_in_aoi_gdf[['id', 'label_class', 'tile_id', 'geometry']], iou_threshold=0.1)
@@ -248,7 +248,6 @@ if __name__ == '__main__':
 
     WORKING_DIR = cfg['working_dir']
     OUTPUT_DIR = cfg['output_dir']
-    DEM_DIR = cfg['dem_dir']
 
     REF_DATA_TYPE = cfg['type']['ref_data']
     REF_DATA = cfg[f'ref_data'][REF_DATA_TYPE.lower()]
@@ -261,7 +260,9 @@ if __name__ == '__main__':
 
     if AOI_TYPE:
         logger.warning(f'Working only on the areas of type {AOI_TYPE}')
-    det_path = os.path.join(os.path.dirname(DETECTIONS), AOI_TYPE, os.path.basename(DETECTIONS)) if AOI_TYPE else DETECTIONS
+        det_path = DETECTIONS if AOI_TYPE.lower() in DETECTIONS.lower() else os.path.join(os.path.dirname(DETECTIONS), AOI_TYPE, os.path.basename(DETECTIONS))
+    else:
+        det_path = DETECTIONS
 
      # ----- Processing -----
 

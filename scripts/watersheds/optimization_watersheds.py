@@ -22,7 +22,7 @@ logger = misc.format_logger(logger)
 # ----- Define functions -----
 
 def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, ref_data_type, ref_data_gdf,
-              non_sedimentary_areas_gdf, builtup_areas_gdf, water_bodies_gdf, rivers_gdf, working_dir, slope_dir='slope', output_dir='.'):
+              non_sedimentary_areas_gdf, builtup_areas_gdf, water_bodies_gdf, rivers_gdf, working_dir, output_dir='.'):
     """
     Objective function to optimize for doline detection with the watershed method.
 
@@ -59,7 +59,7 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, ref_data_type, ref
 
     resolution = trial.suggest_float('resolution', 0.5, 2.5, step=0.5)
 
-    mean_filter_size = trial.suggest_int('mean_filter_size', 1, 11, step=2)
+    mean_filter_size = trial.suggest_int('mean_filter_size', 2, 11, step=1)
     fill_depth = trial.suggest_float('fill_depth', 0.5, 1.5, step=0.25)
     max_part_in_lake = trial.suggest_float('max_part_in_lake', 0.05, 0.35, step=0.05)
     max_part_in_river = trial.suggest_float('max_part_in_river', 0.05, 0.35, step=0.05)
@@ -67,7 +67,7 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, ref_data_type, ref
     min_area = trial.suggest_int('min_area', 10, 75, step=5)
     max_area = trial.suggest_int('max_area', 1500, 3250, step=250)
     min_diameter = trial.suggest_float('min_diameter', 3, 15, step=0.5)
-    min_depth = trial.suggest_float('min_depth', 1, 3, step=0.2)
+    min_depth = trial.suggest_float('min_depth', 0.6, 3, step=0.2)
     max_depth = trial.suggest_int('max_depth', 60, 200, step=10)
     # max_std_elev = trial.suggest_float('max_std_elev', 0.02, 20, log=True)
     max_std_elev = trial.suggest_float('max_std_elev', 2, 27, step=1)
@@ -154,7 +154,7 @@ written_files = []
 
 if AOI_TYPE:
     logger.warning(f'Working only on the areas of type {AOI_TYPE}')
-    output_dir = os.path.join(output_dir, AOI_TYPE) if AOI_TYPE else output_dir
+    output_dir = output_dir if AOI_TYPE.lower() in output_dir.lower() else os.path.join(output_dir, AOI_TYPE)
 
 logger.info('Read data...')
 
@@ -173,7 +173,6 @@ dissolved_rivers_gdf, water_bodies_gdf = post_processing.prepare_filters(ground_
 # For the assessment
 ref_data_gdf = assess_results.prepare_reference_data_to_assessment(REF_DATA)
 
-slope_dir = os.path.join(output_dir, 'slope')
 study_path = os.path.join(output_dir, 'study.pkl')
 
 if NEW_STUDY:
@@ -186,7 +185,7 @@ if OPTIMIZE:
         objective, 
         dem_dir=TILE_DIR, dem_correspondence_df=dem_correspondence_df, aoi_gdf=aoi_gdf, ref_data_type=REF_TYPE, ref_data_gdf=ref_data_gdf,
         non_sedimentary_areas_gdf=non_sedi_areas_gdf, builtup_areas_gdf=builtup_areas_gdf, water_bodies_gdf=water_bodies_gdf, rivers_gdf=dissolved_rivers_gdf, 
-        working_dir=WORKING_DIR, slope_dir=slope_dir, output_dir=output_dir
+        working_dir=WORKING_DIR, output_dir=output_dir
     )
     study.optimize(objective, n_trials=ITERATIONS, callbacks=[callback])
 

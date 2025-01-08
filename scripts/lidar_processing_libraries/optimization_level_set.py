@@ -21,7 +21,7 @@ logger = misc.format_logger(logger)
 # ----- Define functions -----
 
 def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, ref_data_type, ref_data_gdf,
-              non_sedimentary_areas_gdf, builtup_areas_gdf, water_bodies_gdf, rivers_gdf, working_dir, slope_dir='slope', output_dir='.'):
+              non_sedimentary_areas_gdf, builtup_areas_gdf, water_bodies_gdf, rivers_gdf, output_dir='.'):
     """
     Objective function to optimize for doline detection with the watershed method.
 
@@ -105,7 +105,7 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, ref_data_type, ref
         return 0
     detected_dolines_gdf = assess_results.prepare_dolines_to_assessment(detected_dolines_gdf)
 
-    metric, _ = assess_results.main(ref_data_type, ref_data_gdf, detected_dolines_gdf, aoi_gdf, det_type='watersheds')
+    metric, _ = assess_results.main(ref_data_type, ref_data_gdf, detected_dolines_gdf, aoi_gdf, det_type='level-set')
 
     return metric
 
@@ -161,7 +161,7 @@ written_files = []
 
 if AOI_TYPE:
     logger.warning(f'Working only on the areas of type {AOI_TYPE}')
-    output_dir = os.path.join(output_dir, AOI_TYPE) if AOI_TYPE else output_dir
+    output_dir = output_dir if AOI_TYPE.lower() in output_dir.lower() else os.path.join(output_dir, AOI_TYPE)
 
 logger.info('Read data...')
 
@@ -180,7 +180,6 @@ dissolved_rivers_gdf, water_bodies_gdf = post_processing.prepare_filters(ground_
 # For the assessment
 ref_data_gdf = assess_results.prepare_reference_data_to_assessment(REF_DATA)
 
-slope_dir = os.path.join(output_dir, 'slope')
 study_path = os.path.join(output_dir, 'study.pkl')
 
 if NEW_STUDY:
@@ -192,8 +191,7 @@ if OPTIMIZE:
     objective = partial(
         objective, 
         dem_dir=TILE_DIR, dem_correspondence_df=dem_correspondence_df, aoi_gdf=aoi_gdf, ref_data_type=REF_TYPE, ref_data_gdf=ref_data_gdf,
-        non_sedimentary_areas_gdf=non_sedi_areas_gdf, builtup_areas_gdf=builtup_areas_gdf, water_bodies_gdf=water_bodies_gdf, rivers_gdf=dissolved_rivers_gdf, 
-        working_dir=WORKING_DIR, slope_dir=slope_dir, output_dir=output_dir
+        non_sedimentary_areas_gdf=non_sedi_areas_gdf, builtup_areas_gdf=builtup_areas_gdf, water_bodies_gdf=water_bodies_gdf, rivers_gdf=dissolved_rivers_gdf, output_dir=output_dir
     )
     study.optimize(objective, n_trials=ITERATIONS, callbacks=[callback])
 
@@ -215,7 +213,7 @@ if study.best_value !=0:
 
     dem_list = glob(os.path.join(output_dir, 'merged_dems', '*.tif'))
     detected_depressions_gdf, depression_files = level_set_depressions.main(
-        dem_list, study.best_params['min_size'], study.best_params['min_depth'], study.best_params['interval'], False, study.best_params['area_limit'], non_sedi_areas_gdf, builtup_areas_gdf,
+        dem_list, study.best_params['min_size'], study.best_params['min_depth_dep'], study.best_params['interval'], False, study.best_params['area_limit'], non_sedi_areas_gdf, builtup_areas_gdf,
         output_dir=output_dir, overwrite=True, save_extra=True
     )
     written_files.extend(depression_files)

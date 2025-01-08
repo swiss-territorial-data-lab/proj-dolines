@@ -1,5 +1,4 @@
 import os
-import sys
 from argparse import ArgumentParser
 from loguru import logger
 from time import time
@@ -12,8 +11,8 @@ import rasterio as rio
 from rasterio.enums import Resampling
 from rasterio.merge import merge
 
-from functions.fct_misc import format_logger, get_config
-from global_parameters import ALL_PARAMS_IGN, ALL_PARAMS_WATERSHEDS, AOI_TYPE
+from functions.fct_misc import format_logger
+from global_parameters import ALL_PARAMS_IGN, ALL_PARAMS_LEVEL_SET, ALL_PARAMS_WATERSHEDS, AOI_TYPE
 
 logger = format_logger(logger)
 
@@ -123,7 +122,10 @@ if __name__ == '__main__':
         RES = ALL_PARAMS_IGN[aoi_type_key]['resolution']
     elif METHOD_TYPE == 'WATERSHEDS':
         RES = ALL_PARAMS_WATERSHEDS[aoi_type_key]['resolution']
+    elif METHOD_TYPE == 'LEVEL-SET':
+        RES = ALL_PARAMS_LEVEL_SET[aoi_type_key]['resolution']
     else:
+        logger.warning('No default resolution found for this method. Using data from the config file.')
         RES = cfg['res']
 
     os.chdir(WORKING_DIR)

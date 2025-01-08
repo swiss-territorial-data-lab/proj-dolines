@@ -13,12 +13,12 @@ import lidar
 
 sys.path.insert(1, 'scripts')
 from functions.fct_misc import format_local_depressions, format_logger, get_config
-from global_parameters import AOI_TYPE
+from global_parameters import ALL_PARAMS_LEVEL_SET, AOI_TYPE
 
 logger = format_logger(logger)
 
 
-def main(dem_list, min_size, min_depth, interval, bool_shp, area_limit, non_sedimentary_gdf, builtup_areas_gdf, save_extra=False, overwrite=False, output_dir='outputs'):
+def main(dem_list, min_size, min_depth_dep, interval, bool_shp, area_limit, non_sedimentary_gdf, builtup_areas_gdf, save_extra=False, overwrite=False, output_dir='outputs'):
 
     written_file = []
     potential_dolines_gdf = gpd.GeoDataFrame()
@@ -35,7 +35,7 @@ def main(dem_list, min_size, min_depth, interval, bool_shp, area_limit, non_sedi
             sink_path = lidar.ExtractSinks(smoothed_dem, min_size, dem_output_dir)
             _, _ = lidar.DelineateDepressions(sink_path,
                                                     min_size,
-                                                    min_depth,
+                                                    min_depth_dep,
                                                     interval,
                                                     dem_output_dir,
                                                     bool_shp)
@@ -118,24 +118,25 @@ if __name__ == "__main__":
     OUTPUT_DIR = cfg['output_dir']
     DEM_DIR = cfg['dem_dir']
 
-    MIN_SIZE = cfg['min_size']
-    MIN_DEPTH = cfg['min_depth']
-    INTERVAL = cfg['interval']
-    BOOL_SHP = cfg['bool_shp']
-    AREA_LIMIT = cfg['area_limit']
+    BOOL_SHP = False
     
     NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
     BUILTUP_AREAS = cfg['builtup_areas']
 
-    OVERWRITE = False
+    OVERWRITE = True
 
     os.chdir(WORKING_DIR)
 
     if AOI_TYPE:
         logger.warning(f'Working only on the areas of type {AOI_TYPE}')
+        aoi_type_key = AOI_TYPE
+    else:
+        aoi_type_key='All types'
     dem_dir = os.path.join(DEM_DIR, AOI_TYPE) if AOI_TYPE else DEM_DIR
     output_dir = os.path.join(OUTPUT_DIR, AOI_TYPE) if AOI_TYPE else OUTPUT_DIR
     os.makedirs(output_dir, exist_ok=True)
+
+    param_dict = {param_name: ALL_PARAMS_LEVEL_SET[aoi_type_key][param_name] for param_name in ['min_size', 'min_depth_dep', 'interval', 'area_limit']}
 
     logger.info('Read data...')
     dem_list = glob(os.path.join(dem_dir, '*.tif'))
@@ -147,7 +148,8 @@ if __name__ == "__main__":
     builtup_areas_gdf = gpd.read_file(BUILTUP_AREAS)
 
     _, written_file = main(
-        dem_list, MIN_SIZE, MIN_DEPTH, INTERVAL, BOOL_SHP, AREA_LIMIT, non_sedimentary_gdf, builtup_areas_gdf, save_extra=True, overwrite=OVERWRITE, output_dir=output_dir
+        dem_list, bool_shp=BOOL_SHP, non_sedimentary_gdf=non_sedimentary_gdf, builtup_areas_gdf=builtup_areas_gdf, save_extra=True, overwrite=OVERWRITE, output_dir=output_dir,
+        **param_dict
     )
 
     logger.info(f'The following file was written: {written_file}')
