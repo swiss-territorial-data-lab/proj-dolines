@@ -1,16 +1,17 @@
 download_tiles.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: inputs/tiles_watersheds
+  output_dir: inputs/tiles
   aoi: inputs/vectors/pilot_v3.gpkg
   buffer: 2000
+  method: watersheds
   overwrite: False
 
 
 merge_dem_over_aoi.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/merged_DEM/wtsh
-  dem_dir: inputs/tiles_watersheds
-  dem_correspondence: inputs/tiles_watersheds/dem_per_aoi.csv
+  dem_dir: inputs/tiles
+  dem_correspondence: inputs/tiles/dem_per_aoi_watersheds.csv
   aoi: inputs/vectors/pilot_v3.gpkg
 
 
@@ -50,7 +51,7 @@ assess_results.py:
 optimization_watersheds.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/optimization/watersheds
-  tile_dir: inputs/tiles_watersheds
+  tile_dir: inputs/tiles
   ref_type: ground_truth
   ref_data:
     merged_reference: inputs/vectors/new_gt/ref_data.gpkg
@@ -60,7 +61,7 @@ optimization_watersheds.py:
     optimize: True
     iterations: 100
   aoi: inputs/vectors/pilot_v3.gpkg
-  dem_correspondence: inputs/tiles_watersheds/dem_per_aoi.csv
+  dem_correspondence: inputs/tiles/dem_per_aoi_watersheds.csv
   non_sedimentary_areas: outputs/merged_DEM/ign/possible_areas/non_sedi_areas.gpkg
   builtup_areas: inputs/vectors/restricted_siedlung_2024_2056.gpkg
   tlm_data: inputs/vectors/side_data/clipped_tlm_subset.gpkg

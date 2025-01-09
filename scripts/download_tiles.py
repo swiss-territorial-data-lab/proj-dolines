@@ -33,6 +33,7 @@ OUTPUT_DIR = cfg['output_dir']
 AOI = cfg['aoi']
 OVERWRITE = cfg['overwrite']
 BUFFER = cfg['buffer']
+METHOD = cfg['method']
 
 os.chdir(WORKING_DIR)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -56,10 +57,10 @@ for aoi in tqdm(aoi_gdf.itertuples(), desc="Download tiles", total=aoi_gdf.shape
     min_x, min_y = aoi.origin
     max_x, max_y = aoi.max
 
-    min_x = number_to_first_four_digits(min_x)
-    min_y = number_to_first_four_digits(min_y)
-    max_x = number_to_first_four_digits(max_x) + 1
-    max_y = number_to_first_four_digits(max_y) + 1
+    min_x = max(number_to_first_four_digits(min_x), 2485)
+    min_y = max(number_to_first_four_digits(min_y), 1075)
+    max_x = min(number_to_first_four_digits(max_x) + 1, 2833)
+    max_y = min(number_to_first_four_digits(max_y) + 1, 1296)
 
     for x in range(min_x, max_x):
         for y in range(min_y, max_y):
@@ -87,6 +88,7 @@ for aoi in tqdm(aoi_gdf.itertuples(), desc="Download tiles", total=aoi_gdf.shape
                         path, header = urlretrieve(url, outpath)
                         assert os.path.isfile(outpath), f'File {outpath} not found after its download.'
                         written_files.append(outpath)
+                        year = test_year
                         break
                     except HTTPError:
                         if test_year==2023:
@@ -94,7 +96,7 @@ for aoi in tqdm(aoi_gdf.itertuples(), desc="Download tiles", total=aoi_gdf.shape
                         continue
 
 dem_per_aoi_df = pd.DataFrame.from_dict(dem_per_aoi_dict, orient='index')
-filepath = os.path.join(OUTPUT_DIR, 'dem_per_aoi.csv')
+filepath = os.path.join(OUTPUT_DIR, f'dem_per_aoi_{METHOD.lower()}.csv')
 dem_per_aoi_df.transpose().to_csv(filepath, index=False)
 written_files.append(filepath)
 

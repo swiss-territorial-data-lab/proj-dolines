@@ -1,16 +1,17 @@
 download_tiles.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: inputs/tiles_lidar_fct
+  output_dir: inputs/tiles
   aoi: inputs/vectors/pilot_v3.gpkg
   buffer: 100
+  method: level_set
   overwrite: False
 
 
 merge_dem_over_aoi.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/merged_DEM/lidar_fct
-  dem_dir: inputs/tiles_lidar_fct
-  dem_correspondence: inputs/tiles_ign/dem_per_aoi.csv
+  dem_dir: inputs/tiles
+  dem_correspondence: inputs/tiles_ign/dem_per_aoi_level_set.csv
   aoi: inputs/vectors/pilot_v3.gpkg
 
 
@@ -48,8 +49,8 @@ assess_results.py:
 
 optimization_level_set.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/optimization/level_set/ground_truth/RSVMC_f2_1_best
-  tile_dir: inputs/tiles_lidar_fct
+  output_dir: outputs/optimization/level_set
+  tile_dir: inputs/tiles
   ref_type: ground_truth
   ref_data:
     merged_reference: inputs/vectors/new_gt/ref_data.gpkg
@@ -59,7 +60,7 @@ optimization_level_set.py:
     optimize: True
     iterations: 100
   aoi: inputs/vectors/pilot_v3.gpkg
-  dem_correspondence: inputs/tiles_lidar_fct/dem_per_aoi.csv
+  dem_correspondence: inputs/tiles/dem_per_aoi_level_set.csv
   non_sedimentary_areas: outputs/merged_DEM/ign/possible_areas/non_sedi_areas.gpkg
   builtup_areas: inputs/vectors/restricted_siedlung_2024_2056.gpkg
   tlm_data: inputs/vectors/side_data/clipped_tlm_subset.gpkg
