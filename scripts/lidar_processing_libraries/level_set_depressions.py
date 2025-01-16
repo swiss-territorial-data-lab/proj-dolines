@@ -48,6 +48,7 @@ def main(dem_list, min_size, min_depth_dep, interval, bool_shp, area_limit, non_
         local_dolines_gdf = pd.merge(local_dolines_gdf[['id', 'geometry']], dolines_info_df[['id', 'level', 'region_id', 'children_id']], on='id')
         local_dolines_gdf['corresponding_dem'] = dem_name
 
+        print('\n')
         logger.info('Keep depressions of level 1 or 2 depending on the size...')
         small_level_one_gdf = local_dolines_gdf[(local_dolines_gdf.level==1) & (local_dolines_gdf.area < area_limit)].copy()
         corr_level_two_gdf = gpd.sjoin(

@@ -1,4 +1,4 @@
-AOI_TYPE = 'Marnes sur karst'    # Possible types: None (i.e all types), DGM (Dépression sur glace morte), Evaporites, Karst nu, Marnes sur karst, Molasse, 
+AOI_TYPE = None    # Possible types: None (i.e all types), DGM (Dépression sur glace morte), Evaporites, Karst nu, Marnes sur karst, Molasse, 
                             # RSVMC (Roches sédimentaires variées, à matrice calcaire)
 ALL_PARAMS_IGN = {
     'All types': {
@@ -139,20 +139,20 @@ ALL_PARAMS_IGN = {
 }
 ALL_PARAMS_LEVEL_SET = {
     'All types': {
-        'resolution': 1.25,
-        'min_size': 1,
-        'min_depth_dep': 18,
-        'interval': 1,
-        'area_limit': 10,
-        'max_part_in_lake': 0.05,
-        'max_part_in_river' : 0.05,
-        'min_compactness': 0.2,
-        'min_area': 10,
-        'max_area': 1500,
-        'min_diameter': 1,
+        'resolution': 1,
+        'min_size': 30,
+        'min_depth_dep': 3,
+        'interval': 0.85,
+        'area_limit': 15,
+        'max_part_in_lake': 0.15,
+        'max_part_in_river' : 0.25,
+        'min_compactness': 0.25,
+        'min_area': 15,
+        'max_area': 3250,
+        'min_diameter': 1.5,
         'min_depth': 1,
-        'max_depth': 30,
-        'max_std_elev': 5
+        'max_depth': 35,
+        'max_std_elev': 10
     },
     'DGM': {
         'resolution': 0.5,
@@ -255,17 +255,18 @@ ALL_PARAMS_LEVEL_SET = {
 }
 ALL_PARAMS_WATERSHEDS = {
     'All types': {
-        'resolution': 2,
-        'mean_filter_size': 3,
+        'resolution': 1,
+        'mean_filter_size': 4,
         'fill_depth': 0.5,
-        'max_part_in_lake': 0.1,
-        'max_part_in_river': 0.1,
-        'min_compactness': 0.5,
-        'min_area': 35,
-        'max_area': 2500,
-        'min_diameter': 2,
-        'min_depth': 0.1,
-        'max_depth': 30
+        'max_part_in_lake': 0.35,
+        'max_part_in_river': 0.05,
+        'min_compactness': 0.2,
+        'min_area': 15,
+        'max_area': 3000,
+        'min_diameter': 7,
+        'min_depth': 0.6,
+        'max_depth': 170,
+        'max_std_elev': 25,
     },
     'DGM': {
         'resolution': 1,
@@ -296,18 +297,18 @@ ALL_PARAMS_WATERSHEDS = {
         'max_std_elev': 23,
     },
     'Karst nu': {
-        'resolution': 2,
+        'resolution': 1.5,
         'mean_filter_size': 2,
         'fill_depth': 1,
-        'max_part_in_lake': 0.2,
-        'max_part_in_river': 0.05,
-        'min_compactness': 0.6,
+        'max_part_in_lake': 0.25,
+        'max_part_in_river': 0.3,
+        'min_compactness': 0.55,
         'min_area': 25,
-        'max_area': 2750,
-        'min_diameter': 7,
-        'min_depth': 2.2,
-        'max_depth': 60,
-        'max_std_elev': 6,
+        'max_area': 1750,
+        'min_diameter': 4.5,
+        'min_depth': 2.4,
+        'max_depth': 150,
+        'max_std_elev': 10,
     },
     # Optimum
     'Marnes sur karst': {

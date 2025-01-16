@@ -11,7 +11,7 @@ merge_dem_over_aoi.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/merged_DEM/lidar_fct
   dem_dir: inputs/tiles
-  dem_correspondence: inputs/tiles_ign/dem_per_aoi_level_set.csv
+  dem_correspondence: inputs/tiles/dem_per_aoi_level_set.csv
   aoi: inputs/vectors/pilot_v3.gpkg
 
 

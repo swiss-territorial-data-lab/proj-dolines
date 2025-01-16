@@ -93,6 +93,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     ref_data_in_aoi_gdf = _ref_gdf[['id', 'label_class', 'geometry']].sjoin(_pilot_areas_gdf[['tile_id', 'geometry']], how='inner')
     dets_in_aoi_gdf = _dets_gdf[_dets_gdf.geometry.within(_pilot_areas_gdf.geometry.union_all())].copy()
 
+    logger.info('Get fractional sets...')
     tp_gdf, fp_gdf, fn_gdf, _ = get_fractional_sets(dets_in_aoi_gdf, ref_data_in_aoi_gdf[['id', 'label_class', 'tile_id', 'geometry']], iou_threshold=0.1)
     tp_gdf['tag'] = 'TP'
     fp_gdf['tag'] = 'FP'
@@ -208,11 +209,11 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         fig, ax = plt.subplots()
         if resemblance_column == 'IoU':
             df_plot = sub_metrics_df.plot(
-                x='name', y=['precision', 'recall', 'f1', 'median IoU for TP'], kind='line', style='o', ax=ax, grid=True, legend=True,
+                x='name', y=['precision', 'recall', 'f1', 'f2', 'median IoU for TP'], kind='line', style='o', ax=ax, grid=True, legend=True,
             )
         else:
             df_plot = sub_metrics_df.plot(
-                x='name', y=['precision', 'recall', 'f1'], kind='line', style='o', ax=ax,  grid=True, legend=True,
+                x='name', y=['precision', 'recall', 'f1', 'f2'], kind='line', style='o', ax=ax,  grid=True, legend=True,
             )
         ax.set(
             title='Metrics per zone', xlabel='Zone name', ylabel='Metric value', xticks=range(sub_metrics_df.shape[0]), ylim=(0,1),
