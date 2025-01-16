@@ -15,13 +15,19 @@ Several methods were tested, they are presented here with some evaluation metric
 
 ## Setup
 
-Tested on Windows 10 with python 3.12.4. No specific requirement was identified.
+Tested on Windows 10 with python 3.11. No specific requirement was identified.
 
-Create an environment and then, install the dependencies with the following command:
+Create conda environment and then, install the `lidar` library with conda as indicated below. After this first step, the other libaries can be installed with the requirement file.
 
 ```
+conda create -n <env name> python=3.11
+conda activate <env name>
+conda install -c conda-forge mamba
+mamba install -c conda-forge lidar
 pip install -r requirements.txt
 ```
+
+If you encounter difficulties with the `lidar` libary, pleas refer to the [official documentation](https://lidar.gishub.org/installation/).
 
 ## Data
 
