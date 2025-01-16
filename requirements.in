@@ -1,16 +1,11 @@
 opencv-python
-geopandas
 loguru
-matplotlib
+numpy<2
 optuna
 plotly
 pyarrow
 pygeohash
-PyYAML
 rasterstats
 rdp
-scikit-image
 scikit-learn
-tqdm
 visvalingamwyatt
-whitebox

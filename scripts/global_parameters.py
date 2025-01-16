@@ -1,5 +1,11 @@
-AOI_TYPE = None    # Possible types: None (i.e all types), DGM (Dépression sur glace morte), Evaporites, Karst nu, Marnes sur karst, Molasse, 
+import os
+from sys import executable
+
+AOI_TYPE = 'Evaporites'    # Possible types: None (i.e all types), DGM (Dépression sur glace morte), Evaporites, Karst nu, Marnes sur karst, Molasse, 
                             # RSVMC (Roches sédimentaires variées, à matrice calcaire)
+os.environ['GDAL_DATA'] = os.path.join(f'{os.sep}'.join(executable.split(os.sep)[:-1]), 'Library', 'share', 'gdal')     # Avoid a warning
+GDAL_DATA = os.environ['GDAL_DATA']
+
 ALL_PARAMS_IGN = {
     'All types': {
         'resolution': 1,

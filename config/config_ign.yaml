@@ -61,6 +61,7 @@ doline_detection.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/dolines/ign
   dem_dir: outputs/merged_DEM/ign
+  epsg: 2056
 
 
 doline_detection_original.py:

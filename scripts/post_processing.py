@@ -8,8 +8,8 @@ from yaml import FullLoader, load
 import geopandas as gpd
 
 sys.path.insert(1, 'scripts')
-from functions.fct_misc import format_logger, get_config
-from global_parameters import ALL_PARAMS_LEVEL_SET, ALL_PARAMS_WATERSHEDS, AOI_TYPE
+from functions.fct_misc import format_logger
+from global_parameters import ALL_PARAMS_LEVEL_SET, ALL_PARAMS_WATERSHEDS, AOI_TYPE, GDAL_DATA
 
 logger = format_logger(logger)
 

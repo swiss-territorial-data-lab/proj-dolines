@@ -3,7 +3,6 @@ import sys
 from glob import glob
 from loguru import logger
 from time import time
-from tqdm import tqdm
 
 import geopandas as gpd
 import numpy as np
@@ -11,8 +10,12 @@ import rasterio as rio
 from rasterio.features import rasterize
 from rasterstats import zonal_stats
 
-import whitebox 
-wbt = whitebox.WhiteboxTools()
+import whitebox
+try:
+    wbt = whitebox.WhiteboxTools()
+except:
+    whitebox.download_wbt(linux_musl=True, reset=True)
+    wbt = whitebox.WhiteboxTools()
 
 sys.path.insert(1, 'scripts')
 from functions.fct_misc import filter_depressions_by_area_type, format_local_depressions, format_logger, get_config

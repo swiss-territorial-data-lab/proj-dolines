@@ -10,7 +10,7 @@ from sklearn.metrics import confusion_matrix, f1_score, fbeta_score, precision_s
 
 from functions.fct_metrics import get_fractional_sets
 from functions.fct_misc import format_logger, get_config
-from global_parameters import AOI_TYPE
+from global_parameters import AOI_TYPE, GDAL_DATA
 
 logger = format_logger(logger)
 

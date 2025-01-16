@@ -153,5 +153,5 @@ if __name__ == "__main__":
         **param_dict
     )
 
-    logger.info(f'The following file was written: {written_file}')
+    logger.info(f'The following file was written: {written_file[0]}')
     logger.info('Done in {:.2f} seconds'.format(time() - tic))

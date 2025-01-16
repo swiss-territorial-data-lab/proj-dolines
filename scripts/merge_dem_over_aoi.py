@@ -12,7 +12,7 @@ from rasterio.enums import Resampling
 from rasterio.merge import merge
 
 from functions.fct_misc import format_logger
-from global_parameters import ALL_PARAMS_IGN, ALL_PARAMS_LEVEL_SET, ALL_PARAMS_WATERSHEDS, AOI_TYPE
+from global_parameters import ALL_PARAMS_IGN, ALL_PARAMS_LEVEL_SET, ALL_PARAMS_WATERSHEDS, AOI_TYPE, GDAL_DATA
 
 logger = format_logger(logger)
 
@@ -95,7 +95,7 @@ if __name__ == '__main__':
 
     # Argument and parameter specification
     parser = ArgumentParser(description="This script merges the DEM files over the AOI.")
-    parser.add_argument('-config_file', type=str, help='Framework configuration file', default="config/config_watersheds.yaml")
+    parser.add_argument('config_file', type=str, help='Framework configuration file')
     args = parser.parse_args()
 
     logger.info(f"Using {args.config_file} as config file.")

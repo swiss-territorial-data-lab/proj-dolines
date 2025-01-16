@@ -135,7 +135,7 @@ def get_config(config_key, desc=""):
 
     # Argument and parameter specification
     parser = ArgumentParser(description=desc)
-    parser.add_argument('-config_file', type=str, help='Framework configuration file', default="config/config_ign.yaml")
+    parser.add_argument('config_file', type=str, help='Framework configuration file')
     args = parser.parse_args()
 
     logger.info(f"Using {args.config_file} as config file.")
