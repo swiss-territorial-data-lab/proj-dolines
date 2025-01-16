@@ -32,6 +32,8 @@ TYPE = cfg['ref_type']
 AOI = cfg['aoi']
 DOLINES = cfg['dolines']
 
+EPSG = 2056
+
 os.chdir(WORKING_DIR)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 written_files = []
@@ -41,9 +43,9 @@ written_files = []
 logger.info('Read data ...')
 
 aoi_gdf = gpd.read_file(AOI)
-aoi_gdf.to_crs(2056, inplace=True)
+aoi_gdf.to_crs(EPSG, inplace=True)
 dolines_gdf = gpd.read_file(DOLINES)
-dolines_gdf.to_crs(2056, inplace=True)
+dolines_gdf.to_crs(EPSG, inplace=True)
 
 dem_tile_list = glob(os.path.join(DEM_DIR, '*.tif'))
 if len(dem_tile_list) == 0:

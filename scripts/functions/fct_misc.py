@@ -135,7 +135,7 @@ def get_config(config_key, desc=""):
 
     # Argument and parameter specification
     parser = ArgumentParser(description=desc)
-    parser.add_argument('config_file', type=str, help='Framework configuration file')
+    parser.add_argument('-config_file', type=str, help='Framework configuration file', default="config/config_ign.yaml")
     args = parser.parse_args()
 
     logger.info(f"Using {args.config_file} as config file.")
@@ -144,7 +144,6 @@ def get_config(config_key, desc=""):
         cfg = load(fp, Loader=FullLoader)[config_key]
 
     return cfg
-
 
 def get_bbox_origin(bbox_geom):
     """
@@ -180,7 +179,7 @@ def get_maximum_coordinates(bbox_geom):
     return (max_x, max_y)
 
 
-def simplify_with_vw(gdf, simplification_param):
+def simplify_with_vw(gdf, simplification_param, EPSG='EPSG:2056'):
     """
     Simplify a GeoDataFrame using the Visvalingam-Whyatt algorithm.
 
@@ -218,7 +217,7 @@ def simplify_with_vw(gdf, simplification_param):
     if failed_transform:
         logger.warning(f'Simplification failed for {failed_transform} out of {len(mapped_objects["features"])} features')
 
-    simplified_gdf = GeoDataFrame.from_features(mapped_objects, crs='EPSG:2056')
+    simplified_gdf = GeoDataFrame.from_features(mapped_objects, crs=EPSG)
     simplified_gdf.loc[simplified_gdf.is_valid==False, 'geometry'] = \
         simplified_gdf.loc[simplified_gdf.is_valid==False, 'geometry'].apply(make_valid)
     if (_gdf.geometry == simplified_gdf.geometry).all():

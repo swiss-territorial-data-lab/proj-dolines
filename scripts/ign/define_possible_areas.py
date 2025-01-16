@@ -101,6 +101,8 @@ if __name__ == '__main__':
     RIVERS = cfg['rivers']
     BUILTUP_AREAS = cfg['builtup_areas']
     AOI = cfg['aoi']
+    
+    EPSG = 2056
 
     os.chdir(WORKING_DIR)
 
@@ -123,7 +125,7 @@ if __name__ == '__main__':
     rivers_gdf = gpd.read_file(RIVERS)
     ground_cover_gdf = gpd.read_file(TLM_DATA, layer=GROUND_COVER_LAYER)
     aoi_gdf = gpd.read_file(AOI)
-    aoi_gdf.to_crs(2056, inplace=True)
+    aoi_gdf.to_crs(EPSG, inplace=True)
 
     logger.info('Prepare additional data...')
     dissolved_rivers_gdf, water_bodies_gdf = prepare_filters(ground_cover_gdf, rivers_gdf)

@@ -31,6 +31,8 @@ MARNES_SUR_KARST = cfg['marnes_sur_karst']
 MOLASSE = cfg['molasse']
 RSVMC = cfg['rsvmc']
 
+EPSG = 2056
+
 os.chdir(WORKING_DIR)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -38,7 +40,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 logger.info('Read data...')
 aoi_gdf = gpd.read_file(AOI)
-aoi_gdf_2056 = aoi_gdf.to_crs(2056)
+aoi_gdf_2056 = aoi_gdf.to_crs(EPSG)
 
 dolines_on_dgm = gpd.read_file(DGM)
 dolines_on_evaporites = gpd.read_file(EVAPORITES)

@@ -27,7 +27,7 @@ def main(dem_dict, fitted_area_dict,
          gaussian_kernel, gaussian_sigma, dem_diff_thrsld, min_area, limit_compactness,
          max_voronoi_area, min_merged_area, min_long_area, max_long_area, min_long_compactness, min_round_area, min_round_compactness,
          thalweg_buffer, thalweg_threshold, max_depth,
-         save_extra=False, output_dir='outputs'):
+         epsg=2056, save_extra=False, output_dir='outputs'):
     """
     Main function to detect dolines.
 
@@ -123,7 +123,7 @@ def main(dem_dict, fitted_area_dict,
     logger.info('Filter depressions based on area and compactness...')
 
     # Filter the depressions based on area
-    # Inital code only keep depressions over 300 m2. Based on the GT, we keep those between 40.
+    # Inital code only keep depressions over 300 m2. Based on the GT, we keep those above 35 m2.
     filtered_sinkholes_gdf = all_potential_sinkholes_gdf[all_potential_sinkholes_gdf.area > min_area].copy()
 
     # Determine compactness
@@ -143,7 +143,7 @@ def main(dem_dict, fitted_area_dict,
     else:
         dissolved_vornoi_polys_gs = gpd.GeoSeries(
             [geom for geom in dissolved_vornoi_polys.geoms] if dissolved_vornoi_polys.geom_type == 'MultiPolygon' else dissolved_vornoi_polys, 
-            crs='epsg:2056'
+            crs=('epsg:'+str(epsg))
         )
         assert dissolved_vornoi_polys_gs.is_valid.all(), 'Dissolved voronoi polygons are not all valid.'
 
@@ -215,7 +215,7 @@ def main(dem_dict, fitted_area_dict,
             'min_buffer_line': [x['min'] for x in buffer_lowest_alti],
             'geometry': sinkholes_on_tiles_gdf.geometry
         }
-        alti_gdf = gpd.GeoDataFrame(alti_dict, crs=2056)
+        alti_gdf = gpd.GeoDataFrame(alti_dict, crs=epsg)
 
         # Detect and mark thalwegs
         alti_gdf['alti_diff'] = alti_gdf['min_buffer_line'] - alti_gdf['min_sinkhole']
@@ -262,6 +262,7 @@ if __name__ == '__main__':
     WORKING_DIR = cfg['working_dir']
     OUTPUT_DIR = cfg['output_dir']
     DEM_DIR = cfg['dem_dir']
+    EPSG = cfg['epsg']
 
     os.chdir(WORKING_DIR)
 
@@ -299,7 +300,7 @@ if __name__ == '__main__':
         logger.critical('No DEM files found.')
         sys.exit(1)
 
-    dolines_gdf, written_files = main(dem_dict, potential_area_dict, save_extra=True, output_dir=output_dir, **param_dict)
+    dolines_gdf, written_files = main(dem_dict, potential_area_dict, epsg=EPSG, save_extra=True, output_dir=output_dir, **param_dict)
 
     logger.success('Done! The following files were written:')
     for file in written_files:

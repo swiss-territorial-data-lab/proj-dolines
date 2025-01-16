@@ -50,7 +50,7 @@ if __name__ == "__main__":
 
     # ----- Get parameters -----
 
-    cfg = get_config(config_key=os.path.basename(__file__), desc="This script resamples the DEM files to 5 m.")
+    cfg = get_config(config_key=os.path.basename(__file__), desc=" This script calculates the slope of a DEM and save it to a new file")
 
     WORKING_DIR = cfg['working_dir']
     OUTPUT_DIR = cfg['output_dir']
