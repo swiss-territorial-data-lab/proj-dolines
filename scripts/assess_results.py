@@ -26,12 +26,12 @@ def prepare_dolines_to_assessment(dolines_gdf):
     return prepared_dolines_gdf
 
 
-def prepare_reference_data_to_assessment(ref_path, EPSG):
+def prepare_reference_data_to_assessment(ref_path, epsg=2056):
     """
     Ensure the stability of the reference data format and add a 'label_class' column.
     """
     ini_ref_data_gdf = gpd.read_file(ref_path)
-    ini_ref_data_gdf.to_crs(EPSG, inplace=True)
+    ini_ref_data_gdf.to_crs(epsg, inplace=True)
     ini_ref_data_gdf['label_class'] = 'doline'
     if (ini_ref_data_gdf.geometry.geom_type == 'MultiPolygon').any():
         ref_data_gdf = ini_ref_data_gdf.explode(index_parts=False)
@@ -79,7 +79,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     name_suffix = f'{AOI_TYPE + "_" if AOI_TYPE else ""}{ref_data_type}_'
 
     assert (ref_data_type.lower() in ['merged_reference', 'ground_truth']), 'Reference data type must be geocover, tlm or ground_truth.'
-    assert (det_type.lower() in ['watersheds', 'ign', 'level-set', 'stochastic depressions']), 'Detection method must be watersheds, level-set, stochastic depressions, or ign.'
+    assert (det_type.lower() in ['watersheds', 'ign', 'level-set', 'stochastic_depressions']), 'Detection method must be watersheds, level-set, stochastic depressions, or ign.'
 
     if _dets_gdf.loc[0, 'tile_id'].endswith('.tif'):
         _dets_gdf.loc[:, 'tile_id'] = _dets_gdf.loc[:, 'tile_id'].str.rstrip('.tif')

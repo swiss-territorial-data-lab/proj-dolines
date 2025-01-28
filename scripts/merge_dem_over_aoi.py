@@ -74,11 +74,11 @@ def main(dem_correspondence_pd, aoi_gdf, dem_dir, resolution, save_extra=False, 
     return dem_dict
 
 
-def read_initial_data(aoi_path, dem_correspondence_csv, EPSG):
+def read_initial_data(aoi_path, dem_correspondence_csv, epsg=2056):
     dem_correspondence_pd = pd.read_csv(dem_correspondence_csv)
 
     aoi_gdf = gpd.read_file(aoi_path)
-    aoi_gdf = aoi_gdf.to_crs(EPSG)
+    aoi_gdf = aoi_gdf.to_crs(epsg)
 
     if AOI_TYPE:
         logger.warning(f'Working only on the areas of type {AOI_TYPE}')

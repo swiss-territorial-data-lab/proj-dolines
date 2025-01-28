@@ -27,7 +27,7 @@ mamba install -c conda-forge lidar
 pip install -r requirements.txt
 ```
 
-If you encounter difficulties with the `lidar` libary, pleas refer to the [official documentation](https://lidar.gishub.org/installation/).
+If you encounter difficulties with the `lidar` libary, please refer to the [official documentation](https://lidar.gishub.org/installation/).
 
 ## Data
 

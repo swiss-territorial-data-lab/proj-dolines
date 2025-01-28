@@ -26,7 +26,6 @@ GT = cfg['gt']
 
 GEOCOVER = REF_DATA['geocover']
 TLM = REF_DATA['tlm']
-NE = REF_DATA['ne']
 EXPERT_DATA = REF_DATA['expert_assessment']
 
 CHASSERAL = GT['chasseral']
@@ -68,12 +67,12 @@ if POINTS:
     written_files = [filepath]
 
 restricted_geocover_gdf = gpd.overlay(geocover_gdf, aoi_gdf.loc[aoi_gdf.name.isin(['Chasseral (BE)', 'Gryon (VD)', 'Piz Curtinatsch (GR)'])])
-restricted_geocover_gdf = restricted_geocover_gdf[restricted_geocover_gdf.intersects(ground_truth_gdf.geometry.union_all())]
+restricted_geocover_gdf = restricted_geocover_gdf[restricted_geocover_gdf.intersects(ground_truth_gdf.geometry.union_all())] if POINTS else restricted_geocover_gdf
 
 logger.info('Merge reference data...')
-geocover_vs_ne = gpd.sjoin(restricted_geocover_gdf, expert_data_gdf, how='left', lsuffix='geocover', rsuffix='auto')
+geocover_vs_gt_poly = gpd.sjoin(restricted_geocover_gdf, expert_data_gdf, how='left', lsuffix='geocover', rsuffix='auto')
 first_ref_data_gdf = pd.concat([
-    restricted_geocover_gdf[restricted_geocover_gdf.id.isin(geocover_vs_ne.loc[geocover_vs_ne['id_auto'].isnull(), 'id_geocover'])],
+    restricted_geocover_gdf[restricted_geocover_gdf.id.isin(geocover_vs_gt_poly.loc[geocover_vs_gt_poly['id_auto'].isnull(), 'id_geocover'])],
     expert_data_gdf
 ], ignore_index=True)
 first_ref_data_gdf.loc[:, 'id'] = first_ref_data_gdf.index

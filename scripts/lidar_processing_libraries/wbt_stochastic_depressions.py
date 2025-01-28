@@ -29,20 +29,21 @@ def main(dem_list, autocorr_range, iterations, threshold, non_sedimentary_gdf, b
     rmse = {
         '2019_2523_1199.tif': 0.3,
         '2019_2568_1126.tif': 0.3,
-        '2020_2697_1157.tif': 1,
-        '2023_2783_1163.tif': 1,
-        '2023_2795_1170.tif': 0.3,
-        '2023_2822_1184.tif': 1,
-        '2019_2709_1204.tif': 2,
-        '2019_2573_1224.tif': 0.3,
+        '2019_2573_1224.tif': 0.5,
+        '2019_2709_1204.tif': 0.3,
         '2019_2724_1234.tif': 0.3,
+        '2020_2623_1266.tif': 0.3,
+        '2020_2697_1157.tif': 0.3,
         '2021_2590_1170.tif': 0.3,
-        '2020_2622_1267.tif': 0.3
+        '2023_2783_1163.tif': 0.3,
+        '2023_2795_1170.tif': 0.3,
+        '2023_2825_1184.tif': 0.3
     }
 
     written_files = []
     potential_dolines_gdf = gpd.GeoDataFrame()
     for dem_path in dem_list:
+        logger.info('Compute depression probability...')
         dem_name = os.path.basename(dem_path)
         outpath = os.path.join(working_dir, output_dir, dem_name.rstrip('.tif') + '_pdep.tif')
         
