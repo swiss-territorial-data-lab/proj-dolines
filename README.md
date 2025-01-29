@@ -2,7 +2,7 @@
 
 This repository aims to detect dolines based on the digital elevation model (DEM) of Switzerland.
 
-Several methods were tested, they are presented here with some evaluation metrics.
+Several methods were tested, they are presented here with some evaluation metrics. The full documentation is available on the [STDL tech website](https://www.stdl.ch/).
 
 **Table of content**
 
@@ -20,7 +20,7 @@ Several methods were tested, they are presented here with some evaluation metric
 
 Tested on Windows 10 with python 3.11. No specific hardware requirement was identified.
 
-Create conda environment and then, install the `lidar` library with conda as indicated below. After this first step, the other libaries can be installed with the requirement file.
+Create conda environment and then, install the `lidar` package with conda as indicated below. After this first step, the other packages can be installed with the requirement file.
 
 ```
 conda create -n <env name> python=3.11
@@ -30,18 +30,44 @@ mamba install -c conda-forge lidar
 pip install -r requirements.txt
 ```
 
-If you encounter difficulties with the `lidar` libary, please refer to the [official documentation](https://lidar.gishub.org/installation/).
+If you encounter difficulties with the `lidar` package, please refer to the [official documentation](https://lidar.gishub.org/installation/).
 
 ## Data
 
-All the methods were tested and optimized with the [Swiss DEM](https://www.swisstopo.admin.ch/en/height-model-swissalti3d). It has a spatial resolution of 0.5 m. The tiles necessary to cover the area of interest are downloaded and merged with the following command:
+### Area of interest
+
+Eleven areas of interest were selected by a geologist to test the methods. The areas of interest are provided in the `data` folder.
+
+![Area of interest](img/AOIs.webp)
+
+The geological type of each area is indicated in the attributes.
+
+### DEM
+
+All the methods were tested and optimized with the [Swiss DEM](https://www.swisstopo.admin.ch/en/height-model-swissalti3d). The tiles necessary to cover the area of interest are downloaded and merged with the following command:
 
 ```
 python scripts/download_tiles.py config/<config file>
 python scripts/merge_dem_over_aoi.py <config file>
 ```
 
-The results optimized for the ground truth established by an expert. They were additionally tested on the reference data, produced from polygons provided by the expert and existing datasets, namely swisstopo's products [GeoCover](https://www.swisstopo.admin.ch/en/geological-model-2d-geocover) and [swissTLM3D](https://www.swisstopo.admin.ch/en/landscape-model-swisstlm3d), as well as doline data provided by the Canton of Neuchatel.
+A buffer around the area of interest was applied to avoid edge effects. The buffer size, and therefore the number of downloaded tiles, depends  on the chosen method.
+
+### Vector layers
+
+Two vector datasets were used to evaluate the results:
+* the ground truth;
+    * established by an expert;
+    * used to optimize the parameters of the methods;
+* the reference data;
+    * concatenation of various polygons dataset, with in case of overlap the following priority order: [swissTLM3D](https://www.swisstopo.admin.ch/en/landscape-model-swisstlm3d) > polygons provided by the expert > [GeoCover](https://www.swisstopo.admin.ch/en/geological-model-2d-geocover).
+
+They are provided in the `data` folder.
+
+Several other layers were used to define possible sinkhole areas and limit false positive detections:
+* the [settlement areas](https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4229c353-e780-42d8-9f8c-298c83920a3a);
+* the [rivers](https://www.geocat.ch/datahub/dataset/50a848cc-fe89-426a-940b-cc409cb4ff50);
+* the stagnant water from the land cover in the [swissTLM3D](https://www.swisstopo.admin.ch/en/landscape-model-swisstlm3d).
 
 ## Metrics
 
@@ -56,14 +82,33 @@ The F2 score was used to optimize the parameters of all methods.
 
 ## Methods
 
+**Parameters**
+
+The chosen geological type must be specified in the script `global_parameters.py`. Only the areas of interest with the corresponding type will be imported. `None` means all that all the areas are processed at once with the same parameters. <br>
+The parameters are automatically adjusted to the geological type. They are saved for each type and method in the script `global_parameters.py`. They are imported in the workflow when needed.
+
+The configuration files are used mostly to indicate input and output paths for each script.
+
+**Assessment**
+
+The results of  are compared to ground truth and metrics are output with the command:
+
+```
+python scripts/assess_results.py config/<config file>
+```
+
 ### IGN method
 
-This method was used by the IGN to generalize the contour lines generation in karstic plateaus for topographic maps. It is described in Touya et al. (2019). Here we perform Step 2 of the procedure, which consists of delimiting the plateau zones and detecting the dolines within them.
+![IGN method](img/Touya_al_2nd_step.jpg)
 
-<!-- Ajouter la description des scripts -->
+This method was used by the IGN to generalize generation of the contour lines in karstic plateaus for topographic maps. It is described in Touya et al. (2019). The second step of the procedure, which is presented above with an image from the original publication, consists of delimiting the plateau zones and detecting the dolines within them.
+
+We adapted the original code into the following scripts:
+* `determine_slope.py`: determine the slope of the DEM;
+* `define_possible_areas.py`: define the sinkhole areas based on slope, settlement areas, rivers and stagnant water;
+* `doline_detection.py`: detect the dolines in the sinkhole areas.
 
 The workflow is run with the following commands:
-
 
 ```
 python scripts/get_slope.py config/config_ign.yaml
@@ -71,7 +116,7 @@ python scripts/define_possible_areas.py config/config_ign.yaml
 python scripts/ign/doline_detection.py config/config_ign.yaml
 ```
 
-A bash script can be used to run the full workflow:
+A bash script can be used to run the full workflow from tile download to assessment:
 
 ```
 scripts/ign/ign_process.sh
@@ -83,29 +128,28 @@ To determine the best parameters for the Swiss topography, the algorithm is opti
 python scripts/ign/optimization_ign.py config/config_ign.yaml
 ```
 
-After the optimization, the following metrics were obtained:
+After the optimization, this method was the best one for the area of type XX. The following metrics were obtained on the ground truth:
 
-
-| **Data** | **F1 score** | **IoU for TP** | **mdist**           |
+| **Area type** | **precision** | **recall** | **f2 score**           |
 |--------------------|:------------:|:--------------:|:-------------------:|
-| Reference data         |              |                |                     |
-| Ground truth              |              |                |                     |
+| _area type 1_         |              |                |                     |
+| _area type 2_              |              |                |                     |
 
 _Table 1: metrics for each type of reference data with the IGN's method._
 
 ### Watershed method
 
-The detection of dolines through the detections of sinks in a watershed was first proposed by Obu & Podobnikar (2013). We use here the version with pre-processed DEM as presented by Telbisz et al. (2016) and used by Čonč et al. (2022).
+![Watershed method](img/Telbisz_al_watershed_method.jpg)
 
-<!-- Ajouter la description des scripts -->
+The detection of dolines through the detections of sinks in a watershed was first proposed by Obu & Podobnikar (2013). We use here the version with pre-processed DEM as presented by Telbisz et al. (2016) and used by Čonč et al. (2022). The workflow is illustrated above with an image from Telbisz et al. (2016).
 
-The workflow is run with the following commands:
+The workflow is run with the command below. [Post-processing](#post-processing) is performed to limit the number of false positive.
 
 ```
 python scripts/watersheds/depression_detection.py config/config_watersheds.yaml
 ```
 
-A bash script can be used to run the full workflow:
+A bash script can be used to run the full workflow from tile download to assessment:
 
 ```
 scripts/watersheds/watersheds_process.sh
@@ -117,25 +161,28 @@ To determine the best parameters for the Swiss topography, the algorithm is opti
 python scripts/ign/optimization_watersheds.py config/config_watersheds.yaml
 ```
 
-After the optimization, the following metrics were obtained:
+After the optimization, this method was the best one for the area of type XX. The following metrics were obtained on the ground truth:
 
-
-| **Reference data** | **F1 score** | **IoU for TP** | **mdist**           |
+| **Area type** | **precision** | **recall** | **f2 score**           |
 |--------------------|:------------:|:--------------:|:-------------------:|
-| _GeoCover_         |              |                |                     |
-| _TLM_              |              |                |                     |
+| _area type 1_         |              |                |                     |
+| _area type 2_              |              |                |                     |
 
 _Table 2: metrics for each type of reference data with the watershed method._
 
 ### Level-set method
 
-<!-- to be completed-->
+![Level-set method](img/level_set_method.webp)
+
+The level-set method leverage the `lidar` package, a python package for delineation of nested surface depressions. The image above illustrates the detection of depressions with the level-set method. Once the tree graph of compound depressions is established, we only keep the depressions of level one or two based on their area.
+
+The workflow is run with the command below. [Post-processing](#post-processing) is performed to limit the number of false positive.
 
 ```
 python scripts/lidar_processing_libraries/level_set_depressions.py config/config_level-set.yaml
 ```
 
-A bash script can be used to run the full workflow:
+A bash script can be used to run the full workflow from tile download to assessment:
 
 ```
 scripts/lidar_processing_libraries/level_set_process.sh
@@ -147,15 +194,26 @@ To determine the best parameters for the Swiss topography, the algorithm is opti
 python scripts/lidar_processing_libraries/optimization_level-set.py config/config_level-set.yaml
 ```
 
+After the optimization, this method was the best one for the area of type XX. The following metrics were obtained on the ground truth:
+
+| **Area type** | **precision** | **recall** | **f2 score**           |
+|--------------------|:------------:|:--------------:|:-------------------:|
+| _area type 1_         |              |                |                     |
+| _area type 2_              |              |                |                     |
+
+_Table 2: metrics for each type of reference data with the watershed method._
+
 ### Stochastic method
 
-<!-- to be completed-->
+The package WhiteBox Tools (WBT) has a function [StochasticDepressionAnalysis](https://www.whiteboxgeo.com/manual/wbt_book/available_tools/hydrological_analysis.html#StochasticDepressionAnalysis). It performs a stochastic analysis of depressions within a DEM, calculating the probability of each cell belonging to a depression. A probability threshold is then applied to determine depressions.
+
+The workflow is run with the command below. [Post-processing](#post-processing) is performed to limit the number of false positive.
 
 ```
 python scripts/lidar_processing_libraries/wbt_stochastic_depressions.py config/config_stochastic_deps.yaml
 ```
 
-A bash script can be used to run the full workflow:
+A bash script can be used to run the full workflow from tile download to assessment:
 
 ```
 scripts/lidar_processing_libraries/stochastic_process.sh
@@ -167,15 +225,14 @@ To determine the best parameters for the Swiss topography, the algorithm is opti
 python scripts/lidar_processing_libraries/optimization_stochastic_deps.py config/config_stochastic_deps.yaml
 ```
 
+This method was the best one for none of the geological types.
+
 ### Post-processing
 
-<!-- to be completed-->
-
-Applied to all workflows except the IGN one.
+In all workflows except the IGN one, the detected depressions are filtered in post-processing to separated sinkhole from other depressions. They are filtered based on percentage of area in a lake or a river, compactness, area, diameter, standard deviation of elevation, and depth. 
 
 ```
 python scripts/watersheds/post_processing.py config/<config file>
-python scripts/assess_results.py config/<config file>
 ```
 
 ## References
