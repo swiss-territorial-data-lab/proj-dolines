@@ -20,7 +20,7 @@ logger = misc.format_logger(logger)
 
 # ----- Define functions -----
 
-def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf, ref_data_type, ref_data_gdf, output_dir='outputs'):
+def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf, builtup_areas_gdf, water_bodies_gdf, rivers_gdf, ref_data_type, ref_data_gdf, output_dir='outputs'):
     """
     Objective function to optimize for IGN doline detection.
 
@@ -34,8 +34,14 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf
         The DataFrame containing the correspondence between the DEMs and the AOIs.
     aoi_gdf : geopandas.GeoDataFrame
         The GeoDataFrame containing the AOIs.
-    non_sedi_areas_gdf : geopandas.GeoDataFrame
+    non_sedimentary_areas_gdf : geopandas.GeoDataFrame
         The GeoDataFrame containing the non-sedimentary areas.
+    builtup_areas_gdf : geopandas.GeoDataFrame
+        The GeoDataFrame containing the builtup areas.
+    water_bodies_gdf : geopandas.GeoDataFrame
+        The GeoDataFrame containing the water bodies.
+    rivers_gdf : geopandas.GeoDataFrame
+        The GeoDataFrame containing the rivers.
     ref_data_type : str
         The type of reference data, possible values are 'geocover' and 'tlm'.
     ref_data_gdf : geopandas.GeoDataFrame
@@ -136,7 +142,7 @@ OUTPUT_DIR = cfg['output_dir']
 TILE_DIR = cfg['tile_dir']
 
 REF_TYPE = cfg['ref_type']
-REF_DATA = cfg[f'ref_data'][REF_TYPE.lower()]
+REF_DATA = cfg['ref_data'][REF_TYPE.lower()]
 NEW_STUDY = cfg['study_param']['new_study']
 OPTIMIZE = cfg['study_param']['optimize']
 ITERATIONS = cfg['study_param']['iterations']
@@ -193,7 +199,8 @@ else:
 if OPTIMIZE:
     objective = partial(
         objective, 
-        dem_dir=TILE_DIR, dem_correspondence_df=dem_correspondence_df, aoi_gdf=aoi_gdf, non_sedi_areas_gdf=non_sedi_areas_gdf, ref_data_type=REF_TYPE, ref_data_gdf=ref_data_gdf, 
+        dem_dir=TILE_DIR, dem_correspondence_df=dem_correspondence_df, aoi_gdf=aoi_gdf, non_sedi_areas_gdf=non_sedi_areas_gdf, 
+        builtup_areas_gdf=builtup_areas_gdf, water_bodies_gdf=water_bodies_gdf, rivers_gdf=dissolved_rivers_gdf, ref_data_type=REF_TYPE, ref_data_gdf=ref_data_gdf, 
         output_dir=output_dir
     )
     study.optimize(objective, n_trials=ITERATIONS, callbacks=[callback])

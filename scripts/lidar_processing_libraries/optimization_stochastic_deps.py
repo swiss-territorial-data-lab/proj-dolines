@@ -35,6 +35,10 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, ref_data_type, ref
         The DataFrame containing the correspondence between the DEMs and the AOIs.
     aoi_gdf : geopandas.GeoDataFrame
         The GeoDataFrame containing the AOIs.
+    non_sedimentary_areas_gdf : geopandas.GeoDataFrame
+        The GeoDataFrame containing the non-sedimentary areas.
+    builtup_areas_gdf : geopandas.GeoDataFrame
+        The GeoDataFrame containing the builtup areas.
     water_bodies_gdf : geopandas.GeoDataFrame
         The GeoDataFrame containing the water bodies.
     rivers_gdf : geopandas.GeoDataFrame
@@ -45,8 +49,6 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, ref_data_type, ref
         The GeoDataFrame containing the formatted reference data.
     working_dir : str
         The directory where the intermediate files will be saved.
-    slope_dir : str, optional
-        The directory where the slope files will be saved. Defaults to 'slope'.
     output_dir : str, optional
         The directory where the output files will be saved. Defaults to '.'.
 
@@ -137,7 +139,7 @@ OUTPUT_DIR = cfg['output_dir']
 TILE_DIR = cfg['tile_dir']
 
 REF_TYPE = cfg['ref_type']
-REF_DATA = cfg[f'ref_data'][REF_TYPE.lower()]
+REF_DATA = cfg['ref_data'][REF_TYPE.lower()]
 NEW_STUDY = cfg['study_param']['new_study']
 OPTIMIZE = cfg['study_param']['optimize']
 ITERATIONS = cfg['study_param']['iterations']

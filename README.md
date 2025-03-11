@@ -51,7 +51,7 @@ python scripts/download_tiles.py config/<config file>
 python scripts/merge_dem_over_aoi.py <config file>
 ```
 
-A buffer around the area of interest was applied to avoid edge effects. The buffer size, and therefore the number of downloaded tiles, depends  on the chosen method.
+A buffer around the area of interest was applied to avoid edge effects. The buffer size, and therefore the number of downloaded tiles, depends on the chosen method. Hence, these scripts are to be run for each method. 
 
 ### Vector layers
 
@@ -62,7 +62,7 @@ Two sinkhole datasets were used to evaluate the results:
 * reference data;
     * concatenation of various polygons dataset with, in case of overlap, the following priority order: [swissTLM3D](https://www.swisstopo.admin.ch/en/landscape-model-swisstlm3d) > polygons provided by the expert > [GeoCover](https://www.swisstopo.admin.ch/en/geological-model-2d-geocover).
 
-They are provided in the `data` folder.
+They are provided in the `data` folder. One prepares the data using `merge_gt.py`... [to be continued]
 
 Several other layers were used to define possible sinkhole areas and limit false positive detections:
 * the [settlement areas](https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4229c353-e780-42d8-9f8c-298c83920a3a);

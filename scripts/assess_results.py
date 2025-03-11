@@ -255,9 +255,9 @@ if __name__ == '__main__':
     OUTPUT_DIR = cfg['output_dir']
 
     REF_DATA_TYPE = cfg['type']['ref_data']
-    REF_DATA = cfg[f'ref_data'][REF_DATA_TYPE.lower()]
+    REF_DATA = cfg['ref_data'][REF_DATA_TYPE.lower()]
     DET_TYPE = cfg['type']['dets']
-    DETECTIONS = cfg[f'detections'][DET_TYPE.lower()]
+    DETECTIONS = cfg['detections'][DET_TYPE.lower()]
 
     PILOT_AREAS = cfg['pilot_areas']
     
