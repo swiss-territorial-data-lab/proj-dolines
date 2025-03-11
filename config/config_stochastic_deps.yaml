@@ -9,9 +9,9 @@ download_tiles.py:
 
 merge_dem_over_aoi.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/merged_DEM/lidar_fct
+  output_dir: outputs/merged_DEM/stoch_deps
   dem_dir: inputs/tiles
-  dem_correspondence: inputs/tiles_ign/dem_per_aoi_stochastic_dep.csv
+  dem_correspondence: inputs/tiles/dem_per_aoi_stochastic_depressions.csv
   aoi: inputs/vectors/pilot_v3.gpkg
   res: 0.5
 
@@ -19,7 +19,7 @@ merge_dem_over_aoi.py:
 wbt_stochastic_depressions.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/stochastic_depressions/5_100
-  dem_dir: outputs/merged_DEM/lidar_fct
+  dem_dir: outputs/merged_DEM/stoch_deps
   # rmse: 0.5             # The docs recommand a value between 0.15 and 0.3 for LiDAR data or the vertical accuracy
   autocorr_range: 2.5    # 3 to 15 times the resolution. Test for 3, 5 and 8 times the resolution.
   iterations: 100       # 100 to 500 is generally enough
@@ -50,7 +50,7 @@ post_processing.py:
 assess_results.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/assessment
-  dem_dir: outputs/merged_DEM/lidar_fct
+  dem_dir: outputs/merged_DEM/stoch_deps
   ref_data:
     merged_reference: inputs/vectors/new_gt/ref_data.gpkg
     ground_truth: inputs/vectors/new_gt/ground_truth.gpkg
@@ -60,6 +60,7 @@ assess_results.py:
   type:
     ref_data: ground_truth
     dets: stochastic_depressions
+
 
 optimization_stochastic_deps.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
