@@ -61,6 +61,7 @@ def main(potential_dolines_gdf, water_bodies_gdf, dissolved_rivers_gdf,
     potential_dolines_gdf['doline_id'] = potential_dolines_gdf.index
     potential_dolines_gdf.drop(columns=['id'], errors='ignore', inplace=True)
 
+    water_bodies_gdf['wb_geom'] = water_bodies_gdf.geometry
     depressions_in_lakes_gdf = gpd.sjoin(potential_dolines_gdf, water_bodies_gdf, how='left', predicate='intersects')
     depressions_in_lakes_gdf['part_in_lake'] =  round(
         depressions_in_lakes_gdf.geometry.intersection(depressions_in_lakes_gdf.wb_geom).area / depressions_in_lakes_gdf.geometry.area, 3
@@ -72,6 +73,7 @@ def main(potential_dolines_gdf, water_bodies_gdf, dissolved_rivers_gdf,
 
     logger.info('Filter potential dolines in rivers...')
 
+    dissolved_rivers_gdf['buff_river_geom'] = dissolved_rivers_gdf.geometry
     depressions_near_rivers_gdf = gpd.sjoin(potential_dolines_gdf, dissolved_rivers_gdf, how='left', predicate='intersects')
     depressions_near_rivers_gdf['part_in_river'] =  round(
         depressions_near_rivers_gdf.geometry.intersection(depressions_near_rivers_gdf.buff_river_geom).area / depressions_near_rivers_gdf.geometry.area, 3
@@ -133,10 +135,8 @@ def prepare_filters(ground_cover_gdf, rivers_gdf):
     ].copy()
     _rivers_gdf.loc[:, 'geometry'] = _rivers_gdf.geometry.buffer(3)
     dissolved_rivers_gdf = _rivers_gdf.dissolve(by='BIOGEO').explode()
-    dissolved_rivers_gdf['buff_river_geom'] = dissolved_rivers_gdf.geometry
 
     water_bodies_gdf = _ground_cover_gdf[_ground_cover_gdf.objektart=='Stehende Gewaesser'].copy()
-    water_bodies_gdf['wb_geom'] = water_bodies_gdf.geometry
 
     return dissolved_rivers_gdf, water_bodies_gdf
 

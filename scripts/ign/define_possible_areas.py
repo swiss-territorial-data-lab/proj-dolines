@@ -63,8 +63,6 @@ def main(slope_dir, non_sedi_areas_gdf, builtup_areas_gdf, water_bodies_gdf, riv
         with rio.open(tile_path) as src:
             suited_areas, _ = mask(src, no_doline_areas_poly, invert=True)
             meta = src.meta
-            if (suited_areas==meta['nodata']).all() and not no_doline_areas_poly.intersects(box(*src.bounds)).any():
-                suited_areas = src.read()
 
         # Remove areas with a high slope
         doline_areas = np.where((suited_areas!=meta['nodata']) & (suited_areas<max_slope), 1, 0)
@@ -134,7 +132,7 @@ if __name__ == '__main__':
     aoi_gdf.loc[:, 'geometry'] = aoi_gdf.geometry.buffer(1000)
     non_sedi_areas_gdf = gpd.overlay(non_sedi_areas_gdf, aoi_gdf, keep_geom_type=True)
 
-    _ = main(slope_dir, non_sedi_areas_gdf, builtup_areas_gdf, water_bodies_gdf, rivers_gdf, max_slope=MAX_SLOPE, save_extra=True, output_dir=output_dir)
+    _ = main(slope_dir, non_sedi_areas_gdf, builtup_areas_gdf, water_bodies_gdf, dissolved_rivers_gdf, max_slope=MAX_SLOPE, save_extra=True, output_dir=output_dir)
 
     logger.success(f'Done! The files were written in {output_dir}.')
 

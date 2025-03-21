@@ -26,32 +26,19 @@ def main(dem_list, autocorr_range, iterations, threshold, non_sedimentary_gdf, b
     if not save_extra:
         wbt.set_verbose_mode(False)
 
-    rmse = {
-        '2019_2523_1199.tif': 0.3,
-        '2019_2568_1126.tif': 0.3,
-        '2019_2573_1224.tif': 0.5,
-        '2019_2709_1204.tif': 0.3,
-        '2019_2724_1234.tif': 0.3,
-        '2020_2623_1266.tif': 0.3,
-        '2020_2697_1157.tif': 0.3,
-        '2021_2590_1170.tif': 0.3,
-        '2023_2783_1163.tif': 0.3,
-        '2023_2795_1170.tif': 0.3,
-        '2023_2825_1184.tif': 0.3
-    }
-
     written_files = []
     potential_dolines_gdf = gpd.GeoDataFrame()
     for dem_path in dem_list:
         logger.info('Compute depression probability...')
         dem_name = os.path.basename(dem_path)
         outpath = os.path.join(working_dir, output_dir, dem_name.rstrip('.tif') + '_pdep.tif')
+        rmse = 0.3 if dem_name != '2019_2573_1224.tif' else 0.5     # Warning: to adapt for production, only ok with the POC data
         
         if not os.path.exists(outpath) or overwrite:
             wbt.stochastic_depression_analysis(
                 dem = os.path.join(working_dir, dem_path),
                 output = outpath,
-                rmse = rmse[dem_name],
+                rmse = rmse,
                 range = autocorr_range,
                 iterations = iterations
             )

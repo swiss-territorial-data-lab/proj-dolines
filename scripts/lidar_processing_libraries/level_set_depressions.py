@@ -82,7 +82,7 @@ def main(dem_list, min_size, min_depth_dep, interval, bool_shp, area_limit, non_
         # Split separate dolines inside the same region
         filtered_nested_dolines_gdf = level_one_two_dolines_gdf.explode(ignore_index=True)
         filtered_nested_dolines_gdf.loc[filtered_nested_dolines_gdf.id.duplicated(keep=False), 'id'] = [
-            i + filtered_nested_dolines_gdf.shape[0] for i in range(filtered_nested_dolines_gdf.id.duplicated(keep=False).sum())
+            i + local_dolines_gdf.shape[0] for i in range(filtered_nested_dolines_gdf.id.duplicated(keep=False).sum())
         ]
 
         filtered_local_dolines_gdf = pd.concat([
