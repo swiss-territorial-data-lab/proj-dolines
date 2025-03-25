@@ -22,10 +22,10 @@ def filter_depressions_by_area_type(depressions_gdf, non_sedimentary_gdf, builtu
 
     if verbose:
         logger.info('Filter non sedimentary depressions...')
-        sedimentary_depressions_gdf = overlay(depressions_gdf, non_sedimentary_gdf, how='difference', keep_geom_type=True).explode()
+    sedimentary_depressions_gdf = overlay(depressions_gdf, non_sedimentary_gdf, how='difference', keep_geom_type=True).explode()
     if verbose:
         logger.info(f'Filter depressions on built-up areas...')
-        depressions_gdf = overlay(sedimentary_depressions_gdf, builtup_areas_gdf, how='difference', keep_geom_type=True).explode()
+    depressions_gdf = overlay(sedimentary_depressions_gdf, builtup_areas_gdf, how='difference', keep_geom_type=True).explode()
 
     return depressions_gdf
 
