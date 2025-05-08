@@ -97,6 +97,8 @@ The results of  are compared to ground truth and metrics are output with the com
 python scripts/assess_results.py config/<config file>
 ```
 
+For each method, the metrics are given for the geological type for which it was the best method based on the F2 score.
+
 ### IGN method
 
 ![IGN method](img/Touya_al_2nd_step.jpg)
@@ -128,14 +130,14 @@ To determine the best parameters for the Swiss topography, the algorithm is opti
 python scripts/ign/optimization_ign.py config/config_ign.yaml
 ```
 
-After the optimization, this method was the best one for the area of type XX. The following metrics were obtained on the ground truth:
+After the optimization, this method was the best one for the area of depressions on dead ice and evaporites. The following metrics were obtained on the ground truth:
 
-| **Area type** | **precision** | **recall** | **f2 score**           |
+| **Area type** | **precision** | **recall** | **F2 score**           |
 |--------------------|:------------:|:--------------:|:-------------------:|
-| _area type 1_         |              |                |                     |
-| _area type 2_              |              |                |                     |
+| Depressions on dead ice         |       0.75       |         0.62       |         0.64            |
+| Evaporites              |          0.52    |       0.94         |         0.81            |
 
-_Table 1: metrics for each type of reference data with the IGN's method._
+_Table 1: metrics for each type of geology for which the IGN's method was the best method._
 
 ### Watershed method
 
@@ -161,14 +163,15 @@ To determine the best parameters for the Swiss topography, the algorithm is opti
 python scripts/ign/optimization_watersheds.py config/config_watersheds.yaml
 ```
 
-After the optimization, this method was the best one for the area of type XX. The following metrics were obtained on the ground truth:
+After the optimization, this method was the best one for the area of marl on karst, molasse and various sedimentary rocks in a limestone matrix (VSRLM). The following metrics were obtained on the ground truth after post-processing:
 
-| **Area type** | **precision** | **recall** | **f2 score**           |
+| **Area type** | **precision** | **recall** | **F2 score**           |
 |--------------------|:------------:|:--------------:|:-------------------:|
-| _area type 1_         |              |                |                     |
-| _area type 2_              |              |                |                     |
+| Marl on karst         |      0.39        |       0.47         |          0.45           |
+| Molasse              |       0.44       |         0.76       |           0.66          |
+| VSRLM              |         0.35     |        0.55        |            0.50         |
 
-_Table 2: metrics for each type of reference data with the watershed method._
+_Table 2: metrics for each type of geology for which the watershed method was the best method._
 
 ### Level-set method
 
@@ -194,14 +197,13 @@ To determine the best parameters for the Swiss topography, the algorithm is opti
 python scripts/lidar_processing_libraries/optimization_level-set.py config/config_level-set.yaml
 ```
 
-After the optimization, this method was the best one for the area of type XX. The following metrics were obtained on the ground truth:
+After the optimization, this method was the best one for the area of naked karst. The following metrics were obtained on the ground truth after post-processing:
 
-| **Area type** | **precision** | **recall** | **f2 score**           |
+| **Area type** | **precision** | **recall** | **F2 score**           |
 |--------------------|:------------:|:--------------:|:-------------------:|
-| _area type 1_         |              |                |                     |
-| _area type 2_              |              |                |                     |
+| Naked karst         |      0.08        |        0.72        |        0.27             |
 
-_Table 3: metrics for each type of reference data with the watershed method._
+_Table 3: metrics for each type of geology for which the watershed method was the best method._
 
 ### Stochastic method
 
