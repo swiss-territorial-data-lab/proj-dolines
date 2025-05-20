@@ -9,7 +9,7 @@ download_tiles.py:
 
 merge_dem_over_aoi.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
-  output_dir: outputs/merged_DEM/lidar_fct
+  output_dir: outputs/merged_DEM/stoch_deps
   dem_dir: inputs/tiles
   dem_correspondence: inputs/tiles/dem_per_aoi_stochastic_depressions.csv
   aoi: inputs/vectors/pilot_v3.gpkg
@@ -50,7 +50,7 @@ post_processing.py:
 assess_results.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/assessment
-  dem_dir: outputs/merged_DEM/lidar_fct
+  dem_dir: outputs/merged_DEM/stoch_deps
   ref_data:
     merged_reference: inputs/vectors/new_gt/ref_data.gpkg
     ground_truth: inputs/vectors/new_gt/ground_truth.gpkg
@@ -60,6 +60,7 @@ assess_results.py:
   type:
     ref_data: ground_truth
     dets: stochastic_depressions
+
 
 optimization_stochastic_deps.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data

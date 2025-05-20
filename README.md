@@ -18,9 +18,9 @@ Several methods were tested, they are presented here with some evaluation metric
 
 ## Setup
 
-Tested on Windows 10 with python 3.11. No specific hardware requirement was identified.
+Tested on Windows 10 with Python 3.11. No specific hardware requirement was identified.
 
-Create conda environment and then, install the `lidar` package with conda as indicated below. After this first step, the other packages can be installed with the requirement file.
+Create a conda environment and then, install the `lidar` package with conda as indicated below. After this first step, the other packages can be installed with the requirement file.
 
 ```
 conda create -n <env name> python=3.11
@@ -44,19 +44,19 @@ The geological type of each area is indicated in the attributes.
 
 ### DEM
 
-All the methods were tested and optimized with the [Swiss DEM](https://www.swisstopo.admin.ch/en/height-model-swissalti3d). The tiles necessary to cover the areas of interest are downloaded and merged with the following command:
+All the methods were tested and optimized with the Swiss DEM, [swissALTI3D](https://www.swisstopo.admin.ch/en/height-model-swissalti3d). The tiles necessary to cover the areas of interest were downloaded and merged with the following command:
 
 ```
 python scripts/download_tiles.py config/<config file>
 python scripts/merge_dem_over_aoi.py <config file>
 ```
 
-A buffer around the area of interest was applied to avoid edge effects. The buffer size, and therefore the number of downloaded tiles, depends  on the chosen method.
+A buffer around the area of interest was applied to avoid edge effects. The buffer size, and therefore the number of downloaded tiles, depends on the chosen method. Hence, these scripts are to be run for each method. 
 
 ### Vector layers
 
 Two sinkhole datasets were used to evaluate the results:
-* the ground truth;
+* a ground truth;
     * established by an expert;
     * used to optimize the parameters of the methods;
     * precise but not complete;
@@ -81,14 +81,14 @@ The F2 score was used to optimize the parameters of all methods.
 
 **Parameters**
 
-The chosen geological type must be specified in the script `global_parameters.py`. Only the areas of interest with the corresponding type will be processed. `None` means all that all the areas are processed at once with the same parameters. <br>
+The chosen geological type must be specified in the script `global_parameters.py`. Only the areas of interest with the corresponding type will be processed. `None` means that all the areas are processed at once with the same parameters. <br>
 The parameters are automatically adjusted to the geological type. They are saved for each type and method in the script `global_parameters.py`. They are imported in the workflow when needed.
 
 The configuration files are used mostly to indicate input and output paths for each script.
 
 **Assessment**
 
-The results of  are compared to ground truth and metrics are output with the command:
+The results are compared to the ground truth and metrics are outputted with the command:
 
 ```
 python scripts/assess_results.py config/<config file>
@@ -100,7 +100,7 @@ For each method, the metrics are given for the geological type for which it was 
 
 ![IGN method](img/Touya_al_2nd_step.jpg)
 
-This method was used by the IGN to generalize generation of the contour lines in karstic plateaus for topographic maps. It is described in Touya et al. (2019). The second step of the procedure, which is presented above with an image from the original publication, consists of delimiting the plateau zones and detecting the sinkholes within them.
+This method was used by the French Institute for Geographic and Forestry Information (IGN) to generalize generation of the contour lines in karstic plateaus for topographic maps. It is described in Touya et al. (2019). The second step of the procedure, which is presented above with an image from the original publication, consists of delimiting the plateau zones and detecting the sinkholes within them.
 
 We adapted the original code into the following scripts:
 * `determine_slope.py`: determine the slope of the DEM;
@@ -129,12 +129,13 @@ python scripts/ign/optimization_ign.py config/config_ign.yaml
 
 After the optimization, this method was the best one for the area of depressions on dead ice and evaporites. The following metrics were obtained on the ground truth:
 
+_Table 1: metrics for each type of geology for which the IGN's method was the best method._
+
 | **Area type** | **precision** | **recall** | **F2 score**           |
 |--------------------|:------------:|:--------------:|:-------------------:|
 | Depressions on dead ice         |       0.75       |         0.62       |         0.64            |
 | Evaporites              |          0.52    |       0.94         |         0.81            |
 
-_Table 1: metrics for each type of geology for which the IGN's method was the best method._
 
 ### Watershed method
 
@@ -142,7 +143,7 @@ _Table 1: metrics for each type of geology for which the IGN's method was the be
 
 The detection of sinkholes through the zonal fill of watersheds was first proposed by Obu & Podobnikar (2013). We use here the version with pre-processed DEM as presented by Telbisz et al. (2016) and used by Čonč et al. (2022). The workflow is illustrated above with an image from Telbisz et al. (2016).
 
-The depression detection is run with the command below. [Post-processing](#post-processing) is performed to limit the number of false positive.
+The depression detection is run with the command below. [Post-processing](#post-processing) is performed to limit the number of false positives.
 
 ```
 python scripts/watersheds/depression_detection.py config/config_watersheds.yaml
@@ -162,13 +163,13 @@ python scripts/ign/optimization_watersheds.py config/config_watersheds.yaml
 
 After the optimization, this method was the best one for the area of marl on karst, molasse and various sedimentary rocks in a limestone matrix (VSRLM). The following metrics were obtained on the ground truth after post-processing:
 
+_Table 2: metrics for each type of geology for which the watershed method was the best method._
+
 | **Area type** | **precision** | **recall** | **F2 score**           |
 |--------------------|:------------:|:--------------:|:-------------------:|
 | Marl on karst         |      0.39        |       0.47         |          0.45           |
 | Molasse              |       0.44       |         0.76       |           0.66          |
 | VSRLM              |         0.35     |        0.55        |            0.50         |
-
-_Table 2: metrics for each type of geology for which the watershed method was the best method._
 
 ### Level-set method
 
@@ -176,7 +177,7 @@ _Table 2: metrics for each type of geology for which the watershed method was th
 
 The level-set method leverages the `lidar` package, a python package for delineation of nested surface depressions. The image above illustrates the detection of depressions with the level-set method. Once the tree graph of compound depressions is established, we only keep the depressions of level one or two based on their area.
 
-The depression detection and tree graph processing are run with the command below. [Post-processing](#post-processing) is performed to limit the number of false positive.
+The depression detection and tree graph processing are run with the command below. [Post-processing](#post-processing) is performed to limit the number of false positives.
 
 ```
 python scripts/lidar_processing_libraries/level_set_depressions.py config/config_level-set.yaml
@@ -196,17 +197,17 @@ python scripts/lidar_processing_libraries/optimization_level-set.py config/confi
 
 After the optimization, this method was the best one for the area of naked karst. The following metrics were obtained on the ground truth after post-processing:
 
+_Table 3: metrics for each type of geology for which the watershed method was the best method._
+
 | **Area type** | **precision** | **recall** | **F2 score**           |
 |--------------------|:------------:|:--------------:|:-------------------:|
 | Naked karst         |      0.08        |        0.72        |        0.27             |
 
-_Table 3: metrics for each type of geology for which the watershed method was the best method._
-
 ### Stochastic method
 
-The package WhiteBox Tools (WBT) has a function called [StochasticDepressionAnalysis](https://www.whiteboxgeo.com/manual/wbt_book/available_tools/hydrological_analysis.html#StochasticDepressionAnalysis). It performs a stochastic analysis of depressions within a DEM, calculating the probability of each cell belonging to a depression. A probability threshold is then applied to delineate depressions.
+The package WhiteBoxTools (WBT) has a function called [StochasticDepressionAnalysis](https://www.whiteboxgeo.com/manual/wbt_book/available_tools/hydrological_analysis.html#StochasticDepressionAnalysis). It performs a stochastic analysis of depressions within a DEM, calculating the probability of each cell of belonging to a depression. A probability threshold is then applied to delineate depressions.
 
-The depression detection is run with the command below. [Post-processing](#post-processing) is performed to limit the number of false positive.
+The depression detection is run with the command below. [Post-processing](#post-processing) is performed to limit the number of false positives.
 
 ```
 python scripts/lidar_processing_libraries/wbt_stochastic_depressions.py config/config_stochastic_deps.yaml
