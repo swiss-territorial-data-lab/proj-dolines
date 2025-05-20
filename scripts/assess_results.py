@@ -209,17 +209,17 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         fig, ax = plt.subplots()
         if resemblance_column == 'IoU':
             df_plot = sub_metrics_df.plot(
-                x='name', y=['precision', 'recall', 'f1', 'f2', 'median IoU for TP'], kind='line', style='o', ax=ax, grid=True, legend=True,
+                x='name', y=['precision', 'recall', 'f2', 'median IoU for TP'], kind='line', style='o', ax=ax, grid=True, legend=True,
             )
         else:
             df_plot = sub_metrics_df.plot(
-                x='name', y=['precision', 'recall', 'f1', 'f2'], kind='line', style='o', ax=ax,  grid=True, legend=True,
+                x='name', y=['precision', 'recall', 'f2'], kind='line', style='o', ax=ax,  grid=True, legend=True,
             )
         ax.set(
             title='Metrics per zone', xlabel='Zone name', ylabel='Metric value', xticks=range(sub_metrics_df.shape[0]), xticklabels=sub_metrics_df.name, ylim=(0,1),
         )
-        ax.tick_params(labelrotation=90)
-        fig.set_size_inches(1.5*sub_metrics_df.shape[0], 5)
+        ax.tick_params(labelrotation=45)
+        fig.set_size_inches(1*sub_metrics_df.shape[0], 5)
 
         filepath = os.path.join(graphs_dir, f'{name_suffix}metrics_per_zone.jpg')
         fig.savefig(filepath, bbox_inches='tight')

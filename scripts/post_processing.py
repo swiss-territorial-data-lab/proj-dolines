@@ -130,7 +130,7 @@ def prepare_filters(ground_cover_gdf, rivers_gdf):
     _rivers_gdf = rivers_gdf.copy()
 
     _rivers_gdf = _rivers_gdf[
-        ~_rivers_gdf.CODE.isin([12111, 12121, 12131, 33111, 33121, 33131, 43111, 43121, 43131, 53131])
+        ~_rivers_gdf.CODE.isin([12111, 12121, 12131, 33111, 33121, 33131, 43111, 43121, 43131, 53111, 53121, 53131])
         & (_rivers_gdf.BIOGEO!='Mittelland')
     ].copy()
     _rivers_gdf.loc[:, 'geometry'] = _rivers_gdf.geometry.buffer(3)

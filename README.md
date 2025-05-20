@@ -108,14 +108,14 @@ This method was used by the IGN to generalize generation of the contour lines in
 We adapted the original code into the following scripts:
 * `determine_slope.py`: determine the slope of the DEM;
 * `define_possible_areas.py`: define the sinkhole areas based on slope, settlement areas, rivers and stagnant waters;
-* `sinkhole_detection.py`: detect the sinkholes in the sinkhole areas.
+* `doline_detection.py`: detect the sinkholes in the sinkhole areas.
 
 The workflow is run with the following commands:
 
 ```
-python scripts/get_slope.py config/config_ign.yaml
-python scripts/define_possible_areas.py config/config_ign.yaml
-python scripts/ign/sinkhole_detection.py config/config_ign.yaml
+python scripts/ign/determine_slope.py config/config_ign.yaml
+python scripts/ign/define_possible_areas.py config/config_ign.yaml
+python scripts/ign/doline_detection.py config/config_ign.yaml
 ```
 
 A bash script can be used to run the full workflow from tile download to assessment:
