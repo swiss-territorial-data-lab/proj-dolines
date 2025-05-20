@@ -1,5 +1,9 @@
+#####
+# Merge the several files for the ground truth
+# Merge the different products for the reference data depending on their expected quality: swissTLM3D > polygons provided by the expert > GeoCover
+#####
+
 import os
-import sys
 from loguru import logger
 from time import time
 

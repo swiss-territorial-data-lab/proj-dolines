@@ -59,10 +59,8 @@ Two sinkhole datasets were used to evaluate the results:
 * the ground truth;
     * established by an expert;
     * used to optimize the parameters of the methods;
-* the reference data;
-    * concatenation of various polygons dataset with, in case of overlap, the following priority order: [swissTLM3D](https://www.swisstopo.admin.ch/en/landscape-model-swisstlm3d) > polygons provided by the expert > [GeoCover](https://www.swisstopo.admin.ch/en/geological-model-2d-geocover).
-
-They are provided in the `data` folder.
+    * precise but not complete;
+    * provided in the `data` folder.
 
 Several other layers were used to define possible sinkhole areas and limit false positive detections:
 * the [settlement areas](https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/4229c353-e780-42d8-9f8c-298c83920a3a);
@@ -75,7 +73,6 @@ The following metrics were used to assess the results:
 
 * precision: part of the detections that are correct;
 * recall: part of the reference data that is detected;
-* F1 score: harmonic mean between the precision and the recall;
 * F2 score: weighted harmonic mean between the precision and the recall giving more importance to the recall.
 
 The F2 score was used to optimize the parameters of all methods.
