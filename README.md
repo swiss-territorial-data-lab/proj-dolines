@@ -205,7 +205,7 @@ _Table 3: metrics for each type of geology for which the watershed method was th
 
 ### Stochastic method
 
-The package WhiteBoxTools (WBT) has a function called [StochasticDepressionAnalysis](https://www.whiteboxgeo.com/manual/wbt_book/available_tools/hydrological_analysis.html#StochasticDepressionAnalysis). It performs a stochastic analysis of depressions within a DEM, calculating the probability of each cell of belonging to a depression. A probability threshold is then applied to delineate depressions.
+The package WhiteboxTools (WBT) has a function called [StochasticDepressionAnalysis](https://www.whiteboxgeo.com/manual/wbt_book/available_tools/hydrological_analysis.html#StochasticDepressionAnalysis). It performs a stochastic analysis of depressions within a DEM, calculating the probability of each cell of belonging to a depression. A probability threshold is then applied to delineate depressions.
 
 The depression detection is run with the command below. [Post-processing](#post-processing) is performed to limit the number of false positives.
 

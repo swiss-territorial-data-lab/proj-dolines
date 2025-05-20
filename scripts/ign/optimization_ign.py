@@ -34,7 +34,7 @@ def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf
         The DataFrame containing the correspondence between the DEMs and the AOIs.
     aoi_gdf : geopandas.GeoDataFrame
         The GeoDataFrame containing the AOIs.
-    non_sedimentary_areas_gdf : geopandas.GeoDataFrame
+    non_sedi_areas_gdf : geopandas.GeoDataFrame
         The GeoDataFrame containing the non-sedimentary areas.
     builtup_areas_gdf : geopandas.GeoDataFrame
         The GeoDataFrame containing the builtup areas.
