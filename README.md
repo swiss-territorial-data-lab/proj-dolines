@@ -40,7 +40,7 @@ Eleven areas of interest were selected by a geologist to test the methods. The a
 
 ![Area of interest](img/AOIs.webp)
 
-The geological type of each area is indicated in the attributes.
+The lithological type of each area is indicated in the attributes.
 
 ### DEM
 
@@ -81,8 +81,8 @@ The F2 score was used to optimize the parameters of all methods.
 
 **Parameters**
 
-The chosen geological type must be specified in the script `global_parameters.py`. Only the areas of interest with the corresponding type will be processed. `None` means that all the areas are processed at once with the same parameters. <br>
-The parameters are automatically adjusted to the geological type. They are saved for each type and method in the script `global_parameters.py`. They are imported in the workflow when needed.
+The chosen lithological type must be specified in the script `global_parameters.py`. Only the areas of interest with the corresponding type will be processed. `None` means that all the areas are processed at once with the same parameters. <br>
+The parameters are automatically adjusted to the lithological type. They are saved for each type and method in the script `global_parameters.py`. They are imported in the workflow when needed.
 
 The configuration files are used mostly to indicate input and output paths for each script.
 
@@ -94,7 +94,7 @@ The results are compared to the ground truth and metrics are outputted with the 
 python scripts/assess_results.py config/<config file>
 ```
 
-For each method, the metrics are given for the geological type for which it was the best method based on the F2 score.
+For each method, the metrics are given for the lithological type for which it was the best method based on the F2 score.
 
 ### IGN method
 
@@ -127,13 +127,13 @@ To determine the best parameters for the Swiss topography, the algorithm is opti
 python scripts/ign/optimization_ign.py config/config_ign.yaml
 ```
 
-After the optimization, this method was the best one for the area of depressions on dead ice and evaporites. The following metrics were obtained on the ground truth:
+After the optimization, this method was the best one for the area of depressions in loose rock and evaporites. The following metrics were obtained on the ground truth:
 
-_Table 1: metrics for each type of geology for which the IGN's method was the best method._
+_Table 1: metrics for each type of lithology for which the IGN's method was the best method._
 
-| **Area type** | **precision** | **recall** | **F2 score**           |
+| **Lithological type** | **precision** | **recall** | **F2 score**           |
 |--------------------|:------------:|:--------------:|:-------------------:|
-| Depressions on dead ice         |       0.75       |         0.62       |         0.64            |
+| Depressions in loose rock         |       0.75       |         0.62       |         0.64            |
 | Evaporites              |          0.52    |       0.94         |         0.81            |
 
 
