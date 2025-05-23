@@ -16,7 +16,7 @@ wbt = whitebox.WhiteboxTools()
 sys.path.insert(1, 'scripts')
 from functions.fct_misc import format_local_depressions, format_logger, get_config
 from functions.fct_rasters import polygonize_binary_raster_w_dem_name
-from global_parameters import AOI_TYPE
+from global_parameters import AOI_TYPE, ALL_PARAMS_STOCHASTIC_DEPS
 
 logger = format_logger(logger)
 
@@ -84,11 +84,18 @@ if __name__ == "__main__":
     OUTPUT_DIR = cfg['output_dir']
     DEM_DIR = cfg['dem_dir']
 
-    AUTOCORR_RANGE = cfg['autocorr_range']
-    ITERATIONS = cfg['iterations']
-    THRESHOLD = cfg['threshold']
     NON_SEDIMENTARY_AREAS = cfg['non_sedimentary_areas']
     BUILTUP_AREAS = cfg['builtup_areas']
+    
+    if AOI_TYPE in ALL_PARAMS_STOCHASTIC_DEPS.keys():
+        cfg_params = ALL_PARAMS_STOCHASTIC_DEPS[AOI_TYPE]
+    else:
+        logger.warning('No optimized parameters found, using the parameters from config file.')
+        cfg_params = cfg
+
+    AUTOCORR_RANGE = cfg_params['autocorr_range']
+    ITERATIONS = cfg_params['iterations']
+    THRESHOLD = cfg_params['threshold']
 
     os.chdir(WORKING_DIR)
 

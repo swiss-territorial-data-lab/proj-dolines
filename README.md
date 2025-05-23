@@ -82,7 +82,7 @@ The F2 score was used to optimize the parameters of all methods.
 **Parameters**
 
 The chosen lithological type must be specified in the script `global_parameters.py`. Only the areas of interest with the corresponding type will be processed. `None` means that all the areas are processed at once with the same parameters. <br>
-The parameters are automatically adjusted to the lithological type. They are saved for each type and method in the script `global_parameters.py`. They are imported in the workflow when needed.
+The parameters are automatically adjusted to the lithological type. They are saved for each type and method in the script `global_parameters.py` and imported in the workflow when needed. Only when the all the areas and the areas of marls on karst are processed with the stochastic method, the parameters are read from the config file.
 
 The configuration files are used mostly to indicate input and output paths for each script.
 

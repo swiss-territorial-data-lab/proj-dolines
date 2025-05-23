@@ -9,7 +9,7 @@ import geopandas as gpd
 
 sys.path.insert(1, 'scripts')
 from functions.fct_misc import format_logger
-from global_parameters import ALL_PARAMS_LEVEL_SET, ALL_PARAMS_WATERSHEDS, AOI_TYPE, GDAL_DATA
+from global_parameters import ALL_PARAMS_LEVEL_SET, ALL_PARAMS_STOCHASTIC_DEPS, ALL_PARAMS_WATERSHEDS, AOI_TYPE
 
 logger = format_logger(logger)
 
@@ -184,7 +184,14 @@ if '__main__' == __name__:
         param_dict = {param_name: ALL_PARAMS_WATERSHEDS[aoi_type_key][param_name] for param_name in param_list}
     elif METHOD_TYPE == 'LEVEL-SET':
         param_dict = {param_name: ALL_PARAMS_LEVEL_SET[aoi_type_key][param_name] for param_name in param_list}
+    elif METHOD_TYPE == 'STOCHASTIC-DEPS':
+        try:
+            param_dict = {param_name: ALL_PARAMS_STOCHASTIC_DEPS[aoi_type_key][param_name] for param_name in param_list}
+        except KeyError:
+            logger.warning(f'No default parameters found for this lithological type. Using data from the config file.')
+            param_dict = {param_name: cfg['parameters'][param_name] for param_name in param_list}
     else:
+        logger.warning('No default parameters found for this method. Using data from the config file.')
         param_dict = {param_name: cfg['parameters'][param_name] for param_name in param_list}
 
     # ----- Processing -----

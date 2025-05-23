@@ -12,7 +12,7 @@ from rasterio.enums import Resampling
 from rasterio.merge import merge
 
 from functions.fct_misc import format_logger
-from global_parameters import ALL_PARAMS_IGN, ALL_PARAMS_LEVEL_SET, ALL_PARAMS_WATERSHEDS, AOI_TYPE, GDAL_DATA
+from global_parameters import ALL_PARAMS_IGN, ALL_PARAMS_LEVEL_SET, ALL_PARAMS_STOCHASTIC_DEPS, ALL_PARAMS_WATERSHEDS, AOI_TYPE
 
 logger = format_logger(logger)
 
@@ -126,6 +126,12 @@ if __name__ == '__main__':
         RES = ALL_PARAMS_WATERSHEDS[aoi_type_key]['resolution']
     elif METHOD_TYPE == 'LEVEL-SET':
         RES = ALL_PARAMS_LEVEL_SET[aoi_type_key]['resolution']
+    elif METHOD_TYPE == 'STOCHASTIC-DEPS':
+        try:
+            RES = ALL_PARAMS_STOCHASTIC_DEPS[aoi_type_key]['resolution']
+        except KeyError:
+            logger.warning(f'No default resolution found for this lithological type. Using data from the config file.')
+            RES = cfg['res']
     else:
         logger.warning('No default resolution found for this method. Using data from the config file.')
         RES = cfg['res']

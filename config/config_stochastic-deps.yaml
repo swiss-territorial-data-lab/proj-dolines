@@ -19,7 +19,7 @@ merge_dem_over_aoi.py:
 wbt_stochastic_depressions.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/stochastic_depressions
-  dem_dir: outputs/merged_DEM/lidar_fct
+  dem_dir: outputs/merged_DEM/stoch_deps
   # rmse: 0.5             # The docs recommand a value between 0.15 and 0.3 for LiDAR data or the vertical accuracy
   autocorr_range: 5    # 3 to 15 times the resolution. Test for 3, 5 and 8 times the resolution.
   iterations: 100       # 100 to 500 is generally enough

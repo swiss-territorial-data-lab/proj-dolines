@@ -1,5 +1,4 @@
 import os
-from sys import executable
 from loguru import logger
 from time import time
 from tqdm import tqdm
@@ -11,7 +10,6 @@ from urllib.error import HTTPError
 from urllib.request import urlretrieve
 
 import functions.fct_misc as misc
-from global_parameters import GDAL_DATA
 
 logger = misc.format_logger(logger)
 
