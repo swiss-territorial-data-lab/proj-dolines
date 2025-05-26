@@ -163,7 +163,7 @@ python scripts/ign/optimization_watersheds.py config/config_watersheds.yaml
 
 After the optimization, this method was the best one for the area of marl on karst, molasse and various sedimentary rocks in a limestone matrix (VSRLM). The following metrics were obtained on the ground truth after post-processing:
 
-_Table 2: metrics for each type of geology for which the watershed method was the best method._
+_Table 2: metrics for each type of lithology for which the watershed method was the best method._
 
 | **Area type** | **precision** | **recall** | **F2 score**           |
 |--------------------|:------------:|:--------------:|:-------------------:|
@@ -197,7 +197,7 @@ python scripts/lidar_processing_libraries/optimization_level-set.py config/confi
 
 After the optimization, this method was the best one for the area of naked karst. The following metrics were obtained on the ground truth after post-processing:
 
-_Table 3: metrics for each type of geology for which the watershed method was the best method._
+_Table 3: metrics for each type of lithology for which the watershed method was the best method._
 
 | **Area type** | **precision** | **recall** | **F2 score**           |
 |--------------------|:------------:|:--------------:|:-------------------:|
