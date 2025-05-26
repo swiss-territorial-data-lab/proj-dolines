@@ -20,7 +20,7 @@ logger = misc.format_logger(logger)
 
 # ----- Define functions -----
 
-def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf, builtup_areas_gdf, water_bodies_gdf, rivers_gdf, ref_data_type, ref_data_gdf, output_dir='outputs'):
+def objective(trial, dem_dir, dem_correspondence_df, aoi_gdf, non_sedi_areas_gdf, builtup_areas_gdf, water_bodies_gdf, dissolved_rivers_gdf, ref_data_type, ref_data_gdf, output_dir='outputs'):
     """
     Objective function to optimize for IGN doline detection.
 
