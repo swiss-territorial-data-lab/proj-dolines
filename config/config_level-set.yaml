@@ -36,6 +36,7 @@ assess_results.py:
   working_dir: C:/Users/gwena/Documents/STDL/2_En_cours/dolines/02_data
   output_dir: outputs/assessment
   ref_data:
+    tlm_data: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
     merged_reference: inputs/vectors/new_gt/ref_data.gpkg
     ground_truth: inputs/vectors/new_gt/ground_truth.gpkg
   detections:

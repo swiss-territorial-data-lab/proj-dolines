@@ -64,13 +64,14 @@ assess_results.py:
   output_dir: outputs/assessment
   dem_dir: outputs/merged_DEM/ign
   ref_data:
+    tlm_data: inputs/vectors/TLM-Dolinen-20240814/tlm-dolinen_20240814.gpkg
     merged_reference: inputs/vectors/new_gt/ref_data.gpkg
     ground_truth: inputs/vectors/new_gt/ground_truth.gpkg
   detections:
     ign: outputs/dolines/ign/sinkholes.gpkg
   pilot_areas: inputs/vectors/pilot_v3.gpkg
   type:
-    ref_data: ground_truth
+    ref_data: tlm_data
     dets: ign
 
   

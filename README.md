@@ -2,7 +2,7 @@
 
 This repository aims to detect sinkholes, also called dolines, based on the digital elevation model (DEM) of Switzerland.
 
-Several methods were tested, they are presented here with some evaluation metrics. The full documentation is available on the [STDL tech website](https://www.stdl.ch/).
+Several methods were tested, they are presented here with some evaluation metrics. The full documentation is available on the [STDL tech website](https://tech.stdl.ch/PROJ-DOLINES/).
 
 **Table of content**
 

@@ -78,7 +78,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
     logger.info(f'Detection method: {det_type}')
     name_suffix = f'{AOI_TYPE + "_" if AOI_TYPE else ""}{ref_data_type}_'
 
-    assert (ref_data_type.lower() in ['merged_reference', 'ground_truth']), 'Reference data type must be geocover, tlm or ground_truth.'
+    assert (ref_data_type.lower() in ['tlm_data', 'merged_reference', 'ground_truth']), 'Reference data type must be tlm_data, merged_reference or ground_truth.'
     assert (det_type.lower() in ['watersheds', 'ign', 'level-set', 'stochastic_depressions']), 'Detection method must be watersheds, level-set, stochastic depressions, or ign.'
 
     if _dets_gdf.loc[0, 'tile_id'].endswith('.tif'):
@@ -127,7 +127,7 @@ def main(ref_data_type, ref_data_gdf, detections_gdf, pilot_areas_gdf, det_type,
         logger.info(f"- median distance between centroids for TP: {metrics_df.loc['all', 'median dist for TP']}")
     else:
         resemblance_result = 'median IoU for TP'
-        metrics_df[resemblance_result] = 0 if tp_gdf.empty else tp_gdf['IOU'].median()
+        metrics_df[resemblance_result] = 0 if tp_gdf.empty else tp_gdf['IoU'].median()
         logger.info(f"- median IoU for TP: {metrics_df.loc['all', 'median IoU for TP']}")
     
     written_files = []
